@@ -34,7 +34,7 @@ export const register = asyncHandel(async (req, res) => {
 
         await db.query(
             "INSERT INTO shareholders (username,email,password,region,nrc,township,phone,address,birthday) VALUES (?,?,?,?,?,?,?,?,?)",
-            [username, email, hashedPassword, nrc, township, region, phone, address, birthday]
+            [username, email, hashedPassword, region, nrc, township, phone, address, birthday]
         );
         return res.status(201).json({ message: "User created successfully", success: true });
 
@@ -222,5 +222,66 @@ export const pendingUser = asyncHandel(async (req, res) => {
             message: err.message,
             success: false
         });
+    }
+})
+
+export const getProfile = asyncHandel(async (req, res) => {
+    try {
+
+        const userID = req.params.id;
+
+        const [checkUser] = await db.query("SELECT  id, username, email, phone, address, township, region,nrc FROM shareholders WHERE id = ?", [userID]);
+        res.status(200).json({
+            success: true,
+            data: checkUser[0]
+        });
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({
+            message: err.message,
+            success: false
+        })
+    }
+})
+
+export const updateProfile = asyncHandel(async (req, res) => {
+    try {
+
+        const userID = req.user.id;
+        const { username, password, phone, address } = req.body;
+
+        const [user] = await db.query("SELECT * FROM shareholders WHERE id = ? ", [userID])
+
+        if (user.length === 0) {
+            return res.status(404).json({
+                message: "User not found!",
+                success: false
+            })
+        }
+
+        let hashedPassword = user[0].password;
+        if (password) {
+            const ItSame = await bcrypt.compare(password, user[0].password);
+            if (ItSame) {
+                return res.status(400).json({
+                    message: "New password cannot be same as old password!",
+                    success: false
+                });
+            }
+            hashedPassword = await bcrypt.hash(password, 12)
+        }
+        const [data] = await db.query("UPDATE shareholders SET username = ?,password = ? ,phone = ? ,address = ? WHERE id = ?", [username || user[0].username, hashedPassword, phone || user[0].phone, address || user[0].address, userID]);
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            success: true,
+
+        });
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({
+            message: err.message,
+            success: false
+        })
     }
 })

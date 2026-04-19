@@ -44,3 +44,5 @@ export const validateRegister = (req, res, next) => {
     }
     next();
 }
+
+

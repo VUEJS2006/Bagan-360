@@ -2,9 +2,11 @@ import express from "express"
 import "dotenv/config";
 import cookieParser from "cookie-parser"
 import db from "./config/db.js";
+import authRouter from "./routes/authRouters.js"
+import memberRouter from "./routes/memberRouters.js"
 const app = express()
 
-import authRouter from "./routes/authRouter.js"
+
 
 try {
     await db.connect();
@@ -20,8 +22,9 @@ app.get("/", (req, res) => {
 app.use(express.json())
 app.use(cookieParser())
 
-app.use('/auth',authRouter)
+app.use('/auth',authRouter);
 
+app.use('/api',memberRouter);
 // app.use('/uploads', express.static('image/uploads'));
 
 app.listen(PORT,'0.0.0.0', () => {

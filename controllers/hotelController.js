@@ -79,7 +79,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 export const hotelList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query("SELECT  FROM hotels ORDER BY id DESC");
+       const [data] = await db.query(`SELECT id, name, type, price, discount, total_amount, start_date, end_date, description, facilities, image FROM hotels ORDER BY id DESC`);
         res.status(200).json({
             success: true,
             count: data.length,

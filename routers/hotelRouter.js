@@ -1,4 +1,4 @@
-import { hotelCreate, hotelList, hotelUpdate, hotelDelete } from "../controllers/HotelController.js";
+import { hotelCreate, hotelList, hotelUpdate, hotelDelete } from "../controllers/hotelController.js";
 import { upload } from "../middlewares/upload.js";
 import express from "express";
 

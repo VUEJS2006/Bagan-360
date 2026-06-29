@@ -104,7 +104,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         const { id } = req.params;
         const { name, type, price, discount, start_date, end_date, description, facilities } = req.body;
 
-        const [hotel] = await db.query("SELECT  FROM hotels WHERE id = ?", [id]);
+        const [hotel] = await db.query("SELECT * FROM hotels WHERE id = ?", [id]);
         if (hotel.length === 0) {
             return res.status(404).json({
                 success: false,

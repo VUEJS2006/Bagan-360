@@ -111,7 +111,14 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 message: "Hotel not found"
             });
         }
-        let imagePaths = JSON.parse(hotel[0].image || "[]");
+        let imagePaths = [];
+
+        try {
+            imagePaths = JSON.parse(hotel[0].image || "[]");
+            if (!Array.isArray(imagePaths)) imagePaths = [];
+        } catch (error) {
+            imagePaths = [];
+        }
 
         if (req.files && req.files.length > 0) {
             for (const image of imagePaths) {

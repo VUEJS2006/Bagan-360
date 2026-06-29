@@ -1,5 +1,5 @@
 import mysql from "mysql2";
-import "dotenv";
+import "dotenv/config";
 
 console.log("DB Information", {
     HOST: process.env.HOST,

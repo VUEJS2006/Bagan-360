@@ -4,9 +4,9 @@ import express from "express";
 
 const router = express.Router()
 
-router.post('/hotel/create', upload.array("images", 10), hotelCreate);
+router.post('/hotel/create', upload.single("image"), hotelCreate);
 router.get('/hotel/list', hotelList);
-router.put('/hotel/update/:id', upload.array("images", 10), hotelUpdate);
+router.put('/hotel/update/:id', upload.single("image"), hotelUpdate);
 router.delete('/hotel/delete/:id', hotelDelete);
 
 export default router;

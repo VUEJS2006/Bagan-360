@@ -21,25 +21,24 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         const uploadFolder = path.join(process.cwd(), "images", "hotel");
         if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, { recursive: true })
+            fs.mkdirSync(uploadFolder, { recursive: true });
         }
-        const imagePaths = [];
-        if (req.files && req.files.length > 0) {
-            for (const file of req.files) {
-                const fileName = `${uuid()}.webp`;
-                const savePath = path.join(uploadFolder, fileName)
 
-                await sharp(file.buffer)
-                    .resize({
-                        width: 1920,
-                        withoutEnlargement: true
-                    })
-                    .webp({
-                        quality: 90
-                    })
-                    .toFile(savePath);
-                imagePaths.push(`images/hotel/${fileName}`);
-            }
+        let imagePath = null;
+
+        if (req.file) {
+            const fileName = `${uuid()}.webp`;
+            const savePath = path.join(uploadFolder, fileName);
+
+            await sharp(req.file.buffer)
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({ quality: 90 })
+                .toFile(savePath);
+
+            imagePath = `images/hotel/${fileName}`;
         }
         const [data] = await db.query(
             `INSERT INTO hotels
@@ -59,13 +58,12 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
             VALUES(?,?,?,?,?,?,?,?,?,?)
 
-            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities, JSON.stringify(imagePaths)]
+            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities, imagePath]
         );
 
         return res.status(201).json({
             success: true,
             message: "Hotel created successfully.",
-            images: imagePaths,
             data
         })
 
@@ -111,43 +109,52 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 message: "Hotel not found"
             });
         }
-        let imagePaths = [];
+        let currentImages = [];
+        if (hotel[0].image) {
 
-        try {
-            imagePaths = JSON.parse(hotel[0].image || "[]");
-            if (!Array.isArray(imagePaths)) imagePaths = [];
-        } catch (error) {
-            imagePaths = [];
+            currentImages = hotel[0].image.split(",").filter(img => img.trim() !== "");
         }
+
+        let updatedImageString = hotel[0].image;
+
 
         if (req.files && req.files.length > 0) {
-            for (const image of imagePaths) {
+
+
+            for (const image of currentImages) {
                 const oldPath = path.join(process.cwd(), image);
                 if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath)
+                    fs.unlinkSync(oldPath);
                 }
             }
-        }
 
-        imagePaths = [];
-        const uploadFolder = path.join(process.cwd(), "images", "hotels");
-        if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, { recursive: true })
-        }
-        for (const file of req.files) {
-            const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName);
-            await sharp(file.buffer)
-                .resize({ width: 1920, withoutEnlargement: true })
-                .webp({ quality: 90 })
-                .toFile(savePath)
 
-            imagePaths.push(`images/hotel/${fileName}`)
+            const newImagePaths = [];
+            const uploadFolder = path.join(process.cwd(), "images", "hotel");
+
+            if (!fs.existsSync(uploadFolder)) {
+                fs.mkdirSync(uploadFolder, { recursive: true });
+            }
+
+            for (const file of req.files) {
+                const fileName = `${uuid()}.webp`;
+                const savePath = path.join(uploadFolder, fileName);
+
+                await sharp(file.buffer)
+                    .resize({ width: 1920, withoutEnlargement: true })
+                    .webp({ quality: 90 })
+                    .toFile(savePath);
+
+                newImagePaths.push(`images/hotel/${fileName}`);
+            }
+
+
+            updatedImageString = newImagePaths.join(",");
         }
 
         const total_amount = Number(price) - (Number(price) * Number(discount) / 100);
 
-        await db.query(
+        const [data] = await db.query(
             `
             UPDATE hotels SET 
             name=?,
@@ -162,7 +169,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             image=?
             WHERE id=?
             `,
-            [name, type, price, discount, total_amount, start_date, end_date, description, facilities, JSON.stringify(imagePaths), id]
+            [name, type, price, discount, total_amount, start_date, end_date, description, facilities, updatedImageString, id]
 
         );
         res.status(200).json({
@@ -191,11 +198,16 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             });
         }
 
-        const images = JSON.parse(hotel[0].image || "[]");
-        for (const image of images) {
-            const imagePaths = path.join(process.cwd(), image);
-            if (fs.existsSync(imagePaths)) {
-                fs.unlinkSync(imagePaths)
+        if (hotel[0].image) {
+
+            const images = hotel[0].image.split(",").filter(img => img.trim() !== "");
+
+
+            for (const image of images) {
+                const imagePath = path.join(process.cwd(), image);
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
             }
         }
 

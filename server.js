@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 
 // Express Packages
 app.use(express.json())
-app.use("/images", express.static("images"));
+app.use("/images", express.static("image"));
 
 // API
 

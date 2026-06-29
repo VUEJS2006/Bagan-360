@@ -73,7 +73,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
         console.log(err);
         res.status(500).json({
             success: false,
-            message: err.message
+            message: error.message
         });
     }
 })
@@ -92,7 +92,7 @@ export const hotelList = asyncHandel(async (req, res) => {
         console.log(err);
         res.status(500).json({
             success: false,
-            message: err.message
+            message: error.message
         });
     }
 })
@@ -164,10 +164,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             data
         });
     } catch (error) {
-        console.log(err);
+        console.log(error);
         res.status(500).json({
             success: false,
-            message: err.message
+            message: error.message
         });
     }
 })
@@ -198,10 +198,10 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             message: "Hotel deleted successfully"
         });
     } catch (error) {
-        console.log(err);
+        console.log(error);
         res.status(500).json({
             success: false,
-            message: err.message
+            message: error.message
         });
     }
 })

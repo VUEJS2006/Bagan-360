@@ -74,7 +74,7 @@ export const verifyOTP = asyncHandel(async (req, res) => {
             })
         }
         const [CheckOTP] = await db.query("SELECT *  FROM otp_codes WHERE email = ? AND otp = ? AND expires_at > NOW()", [email, otp]);
-        if (CheckOTP === 0) {
+        if (CheckOTP.length === 0) {
             return res.status(400).json({
                 message: "Invalid or expired OTP",
                 success: false

@@ -84,7 +84,7 @@ export const verifyOTP = asyncHandel(async (req, res) => {
         }
 
         const hashPassword = await bcrypt.hash(use.password, 12);
-        const [user] = await db.query("INSERT INTO users (username,email,password,nrc,phone,address,region,township,birthday,role) VALUES (?,?,?,?,?,?,?,?,?,?)"
+        const [data] = await db.query("INSERT INTO users (username,email,password,nrc,phone,address,region,township,birthday,role) VALUES (?,?,?,?,?,?,?,?,?,?)"
         [
             user.username,
             user.email,

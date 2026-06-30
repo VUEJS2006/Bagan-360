@@ -25,7 +25,7 @@ app.use("/images", express.static("image"));
 // API
 
 app.use('/api', hotelRouter);
-app.use('/auth/', authRouter);
+app.use('/auth', authRouter);
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);
 })

@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 import { generateOTP } from "../helper/generatorOTP.js";
 import { sendMail, sentOTP } from "../helper/mail.js";
+import { use } from "react";
 
 export const register = asyncHandel(async (req, res) => {
     try {
@@ -92,19 +93,19 @@ export const verifyOTP = asyncHandel(async (req, res) => {
 
         const hashPassword = await bcrypt.hash(user.password, 12);
         const [data] = await db.query("INSERT INTO users (username,email,password,nrc,phone,address,region,township,birthday,role) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        [
-            user.username,
-            user.email,
-            hashPassword,
-            user.nrc,
-            user.phone,
-            user.address,
-            user.region,
-            user.township,
-            user.birthday,
-            user.role,
-           
-        ]
+            [
+                user.username,
+                user.email,
+                hashPassword,
+                user.nrc,
+                user.phone,
+                user.address,
+                user.region,
+                user.township,
+                user.birthday,
+                user.role,
+
+            ]
         );
 
         await db.query("DELETE FROM otp_codes WHERE email = ?", [email]);
@@ -119,6 +120,74 @@ export const verifyOTP = asyncHandel(async (req, res) => {
             success: true,
         });
 
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const login = asyncHandel(async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(401).json({
+                message: 'All field are required!',
+                success: false
+            })
+        }
+        const [userdata] = await db.query("SELECT * FROM users WHERE email=?", [email]);
+        const user = userdata[0]
+        if (!user) {
+            return res.status(401).json({
+                message: 'user not found!',
+                success: false
+            })
+        }
+        if (!user.password) {
+            return res.status(401).json({
+                message: 'password not found!',
+                success: false
+            })
+        }
+        if (!user.email) {
+            return res.status(500).json({
+                message: "Email not found!",
+                success: false
+            });
+        }
+        const MatchPassword = await bcrypt.compare(password, user.password);
+        if (!MatchPassword) {
+            return res.status(401).json({ message: "Password does not match" });
+        }
+        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" })
+        res.cookie("access_token", token, {
+            httpOnly: true,
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        })
+        return res.status(200).json({
+            message: 'success',
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                name: user.username,
+                email: user.email,
+                nrc: user.nrc,
+                birthday: user.birthday,
+                phone: user.phone,
+                role: user.role,
+                region: user.region,
+                township: user.township,
+                address: user.address,
+                status: user.status,
+                image: user.image
+            }
+        })
     } catch (error) {
         console.log(error)
         return res.status(500).json({

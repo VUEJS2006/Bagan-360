@@ -95,14 +95,15 @@ export const verifyOTP = asyncHandel(async (req, res) => {
         [
             user.username,
             user.email,
+            hashPassword,
+            user.nrc,
             user.phone,
             user.address,
-            user.nrc,
             user.region,
             user.township,
             user.birthday,
             user.role,
-            hashPassword
+           
         ]
         );
 

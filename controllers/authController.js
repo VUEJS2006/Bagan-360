@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 import { generateOTP } from "../helper/generatorOTP.js";
 import { sendMail, sentOTP } from "../helper/mail.js";
-import { use } from "react";
+
 
 export const register = asyncHandel(async (req, res) => {
     try {

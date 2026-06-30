@@ -46,7 +46,7 @@ export const register = asyncHandel(async (req, res) => {
         res.status(200).json({
             message: "OTP sent successfully",
             success: true,
-            token: tempToken,
+            token: generateToken,
         });
     } catch (error) {
         console.log(error)

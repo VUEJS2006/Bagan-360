@@ -19,7 +19,7 @@ export const register = asyncHandel(async (req, res) => {
             })
         }
 
-        const [CheckUser] = await db.query("SELECT  FROM users WHERE email = ?", [email]);
+        const [CheckUser] = await db.query("SELECT *  FROM users WHERE email = ?", [email]);
         if (checkUser.length > 0) {
             return res.status(401).json({
                 message: 'Email Already Exists!',

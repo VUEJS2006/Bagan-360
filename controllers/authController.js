@@ -115,7 +115,7 @@ export const verifyOTP = asyncHandel(async (req, res) => {
 
         );
         res.status(201).json({
-            message: "Register success, waiting admin approval",
+            message: "Register Success",
             success: true,
         });
 

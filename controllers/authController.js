@@ -38,7 +38,14 @@ export const register = asyncHandel(async (req, res) => {
                 username,
                 email,
                 nrc,
-                phone
+                phone,
+                password,
+                township,
+                region,
+                address,
+                birthday,
+                role
+
             },
             process.env.JWT_SECRET,
             { expiresIn: "15m" }

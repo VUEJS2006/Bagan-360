@@ -2,7 +2,7 @@ import express from "express"
 import "dotenv/config"
 import db from "./config/db.js"
 import hotelRouter from "./routers/hotelRouter.js"
-
+import authRouter from "./routers/authRouter.js"
 try {
     const conn = await db.getConnection();
     console.log("DB is connected");
@@ -25,7 +25,7 @@ app.use("/images", express.static("image"));
 // API
 
 app.use('/api', hotelRouter);
-
+app.use('/auth/', authRouter);
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);
 })

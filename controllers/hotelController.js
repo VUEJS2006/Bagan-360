@@ -79,7 +79,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 export const hotelList = asyncHandel(async (req, res) => {
     try {
 
-       const [data] = await db.query(`SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image FROM hotels ORDER BY id DESC`);
+        const [data] = await db.query(`SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image FROM hotels ORDER BY id DESC`);
         res.status(200).json({
             success: true,
             count: data.length,
@@ -118,7 +118,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         let updatedImageString = hotel[0].image;
 
 
-        if (req.files && req.files.length > 0) {
+        if (req.file) {
 
 
             for (const image of currentImages) {
@@ -136,21 +136,21 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 fs.mkdirSync(uploadFolder, { recursive: true });
             }
 
-            for (const file of req.files) {
-                const fileName = `${uuid()}.webp`;
-                const savePath = path.join(uploadFolder, fileName);
 
-                await sharp(file.buffer)
-                    .resize({ width: 1920, withoutEnlargement: true })
-                    .webp({ quality: 90 })
-                    .toFile(savePath);
+            const fileName = `${uuid()}.webp`;
+            const savePath = path.join(uploadFolder, fileName);
 
-                newImagePaths.push(`images/hotel/${fileName}`);
-            }
+            await sharp(req.file.buffer)
+                .resize({ width: 1920, withoutEnlargement: true })
+                .webp({ quality: 90 })
+                .toFile(savePath);
 
-
-            updatedImageString = newImagePaths.join(",");
+            newImagePaths.push(`images/hotel/${fileName}`);
         }
+
+
+        updatedImageString = newImagePaths.join(",");
+
 
         const total_amount = Number(price) - (Number(price) * Number(discount) / 100);
 

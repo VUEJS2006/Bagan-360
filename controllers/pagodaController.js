@@ -104,19 +104,18 @@ export const pagodaUpdate = asyncHandel(async (req, res) => {
                 message: "Pagoda not found"
             });
         }
-        let currentImage = [];
-        if (pagoda[0].image) {
-            currentImage = pagoda[0].image.split(",").filter(img => img.trim() !== "")
-        }
         let updatedImageString = pagoda[0].image;
+
         if (req.file) {
+
             for (const image of currentImage) {
                 const oldPath = path.join(process.cwd(), image);
+
                 if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath)
+                    fs.unlinkSync(oldPath);
                 }
             }
-            const newImagePath = [];
+
             const uploadFolder = path.join(process.cwd(), "images", "pagoda");
 
             if (!fs.existsSync(uploadFolder)) {
@@ -127,13 +126,15 @@ export const pagodaUpdate = asyncHandel(async (req, res) => {
             const savePath = path.join(uploadFolder, fileName);
 
             await sharp(req.file.buffer)
-                .resize({ width: 1920, withoutEnlargement: true })
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
                 .webp({ quality: 90 })
                 .toFile(savePath);
 
-            newImagePath.push(`images/pagoda/${fileName}`);
+            updatedImageString = `images/pagoda/${fileName}`;
         }
-        updatedImageString = newImagePath.join(",");
 
         const total_fee = Number(fee) - (Number(fee) * Number(discount) / 100);
         if (!tags) {

@@ -5,5 +5,5 @@ import express from "express";
 const router = express.Router()
 // Admin
 router.post('/admin/pagoda/create', upload.single("image"), pagodaCreate);
-router.get('/pagoda/list',pagodaList)
+router.get('/admin/pagoda/list',pagodaList)
 export default router;

@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const pagodaCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name, location, tags, fee, visit_date, discount, description, history } = req.body;
+        let { name, location, tags, fee, visit_date, discount, description, history } = req.body;
         if (!name || !location || !fee || !visit_date) {
             return res.status(401).json({
                 message: 'All field are required!',

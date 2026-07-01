@@ -11,9 +11,9 @@ import { sendMail, sentOTP } from "../helper/mail.js";
 
 export const register = asyncHandel(async (req, res) => {
     try {
-        const { username, email, password, nrc, township, region, phone, address, birthday, role } = req.body;
+        const { username, email, password, gender, township, region, phone, address, role } = req.body;
 
-        if (!username || !email || !password || !phone || !nrc) {
+        if (!username || !email || !password || !phone || !gender) {
             return res.status(401).json({
                 message: 'All field are required!',
                 success: false
@@ -38,13 +38,12 @@ export const register = asyncHandel(async (req, res) => {
             {
                 username,
                 email,
-                nrc,
+                gender,
                 phone,
                 password,
                 township,
                 region,
                 address,
-                birthday,
                 role
 
             },
@@ -92,17 +91,16 @@ export const verifyOTP = asyncHandel(async (req, res) => {
         }
 
         const hashPassword = await bcrypt.hash(user.password, 12);
-        const [data] = await db.query("INSERT INTO users (username,email,password,nrc,phone,address,region,township,birthday,role) VALUES (?,?,?,?,?,?,?,?,?,?)",
+        const [data] = await db.query("INSERT INTO users (username,email,password,gender,phone,address,region,township,role) VALUES (?,?,?,?,?,?,?,?,?)",
             [
                 user.username,
                 user.email,
                 hashPassword,
-                user.nrc,
+                user.gender,
                 user.phone,
                 user.address,
                 user.region,
                 user.township,
-                user.birthday,
                 user.role,
 
             ]

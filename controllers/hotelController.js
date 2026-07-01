@@ -237,15 +237,10 @@ export const hotelDelete = asyncHandel(async (req, res) => {
         }
 
         if (hotel[0].image) {
+            const imagePath = path.join(process.cwd(), hotel[0].image);
 
-            const images = hotel[0].image.split(",").filter(img => img.trim() !== "");
-
-
-            for (const image of images) {
-                const imagePath = path.join(process.cwd(), image);
-                if (fs.existsSync(imagePath)) {
-                    fs.unlinkSync(imagePath);
-                }
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
             }
         }
 

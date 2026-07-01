@@ -223,3 +223,37 @@ export const pagodaUpdate = asyncHandel(async (req, res) => {
         });
     }
 });
+
+export const pagodaDelete = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        const [pagoda] = await db.query("SELECT * FROM pagodas WHERE id = ?", [id]);
+        if (pagoda.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Pagoda not found"
+            });
+        }
+
+        if (pagoda[0].image) {
+            const imagePath = path.join(process.cwd(), pagoda[0].image);
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+            }
+        }
+        await db.query("DELETE FROM pagodas WHERE id = ?", [id]);
+        res.status(200).json({
+            success: true,
+            message: "Pagoda deleted successfully"
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

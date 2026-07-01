@@ -72,3 +72,23 @@ export const pagodaCreate = asyncHandel(async (req, res) => {
         })
     }
 })
+
+export const pagodaList = asyncHandel(async (req, res) => {
+    try {
+
+        const [data] = await db.query("SELECT id,name,location,tags,fee,visit_date,total_fee,image,description,history,DATE_FORMAT(created_at, '%d-%m-%Y') as created_at FROM pagodas ORDER BY id DESC");
+
+        return res.status(200).json({
+            success:true,
+            count:data.length,
+            data
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})

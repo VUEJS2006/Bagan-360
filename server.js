@@ -21,7 +21,7 @@ app.get('/', (req, res) => {
 
 // Express Packages
 app.use(express.json())
-app.use("/images", express.static("image"));
+app.use("/images",express.static(path.join(process.cwd(), "images")));
 // API
 app.use('/api',pagodaRouter)
 app.use('/api', hotelRouter);

@@ -96,20 +96,39 @@ export const pagodaList = asyncHandel(async (req, res) => {
 export const pagodaUpdate = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
-        let { name, location, tags, fee, visit_date, discount, description, history } = req.body;
-        const [pagoda] = await db.query("SELECT * FROM pagodas WHERE id = ?", [id]);
+
+        let {
+            name,
+            location,
+            tags,
+            fee,
+            visit_date,
+            discount,
+            description,
+            history
+        } = req.body;
+
+        const [pagoda] = await db.query(
+            "SELECT * FROM pagodas WHERE id = ?",
+            [id]
+        );
+
         if (pagoda.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Pagoda not found"
             });
         }
+
+        // Default old image
         let updatedImageString = pagoda[0].image;
 
+        // Upload new image
         if (req.file) {
 
-            for (const image of currentImage) {
-                const oldPath = path.join(process.cwd(), image);
+            // Delete old image
+            if (pagoda[0].image) {
+                const oldPath = path.join(process.cwd(), pagoda[0].image);
 
                 if (fs.existsSync(oldPath)) {
                     fs.unlinkSync(oldPath);
@@ -130,16 +149,19 @@ export const pagodaUpdate = asyncHandel(async (req, res) => {
                     width: 1920,
                     withoutEnlargement: true
                 })
-                .webp({ quality: 90 })
+                .webp({
+                    quality: 90
+                })
                 .toFile(savePath);
 
             updatedImageString = `images/pagoda/${fileName}`;
         }
 
-        const total_fee = Number(fee) - (Number(fee) * Number(discount) / 100);
+        // Tags
         if (!tags) {
-            tags = []
+            tags = [];
         }
+
         if (typeof tags === "string") {
             try {
                 tags = JSON.parse(tags);
@@ -151,35 +173,53 @@ export const pagodaUpdate = asyncHandel(async (req, res) => {
             }
         }
 
+        fee = Number(fee);
+        discount = Number(discount || 0);
+
+        const total_fee = fee - (fee * discount / 100);
+
         const [data] = await db.query(
             `
-            UPDATE pagodas SET 
-            name=?,
-            location=?,
-            tags=?,
-            fee=?,
-            visit_date=?,
-            discount=?,
-            total_fee=?,
-            description=?,
-            history=?,
-            image=?
-            WHERE id = ?
+            UPDATE pagodas SET
+                name=?,
+                location=?,
+                tags=?,
+                fee=?,
+                visit_date=?,
+                discount=?,
+                total_fee=?,
+                description=?,
+                history=?,
+                image=?
+            WHERE id=?
             `,
-            [name, location, JSON.stringify(tags), fee, visit_date, discount, total_fee, description, history, updatedImageString, id]
+            [
+                name,
+                location,
+                JSON.stringify(tags),
+                fee,
+                visit_date,
+                discount,
+                total_fee,
+                description,
+                history,
+                updatedImageString,
+                id
+            ]
         );
-        res.status(200).json({
+
+        return res.status(200).json({
             success: true,
-            message: "pagoda Updated Successfully",
+            message: "Pagoda Updated Successfully",
             data
         });
 
-
     } catch (error) {
-        console.log(error)
+        console.log(error);
+
         return res.status(500).json({
-            message: error.message,
-            success: false
-        })
+            success: false,
+            message: error.message
+        });
     }
-})
+});

@@ -100,91 +100,129 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const { name, type, price, discount, start_date, end_date, description, facilities } = req.body;
 
-        const [hotel] = await db.query("SELECT * FROM hotels WHERE id = ?", [id]);
+        let {
+            name,
+            type,
+            price,
+            discount,
+            start_date,
+            end_date,
+            description,
+            facilities
+        } = req.body;
+
+        const [hotel] = await db.query(
+            "SELECT * FROM hotels WHERE id = ?",
+            [id]
+        );
+
         if (hotel.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Hotel not found"
             });
         }
-        let currentImages = [];
-        if (hotel[0].image) {
-
-            currentImages = hotel[0].image.split(",").filter(img => img.trim() !== "");
-        }
 
         let updatedImageString = hotel[0].image;
 
-
+        // New Image Upload
         if (req.file) {
 
+            // Delete Old Image
+            if (hotel[0].image) {
+                const oldPath = path.join(
+                    process.cwd(),
+                    hotel[0].image
+                );
 
-            for (const image of currentImages) {
-                const oldPath = path.join(process.cwd(), image);
                 if (fs.existsSync(oldPath)) {
                     fs.unlinkSync(oldPath);
                 }
             }
 
-
-            const newImagePaths = [];
-            const uploadFolder = path.join(process.cwd(), "images", "hotel");
+            const uploadFolder = path.join(
+                process.cwd(),
+                "images",
+                "hotel"
+            );
 
             if (!fs.existsSync(uploadFolder)) {
-                fs.mkdirSync(uploadFolder, { recursive: true });
+                fs.mkdirSync(uploadFolder, {
+                    recursive: true
+                });
             }
 
-
             const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName);
+            const savePath = path.join(
+                uploadFolder,
+                fileName
+            );
 
             await sharp(req.file.buffer)
-                .resize({ width: 1920, withoutEnlargement: true })
-                .webp({ quality: 90 })
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
                 .toFile(savePath);
 
-            newImagePaths.push(`images/hotel/${fileName}`);
+            updatedImageString = `images/hotel/${fileName}`;
         }
 
+        price = Number(price);
+        discount = Number(discount || 0);
 
-        updatedImageString = newImagePaths.join(",");
-
-
-        const total_amount = Number(price) - (Number(price) * Number(discount) / 100);
+        const total_amount =
+            price - (price * discount / 100);
 
         const [data] = await db.query(
             `
-            UPDATE hotels SET 
-            name=?,
-            type=?,
-            price=?,
-            discount=?,
-            total_amount=?,
-            start_date=?,
-            end_date=?,
-            description=?,
-            facilities=?,
-            image=?
+            UPDATE hotels SET
+                name=?,
+                type=?,
+                price=?,
+                discount=?,
+                total_amount=?,
+                start_date=?,
+                end_date=?,
+                description=?,
+                facilities=?,
+                image=?
             WHERE id=?
             `,
-            [name, type, price, discount, total_amount, start_date, end_date, description, facilities, updatedImageString, id]
-
+            [
+                name,
+                type,
+                price,
+                discount,
+                total_amount,
+                start_date,
+                end_date,
+                description,
+                facilities,
+                updatedImageString,
+                id
+            ]
         );
-        res.status(200).json({
+
+        return res.status(200).json({
             success: true,
             message: "Hotel Updated Successfully",
             data
         });
+
     } catch (error) {
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const hotelDelete = asyncHandel(async (req, res) => {
     try {

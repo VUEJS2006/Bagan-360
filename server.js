@@ -3,6 +3,7 @@ import "dotenv/config"
 import db from "./config/db.js"
 import hotelRouter from "./routers/hotelRouter.js"
 import authRouter from "./routers/authRouter.js"
+import pagodaRouter from "./routers/pagodaRouter.js"
 try {
     const conn = await db.getConnection();
     console.log("DB is connected");
@@ -21,9 +22,8 @@ app.get('/', (req, res) => {
 // Express Packages
 app.use(express.json())
 app.use("/images", express.static("image"));
-
 // API
-
+app.use('/api',pagodaRouter)
 app.use('/api', hotelRouter);
 app.use('/auth', authRouter);
 app.listen(PORT, () => {

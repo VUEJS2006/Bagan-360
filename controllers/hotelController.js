@@ -257,3 +257,22 @@ export const hotelDelete = asyncHandel(async (req, res) => {
         });
     }
 })
+
+export const hotelDetails = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        const [data] = await db.query("SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image FROM hotels  WHERE id = ?",[id]);
+          res.status(200).json({
+            success: true,
+            data
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

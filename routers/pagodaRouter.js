@@ -1,4 +1,4 @@
-import {pagodaCreate,pagodaList,pagodaUpdate,pagodaDelete} from "../controllers/pagodaController.js";
+import {pagodaCreate,pagodaList,pagodaUpdate,pagodaDelete,pagodaDetails} from "../controllers/pagodaController.js";
 import { upload } from "../middlewares/upload.js";
 import express from "express";
 
@@ -11,4 +11,5 @@ router.delete('/admin/pagoda/delete/:id',pagodaDelete);
 
 // Mobile
 router.get('/mobile/pagoda/list',pagodaList);
+router.get('/mobile/pagoda/details/:id',pagodaDetails);
 export default router;

@@ -257,3 +257,22 @@ export const pagodaDelete = asyncHandel(async (req, res) => {
         });
     }
 })
+
+export const pagodaDetails = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        const [data] = await db.query("SELECT id,name,location,tags,fee,visit_date,total_fee,image,description,history,DATE_FORMAT(created_at, '%d-%m-%Y') as created_at FROM pagodas WHERE id = ?", [id]);
+        res.status(200).json({
+            success: true,
+            data
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

@@ -11,7 +11,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         const { name, type, price, discount, start_date, end_date, description, facilities,location } = req.body;
 
-        if (!name || !type || !price || !discount || !start_date || !end_date || !location) {
+        if (!name || !type || !start_date || !end_date || !location) {
             return res.status(400).json({
                 success: false,
                 message: "All field are required!"
@@ -57,7 +57,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             image
             )
 
-            VALUES(?,?,?,?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)
 
             `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities,location, imagePath]
         );

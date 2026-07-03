@@ -9,9 +9,9 @@ import { v4 as uuid } from "uuid";
 export const hotelCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name, type, price, discount, start_date, end_date, description, facilities } = req.body;
+        const { name, type, price, discount, start_date, end_date, description, facilities,location } = req.body;
 
-        if (!name || !type || !price || !discount || !start_date || !end_date) {
+        if (!name || !type || !price || !discount || !start_date || !end_date || !location) {
             return res.status(400).json({
                 success: false,
                 message: "All field are required!"
@@ -53,12 +53,13 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             end_date,
             description,
             facilities,
+            location,
             image
             )
 
             VALUES(?,?,?,?,?,?,?,?,?,?)
 
-            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities, imagePath]
+            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities,location, imagePath]
         );
 
         return res.status(201).json({
@@ -79,7 +80,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 export const hotelList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query(`SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image FROM hotels ORDER BY id DESC`);
+        const [data] = await db.query(`SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image,location FROM hotels ORDER BY id DESC`);
         res.status(200).json({
             success: true,
             count: data.length,
@@ -109,6 +110,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             start_date,
             end_date,
             description,
+            location,
             facilities
         } = req.body;
 
@@ -190,6 +192,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 end_date=?,
                 description=?,
                 facilities=?,
+                location=?
                 image=?
             WHERE id=?
             `,
@@ -203,6 +206,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 end_date,
                 description,
                 facilities,
+                location,
                 updatedImageString,
                 id
             ]
@@ -262,7 +266,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [data] = await db.query("SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image FROM hotels  WHERE id = ?",[id]);
+        const [data] = await db.query("SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image,location FROM hotels  WHERE id = ?",[id]);
           res.status(200).json({
             success: true,
             data

@@ -69,7 +69,7 @@ export const destinationCreate = asyncHandel(async (req, res) => {
         })
 
     } catch (error) {
-        console.log(err);
+        console.log(error);
         res.status(500).json({
             success: false,
             message: error.message

@@ -22,7 +22,7 @@ export const pagodaCreate = asyncHandel(async (req, res) => {
         if (typeof tags === "string") {
             try {
                 tags = JSON.parse(tags);
-            } catch (err) {
+            } catch (error) {
                 tags = tags
                     .split(",")
                     .map(item => item.trim())
@@ -165,7 +165,7 @@ export const pagodaUpdate = asyncHandel(async (req, res) => {
         if (typeof tags === "string") {
             try {
                 tags = JSON.parse(tags);
-            } catch (err) {
+            } catch (error) {
                 tags = tags
                     .split(",")
                     .map(item => item.trim())

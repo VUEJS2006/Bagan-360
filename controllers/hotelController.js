@@ -69,7 +69,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
         })
 
     } catch (error) {
-        console.log(err);
+        console.log(error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -192,7 +192,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 end_date=?,
                 description=?,
                 facilities=?,
-                location=?
+                location=?,
                 image=?
             WHERE id=?
             `,

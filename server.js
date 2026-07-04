@@ -1,6 +1,7 @@
 import express from "express"
 import "dotenv/config"
 import db from "./config/db.js"
+import cookieParser from "cookie-parser";
 import hotelRouter from "./routers/hotelRouter.js"
 import authRouter from "./routers/authRouter.js"
 import pagodaRouter from "./routers/pagodaRouter.js"
@@ -23,6 +24,7 @@ app.get('/', (req, res) => {
 
 // Express Packages
 app.use(express.json())
+app.use(cookieParser());
 app.use("/images",express.static(path.join(process.cwd(), "images")));
 // API
 app.use('/api',pagodaRouter)

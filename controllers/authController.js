@@ -109,8 +109,8 @@ export const verifyOTP = asyncHandel(async (req, res) => {
         await db.query("DELETE FROM otp_codes WHERE email = ?", [email]);
         await sendMail(
             email,
-            "Account Pending",
-            `<h3>Hello your account is pending!!</h3>`
+            "Account Registration Successfully",
+            `<h3>please sign in to my Bagan 360 App</h3>`
 
         );
         res.status(201).json({

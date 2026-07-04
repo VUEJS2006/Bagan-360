@@ -1,15 +1,16 @@
-import {pagodaCreate,pagodaList,pagodaUpdate,pagodaDelete,pagodaDetails} from "../controllers/pagodaController.js";
+import { pagodaCreate, pagodaList, pagodaUpdate, pagodaDelete, pagodaDetails } from "../controllers/pagodaController.js";
 import { upload } from "../middlewares/upload.js";
+import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
 
 const router = express.Router()
 // Admin
-router.post('/admin/pagoda/create', upload.single("image"), pagodaCreate);
-router.get('/admin/pagoda/list',pagodaList)
-router.put('/admin/pagoda/update/:id', upload.single("image"),pagodaUpdate);
-router.delete('/admin/pagoda/delete/:id',pagodaDelete);
+router.post('/admin/pagoda/create', authenticated, isAdmin, upload.single("image"), pagodaCreate);
+router.get('/admin/pagoda/list', authenticated, isAdmin, pagodaList)
+router.put('/admin/pagoda/update/:id', authenticated, isAdmin, upload.single("image"), pagodaUpdate);
+router.delete('/admin/pagoda/delete/:id', authenticated, isAdmin, pagodaDelete);
 
 // Mobile
-router.get('/mobile/pagoda/list',pagodaList);
-router.get('/mobile/pagoda/details/:id',pagodaDetails);
+router.get('/mobile/pagoda/list', authenticated, pagodaList);
+router.get('/mobile/pagoda/details/:id', authenticated, pagodaDetails);
 export default router;

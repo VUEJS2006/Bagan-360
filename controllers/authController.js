@@ -194,3 +194,49 @@ export const login = asyncHandel(async (req, res) => {
         })
     }
 })
+
+export const userList = asyncHandel(async (req, res) => {
+    try {
+
+        const [data] = await db.query("SELECT * FROM users ORDER BY id DESC");
+        return res.status(200).json({
+            success: true,
+            data
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const roleUpdate = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        const { role } = req.body;
+        const [roleCheck] = await db.query("SELECT * FROM user WHERE id = ?", [id]);
+        if (roleCheck === 0) {
+            return res.status(401).json({
+                message: "User not found!",
+                success: false
+            })
+        }
+
+        const [data] = await db.query("UPDATE users SET role = ? WHERE id = ?", [id, role]);
+        return res.status(200).json({
+            message: "Role Update Success!",
+            success: true
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})

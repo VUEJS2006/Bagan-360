@@ -235,7 +235,7 @@ export const roleUpdate = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
         const { role } = req.body;
-        const [roleCheck] = await db.query("SELECT * FROM user WHERE id = ?", [id]);
+        const [roleCheck] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
         if (roleCheck === 0) {
             return res.status(401).json({
                 message: "User not found!",

@@ -236,7 +236,7 @@ export const roleUpdate = asyncHandel(async (req, res) => {
         const { id } = req.params;
         const { role } = req.body;
         const [roleCheck] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
-        if (roleCheck === 0) {
+        if (roleCheck.length === 0) {
             return res.status(401).json({
                 message: "User not found!",
                 success: false
@@ -282,7 +282,7 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
         const { username, email, region, township, phone, address } = req.body;
 
         const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
-        if (checkUser === 0) {
+        if (checkUser.length === 0) {
             return res.status(401).json({
                 message: "User is not authenticated!",
                 success: false
@@ -350,7 +350,7 @@ export const userChangePassword = asyncHandel(async (req, res) => {
         const userId = req.user.id;
         const { CurrentPassword, NewPassword, ConfirmPassword } = req.body;
         const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
-        if (checkUser === 0) {
+        if (checkUser.length === 0) {
             return res.status(401).json({
                 message: "User is not found!",
                 success: false
@@ -401,7 +401,7 @@ export const AccountDelete = asyncHandel(async (req, res) => {
 
         const [checkUser] = await db.query("SELECT * FROM users WHERE id= ?", [userID]);
 
-        if (checkUser === 0) {
+        if (checkUser.length === 0) {
             return res.status(401).json({
                 message: "User is not found!",
                 success: false

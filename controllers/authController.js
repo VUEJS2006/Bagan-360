@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 import { generateOTP } from "../helper/generatorOTP.js";
 import { sendMail, sentOTP } from "../helper/mail.js";
-
+import { v4 as uuid } from "uuid";
 
 export const register = asyncHandel(async (req, res) => {
     try {
@@ -175,17 +175,34 @@ export const login = asyncHandel(async (req, res) => {
                 id: user.id,
                 name: user.username,
                 email: user.email,
-                nrc: user.nrc,
-                birthday: user.birthday,
                 phone: user.phone,
                 role: user.role,
                 region: user.region,
                 township: user.township,
                 address: user.address,
-                status: user.status,
                 image: user.image
             }
         })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const logout = asyncHandel(async (req, res) => {
+    try {
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        return res.status(200).json({
+            message: "Logout successful",
+            success: true
+        });
     } catch (error) {
         console.log(error)
         return res.status(500).json({
@@ -231,6 +248,194 @@ export const roleUpdate = asyncHandel(async (req, res) => {
             message: "Role Update Success!",
             success: true
         })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const userProfile = asyncHandel(async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+        const [userProfile] = await db.query("SELECT id,username,email,phone,gender,nrc,region,township,address,image FROM users WHERE id = ?", [userId])
+        res.status(200).json({
+            success: true,
+            data: checkUser[0]
+        });
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const userProfileEdit = asyncHandel(async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { username, email, region, township, phone, address } = req.body;
+
+        const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
+        if (checkUser === 0) {
+            return res.status(401).json({
+                message: "User is not authenticated!",
+                success: false
+            })
+        }
+
+        let getImage = checkUser[0].image;
+        if (req.file) {
+            if (checkUser[0].image) {
+                const oldPath = path.join(process.cwd(), checkUser[0].image);
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath)
+                }
+            }
+
+            const uploadFolder = path.join(process.cwd(), "images", "authentication");
+            if (!fs.existsSync(uploadFolder)) {
+                fs.mkdirSync(uploadFolder, { recursive: true })
+            }
+            const fileName = `${uuid()}.webp`;
+            const savePath = path.join(uploadFolder, fileName);
+            await sharp(req.file.buffer)
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
+                .toFile(savePath);
+
+
+            newImageUpdate = `images/authentication${fileName}`
+
+        }
+        const [data] = await db.query("UPDATE shareholders SET username = ?,email = ?,phone = ? ,address = ?,nrc = ?,region = ?,township = ?,image = ? WHERE id = ?",
+            [username || user[0].username,
+            email || user[0].email,
+            phone || user[0].phone,
+            address || user[0].address,
+            region || user[0].region,
+            township || user[0].township,
+                newImageUpdate,
+                userID
+            ]
+        );
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            success: true,
+        });
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const userChangePassword = asyncHandel(async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+        const { CurrentPassword, NewPassword, ConfirmPassword } = req.body;
+        const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
+        if (checkUser === 0) {
+            return res.status(401).json({
+                message: "User is not found!",
+                success: false
+            })
+        }
+        const isMatch = await bcrypt.compare(CurrentPassword, checkUser[0].password);
+        if (!isMatch) {
+            return res.status(401).json({
+                message: "Current password is incorrect!",
+                success: false
+            })
+        }
+        if (NewPassword !== ConfirmPassword) {
+            return res.status(400).json({
+                message: "Password Can't same!",
+                success: false
+            })
+        }
+        if (CurrentPassword === NewPassword) {
+            return res.status(400).json({
+                message: "New password cannot be same as old password!",
+                success: false
+            });
+        }
+
+        const hashPassword = await bcrypt.hash(NewPassword, 12);
+
+        const [data] = await db.query("UPDATE users SET password = ? WHERE = id", [hashPassword, userId]);
+        return res.status(200).json({
+            message: "Change Password successfully",
+            success: true,
+        });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const AccountDelete = asyncHandel(async (req, res) => {
+    try {
+
+        const userID = req.user.id;
+        const { email, text, password } = req.body;
+
+        const [checkUser] = await db.query("SELECT * FROM users WHERE id= ?", [userID]);
+
+        if (checkUser === 0) {
+            return res.status(401).json({
+                message: "User is not found!",
+                success: false
+            })
+        }
+
+        if (email !== checkUser[0].email) {
+            return res.status(401).json({
+                message: "Email Invalid!",
+                success: false
+            })
+        }
+
+        const isMatch = await bcrypt.compare(password, checkUser[0].password);
+        if (!isMatch) {
+            return res.status(401).json({
+                message: "Password Does not match!",
+                success: false
+            })
+        }
+
+        if (text !== "DELETE") {
+            return res.status(401).json({
+                message: "Please Write DELETE!",
+                success: false
+            })
+        }
+
+        const [data] = await db.query("DELETE FROM users WHERE id = ?", [userID]);
+        res.status(200).json({
+            success: true,
+            message: "User Account Deleted Successfully!",
+            data: { data }
+        });
 
     } catch (error) {
         console.log(error)

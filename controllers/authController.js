@@ -318,13 +318,13 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
             newImageUpdate = `images/authentication/${fileName}`;
 
         }
-        const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,nrc = ?,region = ?,township = ?,image = ? WHERE id = ?",
-            [username || data[0].username,
-            email || data[0].email,
-            phone || data[0].phone,
-            address || data[0].address,
-            region || data[0].region,
-            township || data[0].township,
+        const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,region = ?,township = ?,image = ? WHERE id = ?",
+            [username || checkUser[0].username,
+            email || checkUser[0].email,
+            phone || checkUser[0].phone,
+            address || checkUser[0].address,
+            region || checkUser[0].region,
+            township || checkUser[0].township,
                 newImageUpdate,
                 userId
             ]

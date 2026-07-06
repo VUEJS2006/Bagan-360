@@ -265,7 +265,7 @@ export const userProfile = asyncHandel(async (req, res) => {
         const [userProfile] = await db.query("SELECT id,username,email,phone,gender,region,township,address,image FROM users WHERE id = ?", [userId])
         res.status(200).json({
             success: true,
-            data: checkUser[0]
+            data: userProfile[0]
         });
     } catch (error) {
         console.log(error)

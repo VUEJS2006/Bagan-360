@@ -11,7 +11,7 @@ import { v4 as uuid } from "uuid";
 
 export const register = asyncHandel(async (req, res) => {
     try {
-        const { username, email, password, gender, township, region, phone, address, role = "user" } = req.body;
+        const { username, email, password, gender, township, region, phone, address} = req.body;
 
         if (!username || !email || !password || !phone || !gender) {
             return res.status(401).json({
@@ -44,7 +44,7 @@ export const register = asyncHandel(async (req, res) => {
                 township,
                 region,
                 address,
-                role = "user"
+                role:"user"
 
             },
             process.env.JWT_SECRET,

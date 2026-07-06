@@ -11,7 +11,7 @@ import { v4 as uuid } from "uuid";
 
 export const register = asyncHandel(async (req, res) => {
     try {
-        const { username, email, password, gender, township, region, phone, address} = req.body;
+        const { username, email, password, gender, township, region, phone, address } = req.body;
 
         if (!username || !email || !password || !phone || !gender) {
             return res.status(401).json({
@@ -44,7 +44,7 @@ export const register = asyncHandel(async (req, res) => {
                 township,
                 region,
                 address,
-                role:"user"
+                role: "user"
 
             },
             process.env.JWT_SECRET,
@@ -243,7 +243,7 @@ export const roleUpdate = asyncHandel(async (req, res) => {
             })
         }
 
-        const [data] = await db.query("UPDATE users SET role = ? WHERE id = ?", [role,id]);
+        const [data] = await db.query("UPDATE users SET role = ? WHERE id = ?", [role, id]);
         return res.status(200).json({
             message: "Role Update Success!",
             success: true
@@ -365,9 +365,9 @@ export const userChangePassword = asyncHandel(async (req, res) => {
         }
         if (NewPassword !== ConfirmPassword) {
             return res.status(400).json({
-                message: "Password Can't same!",
+                message: "New password and confirm password do not match!",
                 success: false
-            })
+            });
         }
         if (CurrentPassword === NewPassword) {
             return res.status(400).json({
@@ -378,7 +378,7 @@ export const userChangePassword = asyncHandel(async (req, res) => {
 
         const hashPassword = await bcrypt.hash(NewPassword, 12);
 
-        const [data] = await db.query("UPDATE users SET password = ? WHERE = id", [hashPassword, userId]);
+        const [data] = await db.query("UPDATE users SET password = ? WHERE id = ?", [hashPassword, userId]);
         return res.status(200).json({
             message: "Change Password successfully",
             success: true,
@@ -399,7 +399,7 @@ export const AccountDelete = asyncHandel(async (req, res) => {
         const userID = req.user.id;
         const { email, text, password } = req.body;
 
-        const [checkUser] = await db.query("SELECT * FROM users WHERE id= ?", [userID]);
+        const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userID]);
 
         if (checkUser.length === 0) {
             return res.status(401).json({

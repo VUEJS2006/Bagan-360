@@ -243,7 +243,7 @@ export const roleUpdate = asyncHandel(async (req, res) => {
             })
         }
 
-        const [data] = await db.query("UPDATE users SET role = ? WHERE id = ?", [id, role]);
+        const [data] = await db.query("UPDATE users SET role = ? WHERE id = ?", [role,id]);
         return res.status(200).json({
             message: "Role Update Success!",
             success: true

@@ -318,7 +318,7 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
             newImageUpdate = `images/authentication${fileName}`
 
         }
-        const [data] = await db.query("UPDATE shareholders SET username = ?,email = ?,phone = ? ,address = ?,nrc = ?,region = ?,township = ?,image = ? WHERE id = ?",
+        const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,nrc = ?,region = ?,township = ?,image = ? WHERE id = ?",
             [username || user[0].username,
             email || user[0].email,
             phone || user[0].phone,

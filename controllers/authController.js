@@ -289,7 +289,7 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
             })
         }
 
-        let getImage = checkUser[0].image;
+        let newImageUpdate = checkUser[0].image;
         if (req.file) {
             if (checkUser[0].image) {
                 const oldPath = path.join(process.cwd(), checkUser[0].image);
@@ -315,7 +315,7 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
                 .toFile(savePath);
 
 
-            newImageUpdate = `images/authentication${fileName}`
+            newImageUpdate = `images/authentication/${fileName}`;
 
         }
         const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,nrc = ?,region = ?,township = ?,image = ? WHERE id = ?",
@@ -326,7 +326,7 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
             region || data[0].region,
             township || data[0].township,
                 newImageUpdate,
-                userID
+                userId
             ]
         );
         return res.status(200).json({

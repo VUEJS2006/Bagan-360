@@ -319,12 +319,12 @@ export const userProfileEdit = asyncHandel(async (req, res) => {
 
         }
         const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,nrc = ?,region = ?,township = ?,image = ? WHERE id = ?",
-            [username || user[0].username,
-            email || user[0].email,
-            phone || user[0].phone,
-            address || user[0].address,
-            region || user[0].region,
-            township || user[0].township,
+            [username || data[0].username,
+            email || data[0].email,
+            phone || data[0].phone,
+            address || data[0].address,
+            region || data[0].region,
+            township || data[0].township,
                 newImageUpdate,
                 userID
             ]

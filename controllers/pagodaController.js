@@ -155,7 +155,7 @@ export const pagodaList = asyncHandel(async (req, res) => {
             JSON_ARRAY()
             ) AS images
             FROM pagodas p 
-            LEFT JOIN pagodas_images pi
+            LEFT JOIN pagoda_images pi
             ON p.id = pi.pagoda_id
             GROUP BY p.id 
             ORDER BY p.id DESC

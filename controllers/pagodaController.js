@@ -151,9 +151,10 @@ export const pagodaList = asyncHandel(async (req, res) => {
             p.description,
             p.history,
             DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-            COALESCE( JSON_ARRAY(pi.image),
-            JSON_ARRAY()
-            ) AS images
+           COALESCE(
+                    JSON_ARRAYAGG(pi.image),
+                    JSON_ARRAY()
+                ) AS images
             FROM pagodas p 
             LEFT JOIN pagoda_images pi
             ON p.id = pi.pagoda_id
@@ -390,8 +391,8 @@ export const pagodaDetails = asyncHandel(async (req, res) => {
                 p.description,
                 p.history,
                 DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-                COALESCE(
-                    JSON_ARRAY(pi.image),
+                 COALESCE(
+                    JSON_ARRAYAGG(pi.image),
                     JSON_ARRAY()
                 ) AS images
             FROM pagodas p

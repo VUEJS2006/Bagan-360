@@ -9,16 +9,27 @@ import { v4 as uuid } from "uuid";
 export const pagodaCreate = asyncHandel(async (req, res) => {
     try {
 
-        let { name, location, tags, fee, visit_date, discount, description, history } = req.body;
-        if (!name || !location || !fee || !visit_date) {
-            return res.status(401).json({
-                message: 'All field are required!',
-                success: false
-            })
+        let {
+            name,
+            location,
+            tags,
+            visit_date,
+            description,
+            history
+        } = req.body;
+
+        if (!name || !location || !visit_date) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required!"
+            });
         }
+
+        // tags
         if (!tags) {
-            tags = []
+            tags = [];
         }
+
         if (typeof tags === "string") {
             try {
                 tags = JSON.parse(tags);
@@ -29,49 +40,103 @@ export const pagodaCreate = asyncHandel(async (req, res) => {
                     .filter(Boolean);
             }
         }
-        const total_fee = Number(fee) - (Number(fee) * Number(discount) / 100);
-        const uploadFolder = path.join(process.cwd(), "images", "pagoda")
+
+        // Upload Folder
+        const uploadFolder = path.join(process.cwd(), "images", "pagoda");
+
         if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, { recursive: true })
-        }
-        let imagePath = null;
-        if (req.file) {
-            const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName)
-
-            await sharp(req.file.buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({ quality: 90 })
-                .toFile(savePath)
-
-            imagePath = `images/pagoda/${fileName}`
+            fs.mkdirSync(uploadFolder, { recursive: true });
         }
 
-        const [data] = await db.query(
+        // Image Upload
+        let imagePaths = [];
+
+        if (req.files && req.files.length > 0) {
+
+            for (const file of req.files) {
+
+                const fileName = `${uuid()}.webp`;
+
+                const savePath = path.join(uploadFolder, fileName);
+
+                await sharp(file.buffer)
+                    .resize({
+                        width: 1920,
+                        withoutEnlargement: true
+                    })
+                    .webp({
+                        quality: 90
+                    })
+                    .toFile(savePath);
+
+                imagePaths.push(`images/pagoda/${fileName}`);
+            }
+
+        }
+
+        // Insert Pagoda
+        const [result] = await db.query(
             `
-            INSERT INTO pagodas 
-            (name,location,tags,fee,visit_date,discount,total_fee,description,history,image)
-            VALUES (?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO pagodas
+            (
+                name,
+                location,
+                tags,
+                visit_date,
+                description,
+                history
+            )
+            VALUES (?,?,?,?,?,?)
             `,
-            [name, location, JSON.stringify(tags), fee, visit_date, discount, total_fee, description, history, imagePath]
+            [
+                name,
+                location,
+                JSON.stringify(tags),
+                visit_date,
+                description,
+                history
+            ]
         );
+
+        const pagodaId = result.insertId;
+
+        for (const image of imagePaths) {
+
+            await db.query(
+                `
+                INSERT INTO pagoda_images
+                (
+                    pagoda_id,
+                    image
+                )
+                VALUES (?,?)
+                `,
+                [
+                    pagodaId,
+                    image
+                ]
+            );
+
+        }
         return res.status(201).json({
             success: true,
             message: "Pagoda created successfully.",
-            data
-        })
-
+            data: {
+                pagodaId,
+                images: imagePaths
+            }
+        });
     } catch (error) {
-        console.log(error)
+
+        console.log(error);
+
         return res.status(500).json({
-            message: error.message,
-            success: false
-        })
+            success: false,
+            message: error.message
+        });
+
     }
-})
+});
 
 export const pagodaList = asyncHandel(async (req, res) => {
     try {

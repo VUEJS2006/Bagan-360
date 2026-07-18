@@ -140,6 +140,10 @@ export const pagodaCreate = asyncHandel(async (req, res) => {
 
 export const pagodaList = asyncHandel(async (req, res) => {
     try {
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 2;
+
+        const offset = (page - 1) * limit
 
         const [data] = await db.query(
             ` SELECT 
@@ -160,12 +164,24 @@ export const pagodaList = asyncHandel(async (req, res) => {
             ON p.id = pi.pagoda_id
             GROUP BY p.id 
             ORDER BY p.id DESC
-            `
+            LIMIT ? OFFSET ? 
+            `, [
+            limit, offset
+        ]
         );
-
+        const [totalData] = await db.query("SELECT COUNT(*) As total FROM pagodas")
+        const totalPages = Math.ceil(
+            totalData[0].total / limit
+        );
         return res.status(200).json({
             success: true,
             count: data.length,
+            pagination: {
+                total: totalData[0].total,
+                page,
+                limit,
+                totalPages: totalPages
+            },
             data
         })
 

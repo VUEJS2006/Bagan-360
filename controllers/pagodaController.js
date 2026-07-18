@@ -421,3 +421,97 @@ export const pagodaDetails = asyncHandel(async (req, res) => {
         });
     }
 })
+
+export const pagodaSearch = asyncHandel(async (req, res) => {
+    try {
+        const { search = "" } = req.query;
+        const keyword = `%${search}%`;
+        const [data] = await db.query(
+            `SELECT 
+             p.id,
+             p.name,
+             p.location,
+             p.tags,
+             p.visit_date,
+             p.description,
+             p.history,
+            DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+            COALESCE(
+                    JSON_ARRAYAGG(pi.image),
+                    JSON_ARRAY()
+                ) AS images
+            
+            FROM pagodas p LEFT JOIN pagoda_images pi ON p.id  = pi.pagoda_id
+            WHERE p.name LIKE ? OR p.location LIKE ? OR p.description LIKE ? OR p.history LIKE ? OR JSON_SEARCH(p.tags, 'one', ?) IS NOT NULL
+            GROUP BY p.id ORDER BY p.id DESC
+            `,
+            [keyword, keyword, keyword, keyword, search]
+        );
+        return res.status(200).json({
+            success: true,
+            count: data.length,
+            data
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const pagodaFilter = asyncHandel(async (req, res) => {
+    try {
+
+        const { location = "", name = "", tags = "", visit_date = " " } = req.query;
+        let data = `
+                SELECT
+                P.id,
+                p.name,
+                p.location,
+                p.tags,
+                p.visit_date,
+                p.description,
+                p.history,
+                DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+                COALESCE(
+                    JSON_ARRAYAGG(pi.image),
+                    JSON_ARRAY()
+                ) AS images
+               FROM pagodas p LEFT JOIN pagoda_images pi ON p.id = pi.pagoda_id WHERE 1 = 1;
+               `;
+        const values = []
+        if (name) {
+            data += `AND p.name = ?`;
+            values.push(name)
+        }
+        if (location) {
+            data += `AND p.location = ?`;
+            values.push(location)
+        }
+        if (tags) {
+            data += `AND JSON_SEARCH(p.tags,'one',?) IS NOT NULL = ?`;
+            values.push(tags)
+        }
+        if (visit_date) {
+            data += `AND p.visit_date = ?`;
+            values.push(visit_date)
+        }
+        data += `GROUP BY p.id ORDER BY pi.id DESC`
+
+        const [pagoda] = await db.query(sql, values);
+
+        return res.status(200).json({
+            success: true,
+            count: data.length,
+            data
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

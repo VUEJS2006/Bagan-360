@@ -467,7 +467,7 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
         const { location = "", name = "", tags = "", visit_date = " " } = req.query;
         let data = `
                 SELECT
-                P.id,
+                p.id,
                 p.name,
                 p.location,
                 p.tags,

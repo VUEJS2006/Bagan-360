@@ -479,33 +479,32 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
                     JSON_ARRAYAGG(pi.image),
                     JSON_ARRAY()
                 ) AS images
-               FROM pagodas p LEFT JOIN pagoda_images pi ON p.id = pi.pagoda_id WHERE 1 = 1;
+               FROM pagodas p LEFT JOIN pagoda_images pi ON p.id = pi.pagoda_id WHERE 1 = 1
                `;
         const values = []
         if (name) {
-            data += `AND p.name = ?`;
+           data += ` AND p.name = ?`;
             values.push(name)
         }
         if (location) {
-            data += `AND p.location = ?`;
+            data += ` AND p.location = ?`;
             values.push(location)
         }
         if (tags) {
-            data += `AND JSON_SEARCH(p.tags,'one',?) IS NOT NULL = ?`;
+            data += ` AND JSON_SEARCH(p.tags,'one',?) IS NOT NULL`;
             values.push(tags)
         }
         if (visit_date) {
-            data += `AND p.visit_date = ?`;
+            data += ` AND p.visit_date = ?`;
             values.push(visit_date)
         }
-        data += `GROUP BY p.id ORDER BY pi.id DESC`
-
-        const [pagoda] = await db.query(sql, values);
+       data += ` GROUP BY p.id ORDER BY pi.id DESC`
+        const [pagoda] = await db.query(data, values);
 
         return res.status(200).json({
             success: true,
             count: data.length,
-            data
+            pagoda
         });
     } catch (error) {
         console.log(error);

@@ -423,43 +423,85 @@ export const pagodaDetails = asyncHandel(async (req, res) => {
 })
 
 export const pagodaSearch = asyncHandel(async (req, res) => {
+
     try {
+
         const { search = "" } = req.query;
+
+
+        if (!search.trim()) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: []
+            });
+        }
+
+
         const keyword = `%${search}%`;
+
+
         const [data] = await db.query(
-            `SELECT 
-             p.id,
-             p.name,
-             p.location,
-             p.tags,
-             p.visit_date,
-             p.description,
-             p.history,
+            `
+        SELECT 
+            p.id,
+            p.name,
+            p.location,
+            p.tags,
+            p.visit_date,
+            p.description,
+            p.history,
             DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+
             COALESCE(
-                    JSON_ARRAYAGG(pi.image),
-                    JSON_ARRAY()
-                ) AS images
-            
-            FROM pagodas p LEFT JOIN pagoda_images pi ON p.id  = pi.pagoda_id
-            WHERE p.name LIKE ? OR p.location LIKE ? OR p.description LIKE ? OR p.history LIKE ? OR JSON_SEARCH(p.tags, 'one', ?) IS NOT NULL
-            GROUP BY p.id ORDER BY p.id DESC
-            `,
-            [keyword, keyword, keyword, keyword, search]
-        );
-        return res.status(200).json({
+                JSON_ARRAYAGG(pi.image),
+                JSON_ARRAY()
+            ) AS images
+
+        FROM pagodas p
+
+        LEFT JOIN pagoda_images pi 
+        ON p.id = pi.pagoda_id
+
+        WHERE 
+            p.name LIKE ?
+            OR p.location LIKE ?
+            OR p.description LIKE ?
+            OR p.history LIKE ?
+            OR JSON_SEARCH(p.tags,'one',?) IS NOT NULL
+
+        GROUP BY p.id
+
+        ORDER BY p.id DESC
+        `,
+            [
+                keyword,
+                keyword,
+                keyword,
+                keyword,
+                search
+            ]);
+
+
+        res.status(200).json({
             success: true,
             count: data.length,
             data
         });
+
+
     } catch (error) {
+
         console.log(error);
+
         res.status(500).json({
             success: false,
             message: error.message
         });
+
     }
-})
+
+});
 
 export const pagodaFilter = asyncHandel(async (req, res) => {
 
@@ -501,19 +543,19 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
         const values = [];
 
 
-        if(name){
+        if (name) {
             sql += ` AND p.name LIKE ? `;
             values.push(`%${name}%`);
         }
 
 
-        if(location){
+        if (location) {
             sql += ` AND p.location LIKE ? `;
             values.push(`%${location}%`);
         }
 
 
-        if(tags){
+        if (tags) {
             sql += ` 
                 AND JSON_SEARCH(
                     p.tags,
@@ -525,7 +567,7 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
         }
 
 
-        if(visit_date){
+        if (visit_date) {
             sql += ` AND p.visit_date = ? `;
             values.push(visit_date);
         }
@@ -550,19 +592,19 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
 
 
         res.status(200).json({
-            success:true,
-            count:pagoda.length,
+            success: true,
+            count: pagoda.length,
             pagoda
         });
 
 
-    } catch(error){
+    } catch (error) {
 
         console.log(error);
 
         res.status(500).json({
-            success:false,
-            message:error.message
+            success: false,
+            message: error.message
         });
 
     }

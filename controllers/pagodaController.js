@@ -462,11 +462,19 @@ export const pagodaSearch = asyncHandel(async (req, res) => {
 })
 
 export const pagodaFilter = asyncHandel(async (req, res) => {
+
     try {
 
-        const { location = "", name = "", tags = "", visit_date = " " } = req.query;
-        let data = `
-                SELECT
+        const {
+            location = "",
+            name = "",
+            tags = "",
+            visit_date = ""
+        } = req.query;
+
+
+        let sql = `
+            SELECT
                 p.id,
                 p.name,
                 p.location,
@@ -475,42 +483,88 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
                 p.description,
                 p.history,
                 DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+
                 COALESCE(
                     JSON_ARRAYAGG(pi.image),
                     JSON_ARRAY()
                 ) AS images
-               FROM pagodas p LEFT JOIN pagoda_images pi ON p.id = pi.pagoda_id WHERE 1 = 1
-               `;
-        const values = []
-        if (name) {
-           data += ` AND p.name = ?`;
-            values.push(name)
-        }
-        if (location) {
-            data += ` AND p.location = ?`;
-            values.push(location)
-        }
-        if (tags) {
-            data += ` AND JSON_SEARCH(p.tags,'one',?) IS NOT NULL`;
-            values.push(tags)
-        }
-        if (visit_date) {
-            data += ` AND p.visit_date = ?`;
-            values.push(visit_date)
-        }
-       data += ` GROUP BY p.id ORDER BY pi.id DESC`
-        const [pagoda] = await db.query(data, values);
 
-        return res.status(200).json({
-            success: true,
-            count: data.length,
+            FROM pagodas p
+
+            LEFT JOIN pagoda_images pi 
+            ON p.id = pi.pagoda_id
+
+            WHERE 1=1
+        `;
+
+
+        const values = [];
+
+
+        if(name){
+            sql += ` AND p.name LIKE ? `;
+            values.push(`%${name}%`);
+        }
+
+
+        if(location){
+            sql += ` AND p.location LIKE ? `;
+            values.push(`%${location}%`);
+        }
+
+
+        if(tags){
+            sql += ` 
+                AND JSON_SEARCH(
+                    p.tags,
+                    'one',
+                    ?
+                ) IS NOT NULL
+            `;
+            values.push(tags);
+        }
+
+
+        if(visit_date){
+            sql += ` AND p.visit_date = ? `;
+            values.push(visit_date);
+        }
+
+
+        sql += `
+            GROUP BY 
+                p.id,
+                p.name,
+                p.location,
+                p.tags,
+                p.visit_date,
+                p.description,
+                p.history,
+                p.created_at
+
+            ORDER BY p.id DESC
+        `;
+
+
+        const [pagoda] = await db.query(sql, values);
+
+
+        res.status(200).json({
+            success:true,
+            count:pagoda.length,
             pagoda
         });
-    } catch (error) {
+
+
+    } catch(error){
+
         console.log(error);
+
         res.status(500).json({
-            success: false,
-            message: error.message
+            success:false,
+            message:error.message
         });
+
     }
-})
+
+});

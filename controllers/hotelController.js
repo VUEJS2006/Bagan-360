@@ -326,8 +326,8 @@ export const hotelSearch = asyncHandel(async (req, res) => {
 
         )
         return res.status(200).json({
-            message:"Search Success",
-            success:true,
+            message: "Search Success",
+            success: true,
             data
         })
     } catch (error) {
@@ -377,6 +377,15 @@ export const hotelFilter = asyncHandel(async (req, res) => {
         sql += `
          ORDER BY id DESC
         `;
+        const [hotel] = await db.query(sql, values);
+
+
+        res.status(200).json({
+            success: true,
+            count: hotel.length,
+            hotel
+        });
+
     } catch (error) {
         console.log(error);
         res.status(500).json({

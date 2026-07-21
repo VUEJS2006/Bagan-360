@@ -6,6 +6,7 @@ import hotelRouter from "./routers/hotelRouter.js"
 import authRouter from "./routers/authRouter.js"
 import pagodaRouter from "./routers/pagodaRouter.js"
 import destinationRouter from "./routers/destinationRouter.js"
+import restaurantRouter from "./routers/restaurantRouter.js"
 import path from "path";
 try {
     const conn = await db.getConnection();
@@ -25,11 +26,12 @@ app.get('/', (req, res) => {
 // Express Packages
 app.use(express.json())
 app.use(cookieParser());
-app.use("/images",express.static(path.join(process.cwd(), "images")));
+app.use("/images", express.static(path.join(process.cwd(), "images")));
 // API
-app.use('/api',pagodaRouter)
+app.use('/api', pagodaRouter)
 app.use('/api', hotelRouter);
 app.use('/api', destinationRouter);
+app.use('/api', restaurantRouter);
 app.use('/auth', authRouter);
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

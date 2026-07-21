@@ -134,7 +134,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             }
         }
 
-        let OldImage = restaurant[0].image;
+        let updateImage = restaurant[0].image;
         if (req.file) {
             if (restaurant[0].image) {
                 const oldPath = path.join(process.cwd(), restaurant[0].image)
@@ -166,8 +166,8 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
                 .toFile(savePath);
 
 
-            OldImage = ` images/restaurant/${fileName}`;
-            let UpdateImage = OldImage;
+            updateImage = ` images/restaurant/${fileName}`;
+           
         }
 
         const [data] = await db.query(

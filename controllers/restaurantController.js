@@ -110,7 +110,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, location, address, dishes, phone, description } = req.body;
+        let { name, location, address, dishes, phone, description } = req.body || {};
 
         const [restaurant] = await db.query(`SELECT * FROM restaurants WHERE id = ?`, [id]);
         if (restaurant.length === 0) {
@@ -147,7 +147,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             const uploadFolder = path.join(
                 process.cwd(),
                 "images",
-                "hotel"
+                "restaurant"
             );
             if (!fs.existsSync(uploadFolder)) {
                 fs.mkdirSync(uploadFolder, { recursive: true })

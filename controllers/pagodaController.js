@@ -588,7 +588,6 @@ export const pagodaFilter = asyncHandel(async (req, res) => {
             values.push(visit_date);
         }
 
-
         sql += `
             GROUP BY 
                 p.id,

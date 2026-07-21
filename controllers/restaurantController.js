@@ -183,7 +183,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             WHERE id= ?
             `,
             [
-                name, location, address, JSON.stringify(dishes), phone, description, UpdateImage, id
+                name, location, address, JSON.stringify(dishes), phone, description, updateImage, id
             ]
         );
 

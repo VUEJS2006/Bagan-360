@@ -7,7 +7,7 @@ const router = express.Router()
 // Admin
 router.post("/admin/restaurant/create", authenticated, isAdmin, upload.single("image"), restaurantCreate);
 router.get('/admin/restaurant/list', authenticated, isAdmin, restaurantList)
-router.put('/admin/restaurant/update/:id', authenticated, isAdmin, restaurantUpdate)
+router.put('/admin/restaurant/update/:id', authenticated, isAdmin, upload.single("image"),restaurantUpdate)
 router.delete('/admin/restaurant/delete/:id', authenticated, isAdmin, restaurantDelete)
 // Mobile
 router.get('/mobile/restaurant/list', authenticated, restaurantList);

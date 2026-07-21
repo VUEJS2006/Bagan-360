@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const hotelCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name, type, price, discount, start_date, end_date, description, facilities,location } = req.body;
+        const { name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
 
         if (!name || !type || !start_date || !end_date || !location) {
             return res.status(400).json({
@@ -59,7 +59,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
             VALUES(?,?,?,?,?,?,?,?,?,?,?)
 
-            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities,location, imagePath]
+            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities, location, imagePath]
         );
 
         return res.status(201).json({
@@ -266,12 +266,112 @@ export const hotelDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [data] = await db.query("SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image,location FROM hotels  WHERE id = ?",[id]);
-          res.status(200).json({
+        const [data] = await db.query("SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image,location FROM hotels  WHERE id = ?", [id]);
+        res.status(200).json({
             success: true,
             data
         });
 
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const hotelSearch = asyncHandel(async (req, res) => {
+    try {
+
+        const { search = "" } = req.query;
+        if (!search.trim()) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: []
+            });
+        }
+
+        const keyword = `%${search}%`;
+
+        const [data] = await db.query(
+            `
+            SELECT
+            id,
+            name,
+            type,
+            price,
+            discount,
+            total_amount,
+            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
+            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
+            description,
+            facilities,
+            image,
+            location 
+            FROM 
+            hotels 
+            WHERE 
+            name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?
+            ORDER BY id DESC
+            `,
+            [
+                keyword,
+                keyword,
+                keyword,
+                keyword,
+                keyword
+            ]
+
+        )
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const hotelFilter = asyncHandel(async (req, res) => {
+    try {
+        const { location = "", name = "", type = "" } = req.query;
+        let sql = `
+            SELECT
+            id,
+            name,
+            type,
+            price,
+            discount,
+            total_amount,
+            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
+            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
+            description,
+            facilities,
+            image,
+            location 
+            FROM 
+            hotels 
+            WHERE
+            1=1
+            `;
+        const values = [];
+        if (location) {
+            sql += ` AND location LIKE ?`;
+            values.push(`%${location}%`)
+        }
+        if (name) {
+            sql += ` AND name LIKE ?`;
+            values.push(`%${name}%`)
+        }
+        if (type) {
+            sql += ` AND type LIKE ?`;
+            values.push(`%${type}%`)
+        }
+        sql += `
+         ORDER BY id DESC
+        `;
     } catch (error) {
         console.log(error);
         res.status(500).json({

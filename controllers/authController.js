@@ -348,7 +348,7 @@ export const userChangePassword = asyncHandel(async (req, res) => {
     try {
 
         const userId = req.user.id;
-        const { CurrentPassword, NewPassword, ConfirmPassword } = req.body;
+        const { CurrentPassword, NewPassword, ConfirmPassword } = req.body|| {};
         const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
         if (checkUser.length === 0) {
             return res.status(401).json({

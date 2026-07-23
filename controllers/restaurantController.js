@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const restaurantCreate = asyncHandel(async (req, res) => {
     try {
 
-        let { name, location, address, dishes, phone, description } = req.body;
+        let { name, location, address, dishes, phone, description,discount } = req.body;
         if (!name || !location || !phone) {
             return res.status(400).json({
                 success: false,
@@ -47,10 +47,10 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
         const [data] = await db.query(
             `
             INSERT INTO restaurants 
-            (name,location,address,dishes,phone,description,image) VALUES (?,?,?,?,?,?,?)
+            (name,location,address,dishes,phone,description,image,discount) VALUES (?,?,?,?,?,?,?,?)
             `,
             [
-                name, location, address, JSON.stringify(dishes), phone, description, imagePath
+                name, location, address, JSON.stringify(dishes), phone, description, imagePath,discount
             ]
         )
         return res.status(201).json({
@@ -84,6 +84,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
         description,
         dishes,
         image,
+        discount,
         DATE_FORMAT(created_at, '%d-%m-%Y') as created_at
         FROM restaurants
         `
@@ -110,7 +111,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, location, address, dishes, phone, description } = req.body || {};
+        let { name, location, address, dishes, phone, description,discount } = req.body || {};
 
         const [restaurant] = await db.query(`SELECT * FROM restaurants WHERE id = ?`, [id]);
         if (restaurant.length === 0) {
@@ -180,10 +181,11 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             phone=?,
             description=?,
             image=?
+            discount=?
             WHERE id= ?
             `,
             [
-                name, location, address, JSON.stringify(dishes), phone, description, updateImage, id
+                name, location, address, JSON.stringify(dishes), phone, description, updateImage,discount, id
             ]
         );
 
@@ -255,6 +257,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
         description,
         dishes,
         image,
+        discount,
         DATE_FORMAT(created_at, '%d-%m-%Y') as created_at
         FROM restaurants
         WHERE id = ?

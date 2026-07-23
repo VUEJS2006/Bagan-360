@@ -8,6 +8,7 @@ const router = express.Router()
 router.post("/admin/pagoda/create", authenticated, isAdmin, upload.array("images", 3), pagodaCreate);
 router.get('/admin/pagoda/list', authenticated, isAdmin, pagodaList)
 router.put('/admin/pagoda/update/:id', authenticated, isAdmin, upload.array("images", 3), pagodaUpdate);
+router.delete('/admin/pagoda/delete/:id', authenticated, isAdmin,pagodaDelete);
 router.get('/admin/pagoda/search', authenticated, isAdmin, pagodaSearch);
 router.get('/admin/pagoda/filter', authenticated, isAdmin, pagodaFilter);
 

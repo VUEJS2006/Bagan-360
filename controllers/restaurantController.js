@@ -180,7 +180,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             dishes=?,
             phone=?,
             description=?,
-            image=?
+            image=?,
             discount=?
             WHERE id= ?
             `,

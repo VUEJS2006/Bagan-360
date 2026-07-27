@@ -212,7 +212,10 @@ export const eBikeList = asyncHandel(async (req, res) => {
                 e.phone_holder,
 
                 e.description,
-                DATE_FORMAT(e.created_at, '%d-%m-%Y') as created_at
+                DATE_FORMAT(
+                    e.created_at,
+                    '%d-%m-%Y'
+                ) AS created_at
 
             FROM e_bikes e
 
@@ -223,10 +226,43 @@ export const eBikeList = asyncHandel(async (req, res) => {
             `
         );
 
+
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                e_bike_id,
+                price_type,
+                start_time,
+                end_time,
+                price
+
+            FROM e_bike_prices
+
+            ORDER BY created_at ASC
+            `
+        );
+
+
+      
+        const result = data.map((bike) => {
+
+            return {
+                ...bike,
+
+                prices: prices.filter(
+                    (price) =>
+                        price.e_bike_id === bike.id
+                )
+            };
+
+        });
+
+
         return res.status(200).json({
             success: true,
             message: "E-bike List Success",
-            data
+            data: result
         });
 
     } catch (error) {
@@ -535,7 +571,6 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
                 e.discount,
                 e.total_price,
 
-              
                 e.status,
                 e.battery_percentage,
 
@@ -546,13 +581,61 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
                 e.phone_holder,
 
                 e.description,
-                DATE_FORMAT(e.created_at, '%d-%m-%Y') as created_at
+
+                DATE_FORMAT(
+                    e.created_at,
+                    '%d-%m-%Y'
+                ) AS created_at,
+
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        CASE
+                            WHEN p.id IS NOT NULL THEN
+                            JSON_OBJECT(
+                                'id', p.id,
+                                'price_type', p.price_type,
+                                'start_time', p.start_time,
+                                'end_time', p.end_time,
+                                'price', p.price
+                            )
+                        END
+                    ),
+                    JSON_ARRAY()
+                ) AS prices
+
             FROM e_bikes e
 
             JOIN e_bike_types t
                 ON e.type_id = t.id
 
+            LEFT JOIN e_bike_prices p
+                ON e.id = p.e_bike_id
+
             WHERE e.id = ?
+
+            GROUP BY
+                e.id,
+                e.type_id,
+                t.name,
+                t.distance,
+                e.name,
+                e.code,
+                e.brand,
+                e.color,
+                e.location,
+                e.image,
+                e.price,
+                e.discount,
+                e.total_price,
+                e.status,
+                e.battery_percentage,
+                e.helmet,
+                e.battery_voltage,
+                e.battery_capacity,
+                e.passenger_count,
+                e.phone_holder,
+                e.description,
+                e.created_at
             `,
             [id]
         );

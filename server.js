@@ -9,6 +9,9 @@ import destinationRouter from "./routers/destinationRouter.js"
 import restaurantRouter from "./routers/restaurantRouter.js"
 import e_bikeTypeRouter from "./routers/e_bike_typeRouter.js"
 import e_bikeRouter from "./routers/e_bikeRouter.js"
+import e_bikePriceRouter from "./routers/e_bike_priceRouter.js"
+
+
 
 import cors from "cors"
 import path from "path";
@@ -41,7 +44,10 @@ app.use('/api', destinationRouter);
 app.use('/api', restaurantRouter);
 app.use('/api', e_bikeTypeRouter);
 app.use('/auth', authRouter);
-app.use('/api', e_bikeRouter)
+app.use('/api', e_bikeRouter);
+app.use('/api', e_bikePriceRouter);
+
+
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);
 })

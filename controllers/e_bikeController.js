@@ -114,6 +114,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
         discount = Number(discount || 0);
 
         const total_amount = price - (price * discount / 100);
+        
 
         const [data] = await db.query(
             `
@@ -153,11 +154,11 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 total_amount,
                 status || "available",
                 battery_percentage ?? 100,
-                helmet ?? true,
+                helmet,
                 battery_voltage || null,
                 battery_capacity || null,
                 passenger_count || 1,
-                phone_holder ?? true,
+                phone_holder,
                 description || null
             ]
         );

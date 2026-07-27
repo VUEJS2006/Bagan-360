@@ -7,7 +7,13 @@ import authRouter from "./routers/authRouter.js"
 import pagodaRouter from "./routers/pagodaRouter.js"
 import destinationRouter from "./routers/destinationRouter.js"
 import restaurantRouter from "./routers/restaurantRouter.js"
+import e_bikeTypeRouter from "./routers/e_bike_typeRouter.js"
+import e_bikeRouter from "./routers/e_bikeRouter.js"
+
+import cors from "cors"
 import path from "path";
+
+
 try {
     const conn = await db.getConnection();
     console.log("DB is connected");
@@ -26,13 +32,16 @@ app.get('/', (req, res) => {
 // Express Packages
 app.use(express.json())
 app.use(cookieParser());
+app.use(cors())
 app.use("/images", express.static(path.join(process.cwd(), "images")));
 // API
 app.use('/api', pagodaRouter)
 app.use('/api', hotelRouter);
 app.use('/api', destinationRouter);
 app.use('/api', restaurantRouter);
+app.use('/api', e_bikeTypeRouter);
 app.use('/auth', authRouter);
+app.use('/api', e_bikeRouter)
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);
 })

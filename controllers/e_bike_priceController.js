@@ -109,7 +109,7 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
             `,
             [e_bike_id, price_type, start_time, end_time, price, id]
         )
-        return res.status(20).json({
+        return res.status(200).json({
             success: true,
             message: "E-bike price Update successfully!",
             data

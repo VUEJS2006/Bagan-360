@@ -13,7 +13,8 @@ export const upload = multer({
             "image/jpeg",
             "image/jpg",
             "image/png",
-            "image/webp"
+            "image/webp",
+            "image/avif",
         ];
 
         if (allowTypes.includes(file.mimetype)) {

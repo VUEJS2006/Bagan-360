@@ -3,7 +3,7 @@ import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-import { json } from "stream/consumers";
+
 import { v4 as uuid } from "uuid";
 
 export const restaurantCreate = asyncHandel(async (req, res) => {
@@ -233,7 +233,6 @@ export const restaurantDelete = asyncHandel(async (req, res) => {
     } catch (error) {
 
         console.log(error);
-
         return res.status(500).json({
             success: false,
             message: error.message

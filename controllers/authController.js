@@ -348,7 +348,7 @@ export const userChangePassword = asyncHandel(async (req, res) => {
     try {
 
         const userId = req.user.id;
-        const { CurrentPassword, NewPassword, ConfirmPassword } = req.body|| {};
+        const { CurrentPassword, NewPassword, ConfirmPassword } = req.body || {};
         const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
         if (checkUser.length === 0) {
             return res.status(401).json({
@@ -446,3 +446,83 @@ export const AccountDelete = asyncHandel(async (req, res) => {
     }
 })
 
+export const shopRegister = asyncHandel(async (req, res) => {
+    try {
+
+        const {
+            username,
+            email,
+            password,
+            gender,
+            phone,
+            address,
+            township,
+            region,
+
+            shop_name,
+            shop_address,
+            shop_phone
+        } = req.body
+
+
+        if (
+            !username || !email || !password || !gender || !phone || !shop_name || !shop_address || !shop_phone
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required!"
+            });
+        }
+
+        const [checkEmail] = await db.query("SELECT * FROM users WHERE  email = ?", [email]);
+        if (checkEmail > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is Already Exists!"
+            });
+        }
+
+        const otp = generateOTP();
+        await db.query(
+            "DELETE FROM otp_codes WHERE email = ?",
+            [email]
+        );
+
+        await db.query(
+            `INSERT INTO otp_codes
+            (email, otp, expires_at)
+            VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))`,
+            [email, otp]
+        );
+
+
+        await sentOTP(otp, email)
+        const generateToken = jwt.sign({
+            username,
+            email,
+            password,
+            gender,
+            phone,
+            address,
+            township,
+            region,
+            shop_name,
+            shop_address,
+            shop_phone,
+            role: "shop"
+        }, process.env.JWT_SECRET, { expiresIn: "15m" })
+
+        return res.status(200).json({
+            success: true,
+            message: "OTP sent successfully",
+            token: generateToken
+        });
+        
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})

@@ -554,7 +554,7 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             });
         }
 
-        const hashPassword = await bcrypt.hash(user.password, 12);
+        const hashPassword = await bcrypt.hashSync(user.password, 12);
 
         const [userResult] = await db.query(`
             INSERT INTO users
@@ -569,7 +569,7 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             role
             )
             VALUES (?,?,?,?,?,?,?,?)
-            `, [user.username, user.email, user.password, user.gender, user.address, user.region, user.township, "shop"]);
+            `, [user.username, user.email, hashPassword, user.gender, user.address, user.region, user.township, "shop"]);
 
         const userId = userResult.insertId;
 

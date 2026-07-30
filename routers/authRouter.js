@@ -1,4 +1,4 @@
-import { AccountDelete, register, verifyOTP, login, userList, roleUpdate, logout, userProfile, userProfileEdit, userChangePassword, shopRegister } from "../controllers/authController.js";
+import { AccountDelete, register, verifyOTP, login, userList, roleUpdate, logout, userProfile, userProfileEdit, userChangePassword, shopRegister, shopVerifyOTP } from "../controllers/authController.js";
 import { validateRegister } from "../middlewares/authMiddleware.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
@@ -16,7 +16,7 @@ router.post('/verify/otp', verifyOTP)
 router.delete('/user/account/delete', authenticated, AccountDelete);
 // Shop 
 router.post('/shop/register', validateRegister, shopRegister);
-
+router.post('/shop/verify/otp', shopVerifyOTP)
 // Mobile + Admin
 router.post('/login', validateRegister, login)
 router.post('/logout', logout)

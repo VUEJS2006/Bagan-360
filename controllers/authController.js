@@ -454,7 +454,6 @@ export const shopRegister = asyncHandel(async (req, res) => {
             email,
             password,
             gender,
-            phone,
             address,
             township,
             region,
@@ -466,7 +465,7 @@ export const shopRegister = asyncHandel(async (req, res) => {
 
 
         if (
-            !username || !email || !password || !gender || !phone || !shop_name || !shop_address || !shop_phone
+            !username || !email || !password || !shop_name || !shop_address || !shop_phone
         ) {
             return res.status(400).json({
                 success: false,
@@ -475,7 +474,7 @@ export const shopRegister = asyncHandel(async (req, res) => {
         }
 
         const [checkEmail] = await db.query("SELECT * FROM users WHERE  email = ?", [email]);
-        if (checkEmail > 0) {
+        if (checkEmail.length > 0) {
             return res.status(400).json({
                 success: false,
                 message: "Email is Already Exists!"
@@ -502,7 +501,6 @@ export const shopRegister = asyncHandel(async (req, res) => {
             email,
             password,
             gender,
-            phone,
             address,
             township,
             region,
@@ -517,6 +515,97 @@ export const shopRegister = asyncHandel(async (req, res) => {
             message: "OTP sent successfully",
             token: generateToken
         });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const shopVerifyOTP = asyncHandel(async (req, res) => {
+    try {
+
+        const { email, otp, token } = req.body;
+        if (!email || !otp || !token) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required!"
+            });
+        }
+
+        const [CheckOTP] = await db.query("SELECT * FROM otp_codes WHERE email = ? AND otp = ? AND expires_at > NOW()", [email, otp]);
+
+        if (CheckOTP.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired OTP"
+            });
+        }
+        let user;
+        try {
+            user = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                message: "Token expired"
+            });
+        }
+
+        const hashPassword = await bcrypt.hash(user.password, 12);
+
+        const [userResult] = await db.query(`
+            INSERT INTO users
+            (
+            username,
+            email,
+            password,
+            gender,
+            address,
+            region,
+            township,
+            role
+            )
+            VALUES (?,?,?,?,?,?,?,?)
+            `, [user.username, user.email, user.password, user.gender, user.address, user.region, user.township, "shop"]);
+
+        const userId = userResult.insertId;
+
+        await db.query(`
+            INSERT INTO shops
+            (user_id,shop_name,shop_address,shop_phone)
+            VALUES (?,?,?,?)
+            `, [userId, user.shop_name, user.shop_address, user.shop_phone]);
+
+        await db.query(
+            "DELETE FROM otp_codes WHERE email = ?",
+            [email]
+        );
+
+        await sendMail(
+            email,
+            "Shop Registration Successfully",
+            `
+                <h3>Shop Registration Successfully</h3>
+
+                <p>
+                    Your shop account has been created successfully.
+                </p>
+
+                <p>
+                    Please wait for admin approval before using your shop account.
+                </p>
+            `
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: "Shop register successfully"
+        });
+
+
 
     } catch (error) {
         console.log(error)

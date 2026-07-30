@@ -496,7 +496,7 @@ export const shopRegister = asyncHandel(async (req, res) => {
         );
 
 
-        await sentOTP(otp, email)
+        await sentOTP(email, otp)
         const generateToken = jwt.sign({
             username,
             email,
@@ -517,7 +517,7 @@ export const shopRegister = asyncHandel(async (req, res) => {
             message: "OTP sent successfully",
             token: generateToken
         });
-        
+
     } catch (error) {
         console.log(error)
         return res.status(500).json({

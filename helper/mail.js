@@ -18,6 +18,7 @@ export const sentOTP = async (email, otp) => {
         html: `
         <div style="
             font-family: 'Segoe UI', Arial, sans-serif; 
+
             padding: 50px 20px; 
             min-height: 100%;
             text-align: center;
@@ -106,7 +107,7 @@ export const sentOTP = async (email, otp) => {
     });
 };
 
-export const sendMail = async (email, message) => {
+export const sendMail = async (email, subject, message) => {
    
 
     await transporter.sendMail({
@@ -165,7 +166,7 @@ export const sendMail = async (email, message) => {
                         ✓
                     </div>
 
-                  
+                   
                     
                     <!-- Message Box -->
                     <div style="

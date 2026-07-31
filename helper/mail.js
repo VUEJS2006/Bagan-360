@@ -113,7 +113,7 @@ export const sendMail = async (email, subject, message) => {
     await transporter.sendMail({
         from: `"Bagan 360" <${process.env.HOST_EMAIL}>`,
         to: email,
-        subject:"Message For You <p>💬</p>",
+        subject:"Message For You 💬",
         html: `
         <div style="
             font-family: 'Segoe UI', Arial, sans-serif; 

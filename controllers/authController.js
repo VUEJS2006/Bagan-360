@@ -578,7 +578,7 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             INSERT INTO shops
             (user_id,shop_name,shop_address,shop_phone,nrc,type)
             VALUES (?,?,?,?,?,?)
-            `, [userId, user.shop_name, user.shop_address, user.shop_phone,user.nrc,user.type]);
+            `, [userId, user.shop_name, user.shop_address, user.shop_phone, user.nrc, user.type]);
 
         await db.query(
             "DELETE FROM otp_codes WHERE email = ?",
@@ -587,16 +587,15 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
 
         await sendMail(
             email,
-            "Shop Registration Successfully",
             `
                 <h3>Shop Registration Successfully</h3>
 
                 <p>
-                    Your shop account has been created successfully.
+                   သင့်ဆိုင်အား အကောက်ဖွ့င်ခြင်း အောင်မြင်ပါသည်။
                 </p>
 
                 <p>
-                    Please wait for admin approval before using your shop account.
+                   ကျေးဇူးပြု၍ စောင့်ပေးပါ သင့်အကောက်အား အက်စ်မင်မှ စစ်ဆေးနေပါသည်။
                 </p>
             `
         );
@@ -604,6 +603,82 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Shop register successfully wait for admin approved!"
+        });
+
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const shopApproved = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        const [checkUser] = await db.query("SELECT * FROM shops WHERE id = ?", [id]);
+        if (checkUser === 0) {
+            return res.status(404).json({
+                message: "User not found!",
+                success: false
+            })
+        }
+
+        const user = checkUser[0]
+
+        const [data] = await db.query("UPDATE shops SET status = 'approved' WHERE id = ?", [id]);
+
+        await sendMail(
+            user.email,
+            `<h3>Hello ${user.username}, သင့်အကောက်အား အတည်ပြု စစ်ဆေး ပြီးပါပြီ။ </h3>`
+        )
+        res.status(200).json({
+            success: true,
+            message: "User approved successfully",
+            data
+        });
+
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const shopCancel = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        const [checkUser] = await db.query("SELECT * FROM shops WHERE id = ?", [id]);
+        if (checkUser === 0) {
+            return res.status(404).json({
+                message: "User not found!",
+                success: false
+            })
+        }
+
+        const user = checkUser[0]
+
+        const [data] = await db.query("UPDATE shops SET status = 'cancelled' WHERE id = ?", [id]);
+
+        await sendMail(
+            user.email,
+            `<h3>Hello ${user.username}, သင့်အကောက်အား လက်မခံပါ ငြင်းပယ်လိက်ပါသည်။ </h3>`
+        )
+        res.status(200).json({
+            success: true,
+            message: "User Cancelled successfully",
+            data
         });
 
 

@@ -10,7 +10,6 @@ const transporter = nodemailer.createTransport({
 
 export const sentOTP = async (email, otp) => {
     
-    const baganImageUrl = "https://wall.alphacoders.com/big.php?i=706449"; 
 
     await transporter.sendMail({
         from: `"Bagan 360" <${process.env.HOST_EMAIL}>`,
@@ -19,7 +18,6 @@ export const sentOTP = async (email, otp) => {
         html: `
         <div style="
             font-family: 'Segoe UI', Arial, sans-serif; 
-            background: url('${baganImageUrl}') no-repeat center center / cover; 
             padding: 50px 20px; 
             min-height: 100%;
             text-align: center;
@@ -110,7 +108,6 @@ export const sentOTP = async (email, otp) => {
 
 export const sendMail = async (email, subject, message) => {
    
-    const backgroundImage = "https://wall.alphacoders.com/big.php?i=706449";
 
     await transporter.sendMail({
         from: `"Bagan 360" <${process.env.HOST_EMAIL}>`,
@@ -119,7 +116,6 @@ export const sendMail = async (email, subject, message) => {
         html: `
         <div style="
             font-family: 'Segoe UI', Arial, sans-serif; 
-            background: url('${backgroundImage}') no-repeat center center / cover; 
             padding: 40px 20px;
             min-height: 450px;
         ">

@@ -453,19 +453,20 @@ export const shopRegister = asyncHandel(async (req, res) => {
             username,
             email,
             password,
-            gender,
             address,
             township,
             region,
 
             shop_name,
             shop_address,
-            shop_phone
+            shop_phone,
+            nrc,
+            type
         } = req.body
 
 
         if (
-            !username || !email || !password || !shop_name || !shop_address || !shop_phone
+            !username || !email || !password || !shop_name || !shop_address || !shop_phone || !type
         ) {
             return res.status(400).json({
                 success: false,
@@ -500,13 +501,14 @@ export const shopRegister = asyncHandel(async (req, res) => {
             username,
             email,
             password,
-            gender,
             address,
             township,
             region,
             shop_name,
             shop_address,
             shop_phone,
+            nrc,
+            type,
             role: "shop"
         }, process.env.JWT_SECRET, { expiresIn: "15m" })
 
@@ -562,22 +564,21 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             username,
             email,
             password,
-            gender,
             address,
             region,
             township,
             role
             )
-            VALUES (?,?,?,?,?,?,?,?)
-            `, [user.username, user.email, hashPassword, user.gender, user.address, user.region, user.township, "shop"]);
+            VALUES (?,?,?,?,?,?,?)
+            `, [user.username, user.email, hashPassword, user.address, user.region, user.township, "shop"]);
 
         const userId = userResult.insertId;
 
         await db.query(`
             INSERT INTO shops
-            (user_id,shop_name,shop_address,shop_phone)
-            VALUES (?,?,?,?)
-            `, [userId, user.shop_name, user.shop_address, user.shop_phone]);
+            (user_id,shop_name,shop_address,shop_phone,nrc,type)
+            VALUES (?,?,?,?,?,?)
+            `, [userId, user.shop_name, user.shop_address, user.shop_phone,user.nrc,user.type]);
 
         await db.query(
             "DELETE FROM otp_codes WHERE email = ?",
@@ -602,7 +603,7 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            message: "Shop register successfully"
+            message: "Shop register successfully wait for admin approved!"
         });
 
 

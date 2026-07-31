@@ -17,8 +17,8 @@ router.delete('/user/account/delete', authenticated, AccountDelete);
 // Shop 
 router.post('/shop/register', validateRegister, shopRegister);
 router.post('/shop/verify/otp', shopVerifyOTP);
-router.put('/shop/account/approved', shopApproved);
-router.put('/shop/account/cancelled', shopCancel)
+router.put('/shop/account/approved/:id', shopApproved);
+router.put('/shop/account/cancelled/:id', shopCancel)
 // Mobile + Admin
 router.post('/login', validateRegister, login)
 router.post('/logout', logout)

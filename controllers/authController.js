@@ -621,21 +621,34 @@ export const shopApproved = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
-        const [checkUser] = await db.query("SELECT * FROM shops WHERE id = ?", [id]);
-        if (checkUser === 0) {
+        const [checkShop] = await db.query(
+            `SELECT
+                s.id,
+                s.user_id,
+                s.shop_name,
+                s.status,
+                u.username,
+                u.email
+             FROM shops s
+             JOIN users u
+                ON s.user_id = u.id
+             WHERE s.id = ?`,
+            [id]
+        );
+        if (checkShop === 0) {
             return res.status(404).json({
                 message: "User not found!",
                 success: false
             })
         }
 
-        const user = checkUser[0]
+        const shop = checkShop[0]
 
         const [data] = await db.query("UPDATE shops SET status = 'approved' WHERE id = ?", [id]);
 
         await sendMail(
-            user.email,
-            `<h3>Hello ${user.shop_name}, သင့်အကောက်အား အတည်ပြု စစ်ဆေး ပြီးပါပြီ။ </h3>`
+            shop.email,
+            `<h3>Hello ${shop.shop_name}, သင့်အကောက်အား အတည်ပြု စစ်ဆေး ပြီးပါပြီ။ </h3>`
         )
         res.status(200).json({
             success: true,
@@ -659,21 +672,34 @@ export const shopCancel = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
-        const [checkUser] = await db.query("SELECT * FROM shops WHERE id = ?", [id]);
-        if (checkUser === 0) {
+        const [checkShop] = await db.query(
+            `SELECT
+                s.id,
+                s.user_id,
+                s.shop_name,
+                s.status,
+                u.username,
+                u.email
+             FROM shops s
+             JOIN users u
+                ON s.user_id = u.id
+             WHERE s.id = ?`,
+            [id]
+        );
+        if (checkShop === 0) {
             return res.status(404).json({
                 message: "User not found!",
                 success: false
             })
         }
 
-        const user = checkUser[0]
+        const shop = checkShop[0]
 
         const [data] = await db.query("UPDATE shops SET status = 'cancelled' WHERE id = ?", [id]);
 
         await sendMail(
-            user.email,
-            `<h3>Hello ${user.shop_name}, သင့်အကောက်အား လက်မခံပါ ငြင်းပယ်လိက်ပါသည်။ </h3>`
+            shop.email,
+            `<h3>Hello ${shop.shop_name}, သင့်အကောက်အား လက်မခံပါ ငြင်းပယ်လိက်ပါသည်။ </h3>`
         )
         res.status(200).json({
             success: true,

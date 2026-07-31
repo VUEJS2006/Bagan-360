@@ -161,12 +161,45 @@ export const login = asyncHandel(async (req, res) => {
         if (!MatchPassword) {
             return res.status(401).json({ message: "Password does not match" });
         }
+
+        let shop = null;
+
+        
+        if (user.role === "shop") {
+            const [shops] = await db.query("SELECT * FROM shops WHERE user_id = ?", [user.id])
+            if (shops.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop = shops[0];
+
+
+            if (shop.status === "pending") {
+                return res.status(403).json({
+                    success: false,
+                    message: "Your shop is waiting for admin approval."
+                });
+            }
+
+            if (shop.status === "cancelled") {
+                return res.status(403).json({
+                    success: false,
+                    message: "Your shop account has been cancelled."
+                });
+            }
+        }
+
+
         const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" })
         res.cookie("access_token", token, {
             httpOnly: true,
             sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
         })
+
         return res.status(200).json({
             message: 'success',
             success: true,
@@ -181,7 +214,18 @@ export const login = asyncHandel(async (req, res) => {
                 township: user.township,
                 address: user.address,
                 image: user.image
+            },
+            shop: shop ? {
+                id: shop.id,
+                type: shop.type,
+                shop_name: shop.shop_name,
+                shop_phone: shop.shop_phone,
+                shop_address: shop.shop_address,
+                image: shop.image,
+                status: shop.status
             }
+                :
+                null,
         })
     } catch (error) {
         console.log(error)

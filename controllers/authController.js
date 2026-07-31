@@ -635,7 +635,7 @@ export const shopApproved = asyncHandel(async (req, res) => {
 
         await sendMail(
             user.email,
-            `<h3>Hello ${user.username}, သင့်အကောက်အား အတည်ပြု စစ်ဆေး ပြီးပါပြီ။ </h3>`
+            `<h3>Hello ${user.shop_name}, သင့်အကောက်အား အတည်ပြု စစ်ဆေး ပြီးပါပြီ။ </h3>`
         )
         res.status(200).json({
             success: true,
@@ -673,7 +673,7 @@ export const shopCancel = asyncHandel(async (req, res) => {
 
         await sendMail(
             user.email,
-            `<h3>Hello ${user.username}, သင့်အကောက်အား လက်မခံပါ ငြင်းပယ်လိက်ပါသည်။ </h3>`
+            `<h3>Hello ${user.shop_name}, သင့်အကောက်အား လက်မခံပါ ငြင်းပယ်လိက်ပါသည်။ </h3>`
         )
         res.status(200).json({
             success: true,

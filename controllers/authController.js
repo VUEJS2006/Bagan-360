@@ -761,3 +761,21 @@ export const shopCancel = asyncHandel(async (req, res) => {
         })
     }
 })
+
+export const shopList = asyncHandel(async (req, res) => {
+    try {
+
+        const [data] = await db.query("SELECT * FROM shops ORDER BY id DESC");
+        return res.status(200).json({
+            success: true,
+            data
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})

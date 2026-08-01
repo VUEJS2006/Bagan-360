@@ -9,12 +9,45 @@ import { v4 as uuid } from "uuid";
 export const hotelCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
+        const { shod_id, name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
 
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied! "
+            });
+        }
+
+        if (req.user.role === "shop") {
+            const [shops] = await db.query("SELECT id FROM shops WHERE user_id = ?", [req.user.id])
+        }
+
+        if (shops.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found!"
+            });
+            shop_id = shops[0].id;
+        }
+        if (req.user.role === "admin") {
+            if (!shod_id) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Shop is required!"
+                });
+            }
+        }
         if (!name || !type || !start_date || !end_date || !location) {
             return res.status(400).json({
                 success: false,
                 message: "All field are required!"
+            });
+        }
+        const [shop] = await db.query("SELECT  id FROM shops WHERE id = ?", [shod_id]);
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found!"
             });
         }
         const total_amount = Number(price) - (Number(price) * Number(discount) / 100);
@@ -44,6 +77,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             `INSERT INTO hotels
             
             (
+            shop_id,
             name,
             type,
             price,
@@ -57,9 +91,9 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             image
             )
 
-            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
 
-            `, [name, type, price, discount, total_amount, start_date, end_date, description, facilities, location, imagePath]
+            `, [shop_id, name, type, price, discount, total_amount, start_date, end_date, description, facilities, location, imagePath]
         );
 
         return res.status(201).json({
@@ -80,21 +114,100 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 export const hotelList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query(`SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image,location FROM hotels ORDER BY id DESC`);
-        res.status(200).json({
+        let query = "";
+        let params = [];
+
+
+        if (req.user.role === "admin") {
+
+            query = `
+                SELECT
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    h.name,
+                    h.type,
+                    h.price,
+                    h.discount,
+                    h.total_amount,
+                    DATE_FORMAT(h.start_date,'%d-%m-%Y') AS start_date,
+                    DATE_FORMAT(h.end_date,'%d-%m-%Y') AS end_date,
+                    h.description,
+                    h.facilities,
+                    h.image,
+                    h.location
+                FROM hotels h
+                LEFT JOIN shops s ON h.shop_id = s.id
+                ORDER BY h.id DESC
+            `;
+
+        }
+
+
+        else if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            query = `
+                SELECT
+                    id,
+                    shop_id,
+                    name,
+                    type,
+                    price,
+                    discount,
+                    total_amount,
+                    DATE_FORMAT(start_date,'%d-%m-%Y') AS start_date,
+                    DATE_FORMAT(end_date,'%d-%m-%Y') AS end_date,
+                    description,
+                    facilities,
+                    image,
+                    location
+                FROM hotels
+                WHERE shop_id = ?
+                ORDER BY id DESC
+            `;
+
+            params = [shop[0].id];
+        }
+
+
+        else {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+
+        const [data] = await db.query(query, params);
+
+        return res.status(200).json({
             success: true,
             count: data.length,
             data
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
+
     }
-})
+});
 
 
 export const hotelUpdate = asyncHandel(async (req, res) => {
@@ -113,11 +226,42 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             location,
             facilities
         } = req.body;
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
 
-        const [hotel] = await db.query(
-            "SELECT * FROM hotels WHERE id = ?",
-            [id]
-        );
+        let shop_id = null;
+        if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop_id = shop[0].id;
+        }
+
+        let hotelQuery = "SELECT * FROM hotels WHERE id = ?";
+
+        let hotelParams = [id];
+
+        if (req.user.role === "shop") {
+            hotelQuery += " AND shop_id = ?";
+            hotelParams.push(shop_id);
+        }
+
+
+        const [hotel] = await db.query(hotelQuery, hotelParams);
 
         if (hotel.length === 0) {
             return res.status(404).json({
@@ -232,7 +376,41 @@ export const hotelDelete = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [hotel] = await db.query("SELECT *  FROM hotels WHERE id = ?", [id]);
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+
+        let shop_id = null;
+
+        if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop_id = shop[0].id;
+        }
+
+        let hotelQuery = "SELECT * FROM hotels WHERE id = ?";
+        let hotelParams = [id];
+
+        if (req.user.role === "shop") {
+            hotelQuery += " AND shop_id = ?";
+            hotelParams.push(shop_id);
+        }
+
+        const [hotel] = await db.query(hotelQuery, hotelParams);
         if (hotel.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -261,6 +439,57 @@ export const hotelDelete = asyncHandel(async (req, res) => {
         });
     }
 })
+
+export const hotelMobileList = asyncHandel(async (req, res) => {
+    try {
+
+        const [data] = await db.query(`
+            SELECT
+                h.id,
+                h.name,
+                h.type,
+                h.price,
+                h.discount,
+                h.total_amount,
+                DATE_FORMAT(h.start_date, '%d-%m-%Y') AS start_date,
+                DATE_FORMAT(h.end_date, '%d-%m-%Y') AS end_date,
+                h.description,
+                h.facilities,
+                h.location,
+                h.image,
+
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address
+
+            FROM hotels h
+
+            INNER JOIN shops s
+                ON h.shop_id = s.id
+
+            WHERE s.status = 'approved'
+
+            ORDER BY h.id DESC
+        `);
+
+        return res.status(200).json({
+            success: true,
+            count: data.length,
+            data
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+});
 
 export const hotelDetails = asyncHandel(async (req, res) => {
     try {

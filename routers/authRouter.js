@@ -19,7 +19,7 @@ router.post('/shop/register', validateRegister, shopRegister);
 router.post('/shop/verify/otp', shopVerifyOTP);
 router.put('/shop/account/approved/:id', authenticated, isAdmin, shopApproved);
 router.put('/shop/account/cancelled/:id', authenticated, isAdmin, shopCancel)
-router.put('/shop/list', authenticated, isAdmin, shopList)
+router.get('/shop/list', authenticated, isAdmin, shopList)
 // Mobile + Admin
 router.post('/login', validateRegister, login)
 router.post('/logout', logout)

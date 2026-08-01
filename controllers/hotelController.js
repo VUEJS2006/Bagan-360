@@ -5,62 +5,94 @@ import path from "path";
 import sharp from "sharp";
 import { v4 as uuid } from "uuid";
 
-
 export const hotelCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shod_id, name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
+        const { shop_id: bodyShopId, name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
+
+        let shop_id = null;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
-                message: "Access denied! "
+                message: "Access denied!"
             });
         }
 
+
+        // Shop user
         if (req.user.role === "shop") {
-            const [shops] = await db.query("SELECT id FROM shops WHERE user_id = ?", [req.user.id])
-        }
 
-        if (shops.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Shop not found!"
-            });
+            const [shops] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shops.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
             shop_id = shops[0].id;
         }
+
+
+        // Admin user
         if (req.user.role === "admin") {
-            if (!shod_id) {
+
+            if (!bodyShopId) {
                 return res.status(400).json({
                     success: false,
                     message: "Shop is required!"
                 });
             }
+
+            shop_id = bodyShopId;
         }
-        if (!name || !type || !start_date || !end_date || !location) {
-            return res.status(400).json({
-                success: false,
-                message: "All field are required!"
-            });
-        }
-        const [shop] = await db.query("SELECT  id FROM shops WHERE id = ?", [shod_id]);
+
+
+        // Check shop exists
+        const [shop] = await db.query(
+            "SELECT id FROM shops WHERE id = ?",
+            [shop_id]
+        );
+
         if (shop.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Shop not found!"
             });
         }
-        const total_amount = Number(price) - (Number(price) * Number(discount) / 100);
+
+
+        if (!name || !type || !start_date || !end_date || !location) {
+            return res.status(400).json({
+                success: false,
+                message: "All field are required!"
+            });
+        }
+
+
+        const total_amount =
+            Number(price) - (Number(price) * Number(discount || 0) / 100);
+
 
         const uploadFolder = path.join(process.cwd(), "images", "hotel");
+
         if (!fs.existsSync(uploadFolder)) {
             fs.mkdirSync(uploadFolder, { recursive: true });
         }
 
+
         let imagePath = null;
 
+
         if (req.file) {
+
             const fileName = `${uuid()}.webp`;
+
             const savePath = path.join(uploadFolder, fileName);
 
             await sharp(req.file.buffer)
@@ -71,45 +103,65 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 .webp({ quality: 90 })
                 .toFile(savePath);
 
+
             imagePath = `images/hotel/${fileName}`;
         }
+
+
+
         const [data] = await db.query(
-            `INSERT INTO hotels
-            
+            `
+            INSERT INTO hotels
             (
-            shop_id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            start_date,
-            end_date,
-            description,
-            facilities,
-            location,
-            image
+                shop_id,
+                name,
+                type,
+                price,
+                discount,
+                total_amount,
+                start_date,
+                end_date,
+                description,
+                facilities,
+                location,
+                image
             )
-
             VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
-
-            `, [shop_id, name, type, price, discount, total_amount, start_date, end_date, description, facilities, location, imagePath]
+            `,
+            [
+                shop_id,
+                name,
+                type,
+                price,
+                discount || 0,
+                total_amount,
+                start_date,
+                end_date,
+                description,
+                facilities,
+                location,
+                imagePath
+            ]
         );
 
-        return res.status(201).json({
-            success: true,
-            message: "Hotel created successfully.",
-            data
-        })
 
-    } catch (error) {
+        return res.status(201).json({
+            success:true,
+            message:"Hotel created successfully.",
+            data
+        });
+
+
+    } catch(error){
+
         console.log(error);
+
         res.status(500).json({
-            success: false,
-            message: error.message
+            success:false,
+            message:error.message
         });
     }
-})
+});
 
 export const hotelList = asyncHandel(async (req, res) => {
     try {

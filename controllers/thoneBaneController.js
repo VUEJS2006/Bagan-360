@@ -142,7 +142,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     t.status,
                     t.image,
                     DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
-                FROM thonebane t
+                FROM thonebanes t
                 LEFT JOIN thonebane_categories c
                     ON t.category_id = c.id
                 LEFT JOIN shops s
@@ -179,7 +179,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     t.status,
                     t.image,
                     DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
-                FROM thonebane t
+                FROM thonebanes t
                 LEFT JOIN thonebane_categories c
                     ON t.category_id = c.id
                 WHERE t.shop_id = ?

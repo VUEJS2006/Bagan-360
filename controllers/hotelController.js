@@ -8,9 +8,9 @@ import { v4 as uuid } from "uuid";
 export const hotelCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shop_id: bodyShopId, name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
+        let { shop_id: bodyShopId, name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
 
-        let shop_id = null;
+     
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({

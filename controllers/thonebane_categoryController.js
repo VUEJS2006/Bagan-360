@@ -2,39 +2,29 @@ import db from "../config/db.js";
 import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 
 
-export const eBikeTypeCreate = asyncHandel(async (req, res) => {
+export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name, distance } = req.body;
+        const { name } = req.body;
 
-        if (!name || !distance) {
+        if (!name) {
             return res.status(400).json({
                 success: false,
                 message: "All filed are required!"
             });
         }
 
-        const [existingType] = await db.query(
-            `SELECT * FROM e_bike_types WHERE name = ?`,
-            [name]
-        );
-
-        if (existingType.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: "E-bike type already exists!"
-            });
-        }
+       
 
         const [data] = await db.query(
             `
-            INSERT INTO e_bike_types (name,distance) VALUES(?,?)
+            INSERT INTO thonebane_categories (name) VALUES(?)
             `,
-            [name, distance]
+            [name]
         );
         return res.status(201).json({
             success: true,
-            message: "E-bike Type Create Success",
+            message: "ThoneBane Category Create Success",
             data
         });
 
@@ -49,18 +39,18 @@ export const eBikeTypeCreate = asyncHandel(async (req, res) => {
     }
 })
 
-export const eBikeTypeList = asyncHandel(async (req, res) => {
+export const thoneBaneCategoryList = asyncHandel(async (req, res) => {
     try {
 
         const [data] = await db.query(
             `
-            SELECT * FROM  e_bike_types
+            SELECT * FROM  thonebane_categories
             ORDER BY id DESC
             `
         );
         return res.status(200).json({
             success: true,
-            message: "E-bike Type List Success",
+            message: "ThoneBane Category List Success",
             data
         });
 
@@ -75,31 +65,31 @@ export const eBikeTypeList = asyncHandel(async (req, res) => {
     }
 })
 
-export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
+export const thoneBaneCategoryUpdate = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, distance } = req.body || {};
-        const [existingEBikeType] = await db.query(` SELECT * FROM e_bike_types WHERE id = ?`, [id]);
+        const { name } = req.body || {};
+        const [existThoneBane] = await db.query(` SELECT * FROM thonebane_categories WHERE id = ?`, [id]);
 
 
-        if (existingEBikeType.length === 0) {
+        if (existThoneBane.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "E-bike Type not found!"
+                message: "ThoneBane Category not found!"
             });
         }
 
 
         const [data] = await db.query(
             `
-            UPDATE e_bike_types SET name = ?,distance = ? WHERE id = ?
+            UPDATE thonebane_categories SET name = ? WHERE id = ?
             `,
-            [name, distance, id]
+            [name, id]
         );
 
         return res.status(200).json({
             success: true,
-            message: "E-bike Type Update Success",
+            message: "ThoneBane Category Update Success",
             data
         });
 
@@ -114,30 +104,30 @@ export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
     }
 })
 
-export const eBikeTypeDelete = asyncHandel(async (req, res) => {
+export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
 
-        const [type] = await db.query(
+        const [thonebane] = await db.query(
             `
             SELECT *
-            FROM e_bike_types
+            FROM thonebane_categories
             WHERE id = ?
             `,
             [id]
         );
 
-        if (type.length === 0) {
+        if (thonebane.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "E-bike Type not found!"
+                message: "ThoneBane Category not found!"
             });
         }
 
         const [data] = await db.query(
             `
-            DELETE FROM e_bike_types
+            DELETE FROM thonebane_categories
             WHERE id = ?
             `,
             [id]
@@ -145,7 +135,7 @@ export const eBikeTypeDelete = asyncHandel(async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "E-bike Type Delete Success",
+            message: "ThoneBane Category Delete Success",
             data
         });
 
@@ -159,4 +149,3 @@ export const eBikeTypeDelete = asyncHandel(async (req, res) => {
         });
     }
 });
-

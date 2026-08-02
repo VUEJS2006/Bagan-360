@@ -305,7 +305,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 location=?,
                 description=?,
                 location=?,
-                status=?
+                status=?,
                 image=?
             WHERE id=?
             `,

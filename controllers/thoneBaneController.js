@@ -384,7 +384,7 @@ export const thonebaneDelete = asyncHandel(async (req, res) => {
         if (thonebane.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Hotel not found"
+                message: "ThoneBane not found"
             });
         }
 

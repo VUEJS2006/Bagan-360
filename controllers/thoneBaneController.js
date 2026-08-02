@@ -19,7 +19,10 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
         }
 
         if (req.user.role === "shop") {
-            const [shops] = await db.query("SELECT id FROM shops WHERE user_id = ?", [req.user.id]);
+            const [shops] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
 
             if (shops.length === 0) {
                 return res.status(404).json({
@@ -28,7 +31,7 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 });
             }
 
-            shop_id = shop[0].id
+            shop_id = shops[0].id;
         }
 
         if (req.user.role === "admin") {

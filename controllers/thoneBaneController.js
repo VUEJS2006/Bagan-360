@@ -494,7 +494,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 s.shop_phone,
                 s.shop_address
 
-            FROM thonebane t
+            FROM thonebanes t
 
             INNER JOIN thonebane_categories c
                 ON t.category_id = c.id

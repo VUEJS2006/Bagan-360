@@ -5,7 +5,7 @@ import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name } = req.body;
+        const { name } = req.body || {};
 
         if (!name) {
             return res.status(400).json({
@@ -14,7 +14,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
             });
         }
 
-       
+
 
         const [data] = await db.query(
             `

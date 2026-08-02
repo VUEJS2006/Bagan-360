@@ -244,7 +244,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
             thoneBaneParams.push(shop_id);
         }
 
-        const [thonebane] = await db.query(thoneBaneQuery, thonebBaneParams);
+        const [thonebane] = await db.query(thoneBaneQuery, thoneBaneParams);
 
         if (thonebane.length === 0) {
             return res.status(404).json({

@@ -425,7 +425,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
         s.id AS shop_id,
         s.shop_name,
         s.shop_phone,
-        s.shop_address
+        s.shop_address,
         DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
         FROM restaurants r  
         INNER JOIN shops s

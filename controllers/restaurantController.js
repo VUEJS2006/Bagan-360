@@ -242,7 +242,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
         if (req.user.role === "shop") {
             restaurantParams += " AND shop_id = ?";
         }
-        const [restaurant] = await db.query(re);
+        const [restaurant] = await db.query(restaurantQuery,restaurantParams);
         if (restaurant.length === 0) {
             return res.status(404).json({
                 success: false,

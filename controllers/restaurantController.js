@@ -451,42 +451,50 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
 
 export const restaurantMobileList = asyncHandel(async (req, res) => {
     try {
-        const [data] = await db.query(
-            `
-        SELECT 
-        r.id,
-        r.name,
-        r.location,
-        r.address,
-        r.phone,
-        r.description,
-        r.dishes,
-        r.image,
-        r.discount,
-        s.id AS shop_id,
-        s.shop_name,
-        s.shop_phone,
-        s.shop_address
-        DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
-        FROM restaurants r  
-        INNER JOIN shops s
-        ON r.shop_id = s.id
-        WHERE r.id = ?
-        AND s.status = 'approved'
-        ORDER BY r.id DESC
-        `,
-        )
-        res.status(200).json({
+
+        const [data] = await db.query(`
+            SELECT
+                r.id,
+                r.name,
+                r.location,
+                r.address,
+                r.phone,
+                r.description,
+                r.dishes,
+                r.image,
+                r.discount,
+
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+
+                DATE_FORMAT(r.created_at,'%d-%m-%Y') AS created_at
+
+            FROM restaurants r
+
+            INNER JOIN shops s
+                ON r.shop_id = s.id
+
+            WHERE s.status = 'approved'
+
+            ORDER BY r.id DESC
+        `);
+
+        return res.status(200).json({
             success: true,
             count: data.length,
             message: "Success data",
             data
         });
+
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});

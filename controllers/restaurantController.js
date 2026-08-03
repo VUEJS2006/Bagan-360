@@ -414,7 +414,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             `
         SELECT 
         r.id,
-        r.r.name,
+        r.name,
         r.location,
         r.address,
         r.phone,

@@ -129,7 +129,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 SELECT 
                 r.id,
                 r.shop_id,
-                s.shop_name,,
+                s.shop_name,
                 r.name,
                 r.location,
                 r.address,
@@ -163,7 +163,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 SELECT 
                 r.id,
                 r.shop_id,
-                s.shop_name,,
+                s.shop_name,
                 r.name,
                 r.location,
                 r.address,
@@ -176,7 +176,8 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 FROM restaurants r
                 LEFT JOIN shops s
                 ON r.shop_id = s.id
-                ORDER BY r.id DESC
+                WHERE r.shop_id = ?
+                ORDER BY t.id DESC
             `
             params = [shop[0].id];
         }

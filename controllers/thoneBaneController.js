@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shop_id: bodyShopId, category_id, name, price, discount, phone, location, description, status } = req.body;
+        const { shop_id: bodyShopId, capacity ,price_per_day ,features ,category_id, name, price, discount, phone, location, description, status } = req.body;
         let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -85,11 +85,14 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
         }
 
         const [data] = await db.query(`
-            INSERT INTO thonebanes (shop_id,category_id,name,price,discount,total_price,phone,location,description,status,image)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO thonebanes (shop_id,capacity,category_id,price_per_day,features,name,price,discount,total_price,phone,location,description,status,image)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
                 shop_id,
+                capacity,
+                price_per_day,
+                features,
                 category_id,
                 name,
                 price,
@@ -132,6 +135,9 @@ export const thonebaneList = asyncHandel(async (req, res) => {
               SELECT
                     t.id,
                     t.shop_id,
+                    t.capacity,
+                    t.price_per_day,
+                    t.features,
                     s.shop_name,
                     t.category_id,
                     c.name AS category_name,
@@ -170,6 +176,9 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                 SELECT
                     t.id,
                     t.shop_id,
+                    t.capacity,
+                    t.price_per_day,
+                    t.features,
                     t.category_id,
                     c.name AS category_name,
                     t.name,
@@ -214,7 +223,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, category_id, price, discount, phone, location, description, status } = req.body;
+        let { name, category_id,capacity,price_per_day,features, price, discount, phone, location, description, status } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -300,6 +309,9 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
             UPDATE thonebanes SET
                 
                 category_id=?,
+                capacity=?,
+                price_per_day = ?,
+                features = ?,
                 name=?,
                 price=?,
                 discount=?,
@@ -313,6 +325,9 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
             `,
             [
                 category_id,
+                capacity,
+                price_per_day,
+                features,
                 name,
                 price,
                 discount,
@@ -420,6 +435,9 @@ export const thonebaneMobileList = asyncHandel(async (req, res) => {
             SELECT
                 t.id,
                 t.name,
+                t.capacity,
+                t.price_per_day,
+                t.features,
                 t.price,
                 t.discount,
                 t.total_price,
@@ -478,6 +496,9 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 t.id,
                 t.name,
                 t.price,
+                t.capacity,
+                t.price_per_day,
+                t.features,
                 t.discount,
                 t.total_price,
                 t.phone,

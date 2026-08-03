@@ -240,9 +240,13 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
         let restaurantParams = [id];
 
         if (req.user.role === "shop") {
-            restaurantParams += " AND shop_id = ?";
+            restaurantQuery += " AND shop_id = ?";
+            restaurantParams.push(shop_id);
         }
-        const [restaurant] = await db.query(restaurantQuery,restaurantParams);
+        const [restaurant] = await db.query(
+            restaurantQuery,
+            restaurantParams
+        );
         if (restaurant.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -296,7 +300,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
                 .toFile(savePath);
 
 
-            updateImage = ` images/restaurant/${fileName}`;
+            updateImage = `images/restaurant/${fileName}`;
 
         }
 

@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shop_id: bodyShopId, capacity ,price_per_day ,features ,category_id, name, price, discount, phone, location, description, status } = req.body;
+        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, price, discount, phone, location, description, status } = req.body;
         let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -85,15 +85,30 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
         }
 
         const [data] = await db.query(`
-            INSERT INTO thonebanes (shop_id,capacity,category_id,price_per_day,features,name,price,discount,total_price,phone,location,description,status,image)
+          INSERT INTO thonebanes (
+                shop_id,
+                capacity,
+                category_id,
+                price_per_day,
+                features,
+                name,
+                price,
+                discount,
+                total_price,
+                phone,
+                location,
+                description,
+                status,
+                image
+            )
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
                 shop_id,
                 capacity,
+                category_id,
                 price_per_day,
                 features,
-                category_id,
                 name,
                 price,
                 discount || 0,
@@ -223,7 +238,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, category_id,capacity,price_per_day,features, price, discount, phone, location, description, status } = req.body;
+        let { name, category_id, capacity, price_per_day, features, price, discount, phone, location, description, status } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({

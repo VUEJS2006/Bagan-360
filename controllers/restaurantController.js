@@ -10,6 +10,7 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
     try {
 
         let { shop_id: bodyShopId, name, location, address, dishes, phone, description, discount } = req.body;
+        let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -93,7 +94,7 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
         const [data] = await db.query(
             `
             INSERT INTO restaurants 
-            (shop_id,name,location,address,dishes,phone,description,image,discount) VALUES (?,?,?,?,?,?,?,?)
+            (shop_id,name,location,address,dishes,phone,description,image,discount) VALUES (?,?,?,?,?,?,?,?,?)
             `,
             [
                 shop_id, name, location, address, JSON.stringify(dishes), phone, description, imagePath, discount

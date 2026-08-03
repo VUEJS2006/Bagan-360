@@ -485,6 +485,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 t.description,
                 t.status,
                 t.image,
+                DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at,
 
                 c.id AS category_id,
                 c.name AS category_name,

@@ -9,7 +9,53 @@ import { v4 as uuid } from "uuid";
 export const restaurantCreate = asyncHandel(async (req, res) => {
     try {
 
-        let { name, location, address, dishes, phone, description,discount } = req.body;
+        let { shop_id: bodyShopId, name, location, address, dishes, phone, description, discount } = req.body;
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        if (req.user.role === "shop") {
+
+            const [shops] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shops.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop_id = shops[0].id;
+        }
+        if (req.user.role === "admin") {
+
+            if (!bodyShopId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Shop is required!"
+                });
+            }
+
+            shop_id = bodyShopId;
+        }
+        const [shop] = await db.query(
+            "SELECT id FROM shops WHERE id = ?",
+            [shop_id]
+        );
+
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found!"
+            });
+        }
+
+
         if (!name || !location || !phone) {
             return res.status(400).json({
                 success: false,
@@ -47,10 +93,10 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
         const [data] = await db.query(
             `
             INSERT INTO restaurants 
-            (name,location,address,dishes,phone,description,image,discount) VALUES (?,?,?,?,?,?,?,?)
+            (shop_id,name,location,address,dishes,phone,description,image,discount) VALUES (?,?,?,?,?,?,?,?)
             `,
             [
-                name, location, address, JSON.stringify(dishes), phone, description, imagePath,discount
+                shop_id, name, location, address, JSON.stringify(dishes), phone, description, imagePath, discount
             ]
         )
         return res.status(201).json({
@@ -72,23 +118,74 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
 });
 
 export const restaurantList = asyncHandel(async (req, res) => {
+
     try {
-        const [data] = await db.query(
+
+        let query = "";
+        let params = [];
+        if (req.user.role === "admin") {
+            query = `
+                SELECT 
+                r.id,
+                r.shop_id,
+                s.shop_name,,
+                r.name,
+                r.location,
+                r.address,
+                r.phone,
+                r.description,
+                r.dishes,
+                r.image,
+                r.discount,
+                DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
+                FROM restaurants r
+                LEFT JOIN shops s
+                ON r.shop_id = s.id
+                ORDER BY r.id DESC
+              `
+        }
+
+        else if (req.user.role === "shop") {
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            query = `
+                SELECT 
+                r.id,
+                r.shop_id,
+                s.shop_name,,
+                r.name,
+                r.location,
+                r.address,
+                r.phone,
+                r.description,
+                r.dishes,
+                r.image,
+                r.discount,
+                DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
+                FROM restaurants r
+                LEFT JOIN shops s
+                ON r.shop_id = s.id
+                ORDER BY r.id DESC
             `
-        SELECT 
-        id,
-        name,
-        location,
-        address,
-        phone,
-        description,
-        dishes,
-        image,
-        discount,
-        DATE_FORMAT(created_at, '%d-%m-%Y') as created_at
-        FROM restaurants
-        `
-        )
+            params = [shop[0].id];
+        }
+        else {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        const [data] = await db.query(query, params);
         return res.status(200).json({
             message: "Restaurant Data Success",
             success: true,
@@ -111,9 +208,39 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, location, address, dishes, phone, description,discount } = req.body || {};
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        let { name, location, address, dishes, phone, description, discount } = req.body || {};
 
-        const [restaurant] = await db.query(`SELECT * FROM restaurants WHERE id = ?`, [id]);
+        let shop_id = null;
+        if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop_id = shop[0].id;
+        }
+        let restaurantQuery = "SELECT * FROM restaurants WHERE id = ?";
+
+        let restaurantParams = [id];
+
+        if (req.user.role === "shop") {
+            restaurantParams += " AND shop_id = ?";
+        }
+        const [restaurant] = await db.query(re);
         if (restaurant.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -168,7 +295,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
 
 
             updateImage = ` images/restaurant/${fileName}`;
-           
+
         }
 
         const [data] = await db.query(
@@ -185,7 +312,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             WHERE id= ?
             `,
             [
-                name, location, address, JSON.stringify(dishes), phone, description, updateImage,discount, id
+                name, location, address, JSON.stringify(dishes), phone, description, updateImage, discount, id
             ]
         );
 
@@ -211,7 +338,39 @@ export const restaurantDelete = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [restaurant] = await db.query("SELECT *  FROM restaurants WHERE id = ?", [id]);
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+
+        let shop_id = null;
+        if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop_id = shop[0].id;
+        }
+
+        let restaurantQuery = "SELECT * FROM restaurants WHERE id = ?";
+        let restaurantParams = [id];
+        if (req.user.role === "shop") {
+            restaurantQuery += " AND shop_id = ?";
+            restaurantParams.push(shop_id);
+        }
+        const [restaurant] = await db.query(restaurantQuery, restaurantParams);
+
         if (restaurant.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -248,18 +407,25 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
         const [data] = await db.query(
             `
         SELECT 
-        id,
-        name,
-        location,
-        address,
-        phone,
-        description,
-        dishes,
-        image,
-        discount,
-        DATE_FORMAT(created_at, '%d-%m-%Y') as created_at
-        FROM restaurants
-        WHERE id = ?
+        r.id,
+        r.r.name,
+        r.location,
+        r.address,
+        r.phone,
+        r.description,
+        r.dishes,
+        r.image,
+        r.discount,
+        s.id AS shop_id,
+        s.shop_name,
+        s.shop_phone,
+        s.shop_address
+        DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
+        FROM restaurants r  
+        INNER JOIN shops s
+        ON r.shop_id = s.id
+        WHERE r.id = ?
+        AND s.status = 'approved'
         `,
             [id]
         )
@@ -268,6 +434,48 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             data
         });
 
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const restaurantMobileList = asyncHandel(async (req, res) => {
+    try {
+        const [data] = await db.query(
+            `
+        SELECT 
+        r.id,
+        r.name,
+        r.location,
+        r.address,
+        r.phone,
+        r.description,
+        r.dishes,
+        r.image,
+        r.discount,
+        s.id AS shop_id,
+        s.shop_name,
+        s.shop_phone,
+        s.shop_address
+        DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
+        FROM restaurants r  
+        INNER JOIN shops s
+        ON r.shop_id = s.id
+        WHERE r.id = ?
+        AND s.status = 'approved'
+        ORDER BY r.id DESC
+        `,
+        )
+        res.status(200).json({
+            success: true,
+            count: data.length,
+            message: "Success data",
+            data
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({

@@ -10,7 +10,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         let { shop_id: bodyShopId, name, type, price, discount, start_date, end_date, description, facilities, location } = req.body;
 
-     
+
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -146,19 +146,19 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
 
         return res.status(201).json({
-            success:true,
-            message:"Hotel created successfully.",
+            success: true,
+            message: "Hotel created successfully.",
             data
         });
 
 
-    } catch(error){
+    } catch (error) {
 
         console.log(error);
 
         res.status(500).json({
-            success:false,
-            message:error.message
+            success: false,
+            message: error.message
         });
     }
 });
@@ -547,7 +547,33 @@ export const hotelDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [data] = await db.query("SELECT id, name, type, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description, facilities, image,location FROM hotels  WHERE id = ?", [id]);
+        const [data] = await db.query(`
+            SELECT
+                h.id,
+                h.name,
+                h.type,
+                h.price,
+                h.discount,
+                h.total_amount,
+                DATE_FORMAT(h.start_date, '%d-%m-%Y') AS start_date,
+                DATE_FORMAT(h.end_date, '%d-%m-%Y') AS end_date,
+                h.description,
+                h.facilities,
+                h.location,
+                h.image,
+
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address
+
+            FROM hotels h
+
+            INNER JOIN shops s
+                ON h.shop_id = s.id
+
+            WHERE s.status = 'approved'
+        `, [id]);
         res.status(200).json({
             success: true,
             data

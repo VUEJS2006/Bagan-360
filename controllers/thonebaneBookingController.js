@@ -83,7 +83,6 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             success: true,
             message: "Booking created successfully.",
             booking_id: booking.insertId,
-            data
         });
 
     } catch (error) {

@@ -46,12 +46,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        if (Number(passenger_count) > Number(item.capacity)) {
-            return res.status(400).json({
-                success: false,
-                message: `Maximum passenger is ${item.capacity}`
-            });
-        }
+      
         const total_price = item.price;
         const [data] = await db.query(`
             INSERT INTO thonebane_bookings  

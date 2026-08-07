@@ -48,7 +48,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
 
       
         const total_price = item.price;
-        const [data] = await db.query(`
+        const [booking] = await db.query(`
             INSERT INTO thonebane_bookings  
             (
             user_id,

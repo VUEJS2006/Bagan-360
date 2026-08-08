@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { thonebane_id, customer_name, customer_phone, pickup_location, destination, passenger_count, booking_date, pickup_time, note } = req.body;
+        const { thonebane_id, customer_name, customer_phone, booking_date, passenger_count,note } = req.body;
         if (req.user.role === "user") {
             return res.status(403).json({
                 success: false,
@@ -20,10 +20,8 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             !thonebane_id ||
             !customer_name ||
             !customer_phone ||
-            !pickup_location ||
-            !passenger_count ||
             !booking_date ||
-            !pickup_time
+            !passenger_count
         ) {
             return res.status(400).json({
                 success: false,
@@ -46,7 +44,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             });
         }
 
-      
+
         const total_price = item.price;
         const [booking] = await db.query(`
             INSERT INTO thonebane_bookings  
@@ -56,27 +54,19 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             thonebane_id,
             customer_name,
             customer_phone,
-            pickup_location,
-            destination,
             passenger_count,
             booking_date,
-            pickup_time,
-            total_price,
             note
             )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?)
             `, [
             req.user.id,
             item.shop_id,
             item.id,
             customer_name,
             customer_phone,
-            pickup_location,
-            destination,
             passenger_count,
             booking_date,
-            pickup_time,
-            total_price,
             note
         ])
         return res.status(201).json({

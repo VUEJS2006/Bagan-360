@@ -160,7 +160,7 @@ export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
             });
         }
         if (req.user.role === "shop") {
-            const [shop] = await db.query("SELECT id FROM  WHERE user_id = ?", [req.user.id]);
+            const [shop] = await db.query("SELECT id FROM shops WHERE user_id = ?", [req.user.id]);
             if (shop.length === 0) {
                 return res.status(404).json({
                     success: false,

@@ -102,6 +102,7 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         b.customer_phone,
         b.booking_date,
         b.passenger_count,
+        b.status,
         b.note,
 
         t.name AS thonebane_name,

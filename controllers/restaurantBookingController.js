@@ -103,7 +103,6 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         b.customer_request,
 
         r.name AS restaurant_name,
-        r.price,
         r.dishes,
         r.location,
 

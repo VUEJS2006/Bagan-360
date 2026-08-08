@@ -133,9 +133,10 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         }
 
         query += ` ORDER BY b.id DESC`
-        const [booking] = await db.query(query, params);
+        const [booking] = await db.query(query,params);
         return res.status(200).json({
             success: true,
+            message:"Booking List Success",
             booking
         });
 
@@ -151,7 +152,6 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
 export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({

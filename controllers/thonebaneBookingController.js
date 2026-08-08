@@ -200,10 +200,6 @@ export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
             });
         }
 
-        if (req.user.role === "shop") {
-            updateQuery += " AND shop_id = ?";
-            updateParams.push(shop_id);
-        }
 
         const [data] = await db.query("UPDATE thonebane_bookings SET status ='approved'  WHERE id = ? AND shop_id = ?", [id, shop_id]);
 

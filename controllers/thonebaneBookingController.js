@@ -290,3 +290,56 @@ export const thonebane_bookingCancelled = asyncHandel(async (req, res) => {
         });
     }
 });
+
+export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
+    try {
+        if (req.user.role !== "user") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        const [data] = await db.query(`
+        SELECT
+        b.id AS booking_id,
+        b.user_id,
+        b.shop_id,
+        b.thonebane_id,
+        
+        b.customer_name,
+        b.customer_phone,
+        b.booking_date,
+        b.passenger_count,
+        b.status,
+        b.note,
+
+        t.name AS thonebane_name,
+        t.price,
+        t.price_per_day,
+
+        s.shop_name
+
+        FROM thonebane_bookings b JOIN thonebanes t ON b.thonebane_id = t.id
+        JOIN shops s ON b.shop_id = s.id 
+
+        WHERE b.user_id = ?
+
+        ORDER BY b.id DESC
+        `, [req.user.id])
+        return res.status(200).json({
+            success: true,
+            message: "Booking Success",
+            count: data.length,
+            data
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

@@ -29,7 +29,7 @@ export const restaurantBookingCreate = asyncHandel(async (req, res) => {
                 message: "All fields are required!"
             });
         }
-        const [restaurant] = await db.query("SELECT id,shop_id,dishes,price  FROM restaurants WHERE id = ?", [restaurant_id]);
+        const [restaurant] = await db.query("SELECT id,shop_id,dishes FROM restaurants WHERE id = ?", [restaurant_id]);
         if (restaurant.length === 0) {
             return res.status(404).json({
                 success: false,

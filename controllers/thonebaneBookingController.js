@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { thonebane_id, customer_name, customer_phone, booking_date, passenger_count,note } = req.body;
+        const { thonebane_id, customer_name, customer_phone, booking_date, passenger_count, note } = req.body;
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
@@ -71,6 +71,71 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             success: true,
             message: "Booking created successfully.",
             booking_id: booking.insertId,
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const thonebaneBookingList = asyncHandel(async (req, res) => {
+    try {
+
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        let query = ` 
+        SELECT 
+        b.id AS booking_id,
+        b.user_id,
+        b.shop_id,
+        b.thonebane_id,
+        
+        b.customer_name,
+        b.customer_phone,
+        b.booking_date,
+        b.passenger_count,
+        b.note,
+
+        t.name AS thonebane_name,
+        t.price,
+        t.price_per_day
+
+        s.shop_name
+
+        FROM thonebane_bookings b JOIN thonebanes t ON b.thonebane_id = t.id
+        JOIN shops s ON s.shop_id = s.id 
+        `;
+
+        let params = [];
+        if (req.user.role === "shop") {
+            const [shops] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+            if (shops.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+            const shop_id = shops[0].id;
+            query += ` WHERE b.shop_id = ?`;
+            params.push(shop_id)
+        }
+
+        query += ` ORDER BY b.id DESC`
+        const [booking] = await db.query(query, params);
+        return res.status(200).json({
+            success: true,
+            booking
         });
 
     } catch (error) {

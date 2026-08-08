@@ -219,3 +219,74 @@ export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
         });
     }
 });
+
+export const thonebane_bookingCancelled = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+
+        let shop_id;
+
+        if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                "SELECT id FROM shops WHERE user_id = ?",
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            shop_id = shop[0].id;
+        }
+
+        let bookingQuery = "SELECT * FROM thonebane_bookings WHERE id = ?";
+        let bookingParams = [id];
+
+        if (req.user.role === "shop") {
+            bookingQuery += " AND shop_id = ?";
+            bookingParams.push(shop_id);
+        }
+
+        const [booking] = await db.query(
+            bookingQuery,
+            bookingParams
+        );
+
+        if (booking.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Booking not found!"
+            });
+        }
+
+
+        const [data] = await db.query("UPDATE thonebane_bookings SET status ='cancelled'  WHERE id = ? AND shop_id = ?", [id, shop_id]);
+
+        return res.status(200).json({
+            success: true,
+            message: "ThoneBane Booking Cancelled Successfully",
+            data
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});

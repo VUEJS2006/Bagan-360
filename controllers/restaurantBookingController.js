@@ -287,3 +287,62 @@ export const restaurant_bookingCancelled = asyncHandel(async (req, res) => {
         });
     }
 });
+
+export const restaurantMobileBooking = asyncHandel(async (req, res) => {
+    try {
+        if (req.user.role !== "user") {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        const [data] = await db.query(`
+        SELECT 
+        b.id AS booking_id,
+        b.user_id,
+        b.shop_id,
+        b.restaurant_id,
+        
+        b.customer_name,
+        b.customer_phone,
+        b.booking_date,
+        b.booking_time,
+        b.guests,
+        b.status,
+        b.customer_request,
+
+        r.name AS restaurant_name,
+        r.dishes,
+        r.location,
+
+        s.shop_name
+
+        FROM restaurant_bookings b
+
+        JOIN restaurants r
+        ON b.restaurant_id = r.id
+
+        JOIN shops s
+        ON b.shop_id = s.id
+
+        WHERE b.user_id = ?
+
+        ORDER BY b.id DESC
+        `, [req.user.id])
+        return res.status(200).json({
+            success: true,
+            message: "Booking Success",
+            count: data.length,
+            data
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

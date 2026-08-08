@@ -39,7 +39,7 @@ export const restaurantBookingCreate = asyncHandel(async (req, res) => {
         const item = restaurant[0]
 
         const [data] = await db.query(`
-            INSERT INTO thonebane_bookings  
+            INSERT INTO restaurant_bookings  
             (
             user_id,
             shop_id,
@@ -66,7 +66,7 @@ export const restaurantBookingCreate = asyncHandel(async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Restaurant Booking created successfully.",
-            restaurant_id_id: data.insertId,
+            restaurant_id: data.insertId,
         });
 
     } catch (error) {

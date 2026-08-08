@@ -6,7 +6,7 @@ import express from "express";
 const router = express.Router()
 // Admin
 router.get('/admin/thonebane/booking/list', authenticated, thonebaneBookingList)
-router.put('/admin/thonebane/booking/approved',authenticated,thonebane_bookingApproved)
+router.put('/admin/thonebane/booking/approved/:id',authenticated,thonebane_bookingApproved)
 
 // Mobile
 router.post('/mobile/thonebane/booking/create', authenticated, thonebaneBookingCreate);

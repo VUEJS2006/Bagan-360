@@ -147,3 +147,55 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         });
     }
 })
+
+export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!["admin", "shop"].includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        if (req.user.role === "shop") {
+            const [shop] = await db.query("SELECT id FROM  WHERE user_id = ?", [req.user.id]);
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+            const shop_id = shops[0].id;
+        }
+        let bookingQuery = "SELECT * FROM thonebane_bookings WHERE id = ?";
+        let bookingParams = [id];
+        if (req.user.role === "shop") {
+            bookingQuery += " AND shop_id = ?";
+            bookingParams.push(shop_id);
+        }
+        const [booking] = await db.query(bookingQuery, bookingQuery);
+        if (booking.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "ThoneBane not found"
+            });
+        }
+        const [data] = await db.query(`
+            UPDATE thonebane_bookings SET status = 'approved' WHERE id = ?
+            `, [id]);
+        return res.status(200).json({
+            success: true,
+            message: "ThoneBane Booking Approved Successfully",
+            data
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

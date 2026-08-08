@@ -106,7 +106,7 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
 
         t.name AS thonebane_name,
         t.price,
-        t.price_per_day
+        t.price_per_day,
 
         s.shop_name
 

@@ -111,7 +111,7 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         s.shop_name
 
         FROM thonebane_bookings b JOIN thonebanes t ON b.thonebane_id = t.id
-        JOIN shops s ON s.shop_id = s.id 
+        JOIN shops s ON b.shop_id = s.id 
         `;
 
         let params = [];

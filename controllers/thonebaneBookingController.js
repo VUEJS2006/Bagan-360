@@ -167,7 +167,7 @@ export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
-            const shop_id = shops[0].id;
+            const shop_id = shop[0].id;
         }
         let bookingQuery = "SELECT * FROM thonebane_bookings WHERE id = ?";
         let bookingParams = [id];

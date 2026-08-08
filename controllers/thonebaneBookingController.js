@@ -184,7 +184,7 @@ export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
         }
         const [data] = await db.query(`
             UPDATE thonebane_bookings SET status = 'approved' WHERE id = ?
-            `, [id]);
+            `, [id,shop_id]);
         return res.status(200).json({
             success: true,
             message: "ThoneBane Booking Approved Successfully",

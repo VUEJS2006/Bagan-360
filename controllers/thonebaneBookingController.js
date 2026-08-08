@@ -10,7 +10,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
     try {
 
         const { thonebane_id, customer_name, customer_phone, booking_date, passenger_count,note } = req.body;
-        if (req.user.role === "user") {
+        if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
@@ -44,8 +44,6 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             });
         }
 
-
-        const total_price = item.price;
         const [booking] = await db.query(`
             INSERT INTO thonebane_bookings  
             (
@@ -67,7 +65,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             customer_phone,
             passenger_count,
             booking_date,
-            note
+            note || null
         ])
         return res.status(201).json({
             success: true,

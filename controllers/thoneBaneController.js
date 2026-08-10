@@ -98,7 +98,7 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 status,
                 image
             )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
                 shop_id,

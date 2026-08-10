@@ -574,12 +574,8 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
             updateImage = `images/e-bike/${fileName}`;
         }
 
-        price = Number(price);
-        discount = Number(discount || 0);
-
-        const total_amount =
-            price - (price * discount / 100);
-
+       
+        
 
         const [data] = await db.query(
             `
@@ -853,10 +849,7 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
                 e.location,
                 e.image,
 
-                e.price,
-                e.discount,
-                e.total_price,
-
+                
                 e.status,
                 e.battery_percentage,
 

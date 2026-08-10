@@ -1,4 +1,4 @@
-import { eBikeCreate, eBikeList, eBikeUpdate, eBikeDelete, eBikeDetail } from "../controllers/e_bikeController.js";
+import { eBikeMobileList, eBikeCreate, eBikeList, eBikeUpdate, eBikeDelete, eBikeDetail } from "../controllers/e_bikeController.js";
 import { upload } from "../middlewares/upload.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
@@ -11,6 +11,6 @@ router.put('/admin/e-bike/update/:id', authenticated, isAdmin, upload.single("im
 router.delete('/admin/e-bike/delete/:id', authenticated, isAdmin, eBikeDelete);
 
 // Mobile
-router.get('/mobile/e-bike/list', authenticated, eBikeList);
+router.get('/mobile/e-bike/list', authenticated, eBikeMobileList);
 router.get('/mobile/e-bike/details/:id', authenticated, eBikeDetail);
 export default router;

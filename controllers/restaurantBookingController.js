@@ -102,9 +102,13 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         b.status,
         b.customer_request,
 
-        r.name AS restaurant_name,
+      r.name AS restaurant_name,
         r.dishes,
         r.location,
+        r.image,
+        r.discount,
+        r.phone,
+        r.address,
 
         s.shop_name
 
@@ -314,6 +318,10 @@ export const restaurantMobileBooking = asyncHandel(async (req, res) => {
         r.name AS restaurant_name,
         r.dishes,
         r.location,
+        r.image,
+        r.discount,
+        r.phone,
+        r.address,
 
         s.shop_name
 

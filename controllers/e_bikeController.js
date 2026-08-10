@@ -17,9 +17,6 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
             brand,
             color,
             location,
-            price,
-            discount,
-            total_price,
             status,
             battery_percentage,
             helmet,
@@ -83,7 +80,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        if (!type_id || !name || !code || !price) {
+        if (!type_id || !name || !code) {
             return res.status(400).json({
                 success: false,
                 message: "Type, name and code are required!"
@@ -161,12 +158,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
         }
 
 
-        price = Number(price);
-        discount = Number(discount || 0);
-
-        const total_amount =
-            price - (price * discount / 100);
-
+    
 
         const [data] = await db.query(
             `
@@ -180,9 +172,6 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 color,
                 location,
                 image,
-                price,
-                discount,
-                total_price,
                 status,
                 battery_percentage,
                 helmet,
@@ -192,7 +181,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 phone_holder,
                 description
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
@@ -203,9 +192,6 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 color || null,
                 location || null,
                 imagePath,
-                price,
-                discount,
-                total_amount,
                 status || "available",
                 battery_percentage ?? 100,
                 helmet,
@@ -260,9 +246,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
                     e.location,
                     e.image,
 
-                    e.price,
-                    e.discount,
-                    e.total_price,
 
                     e.status,
                     e.battery_percentage,
@@ -323,9 +306,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
                     e.location,
                     e.image,
 
-                    e.price,
-                    e.discount,
-                    e.total_price,
 
                     e.status,
                     e.battery_percentage,
@@ -428,9 +408,6 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
             brand,
             color,
             location,
-            price,
-            discount,
-            total_price,
             status,
             battery_percentage,
             helmet,
@@ -616,9 +593,7 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
                 location = ?,
                 image = ?,
 
-                price = ?,
-                discount = ?,
-                total_price = ?,
+                
 
                 status = ?,
                 battery_percentage = ?,
@@ -642,10 +617,7 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
                 location || null,
                 updateImage,
 
-                price,
-                discount,
-                total_amount,
-
+            
                 status || "available",
                 battery_percentage ?? 100,
 
@@ -803,9 +775,7 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
                 e.location,
                 e.image,
 
-                e.price,
-                e.discount,
-                e.total_price,
+            
 
                 e.status,
                 e.battery_percentage,
@@ -953,9 +923,7 @@ export const eBikeMobileList = asyncHandel(async (req, res) => {
                 e.location,
                 e.image,
 
-                e.price,
-                e.discount,
-                e.total_price,
+            
 
                 e.status,
                 e.battery_percentage,

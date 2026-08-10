@@ -192,9 +192,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
                 e.location,
                 e.image,
 
-                e.price AS bike_price,
-                e.discount,
-                e.total_price AS bike_total_price,
+             
 
                 e.status AS bike_status,
                 e.battery_percentage,
@@ -439,9 +437,7 @@ export const e_bikeMobileBooking = asyncHandel(async (req, res) => {
                 e.location,
                 e.image,
 
-                e.price AS bike_price,
-                e.discount,
-                e.total_price AS bike_total_price,
+               
 
                 e.status AS bike_status,
                 e.battery_percentage,

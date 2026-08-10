@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, price, discount, phone, location, description, status } = req.body;
+        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, price, phone, location, description, status } = req.body;
         let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -59,7 +59,6 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        const total_price = Number(price) - Number(price) * Number(discount || 0) / 100;
 
         const uploadFolder = path.join(process.cwd(), "images", "thonebane")
         if (!fs.existsSync(uploadFolder)) {
@@ -93,8 +92,6 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 features,
                 name,
                 price,
-                discount,
-                total_price,
                 phone,
                 location,
                 description,
@@ -111,8 +108,6 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 features,
                 name,
                 price,
-                discount || 0,
-                total_price,
                 phone,
                 location,
                 description,
@@ -158,8 +153,6 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     c.name AS category_name,
                     t.name,
                     t.price,
-                    t.discount,
-                    t.total_price,
                     t.phone,
                     t.location,
                     t.description,
@@ -198,8 +191,6 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     c.name AS category_name,
                     t.name,
                     t.price,
-                    t.discount,
-                    t.total_price,
                     t.phone,
                     t.location,
                     t.description,
@@ -238,7 +229,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, category_id, capacity, price_per_day, features, price, discount, phone, location, description, status } = req.body;
+        let { name, category_id, capacity, price_per_day, features, price, phone, location, description, status } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -329,8 +320,6 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 features = ?,
                 name=?,
                 price=?,
-                discount=?,
-                total_price=?,
                 phone=?,
                 location=?,
                 description=?,
@@ -345,8 +334,6 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 features,
                 name,
                 price,
-                discount,
-                total_price,
                 phone,
                 location,
                 description,
@@ -454,8 +441,6 @@ export const thonebaneMobileList = asyncHandel(async (req, res) => {
                 t.price_per_day,
                 t.features,
                 t.price,
-                t.discount,
-                t.total_price,
                 t.phone,
                 t.location,
                 t.description,
@@ -514,8 +499,6 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 t.capacity,
                 t.price_per_day,
                 t.features,
-                t.discount,
-                t.total_price,
                 t.phone,
                 t.location,
                 t.description,

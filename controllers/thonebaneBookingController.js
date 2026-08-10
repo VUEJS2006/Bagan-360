@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { thonebane_id, customer_name, customer_phone, booking_date, passenger_count, note } = req.body;
+        const { thonebane_id, price,customer_name, customer_phone, booking_date, passenger_count, note } = req.body;
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
@@ -18,6 +18,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
         }
         if (
             !thonebane_id ||
+            !price||
             !customer_name ||
             !customer_phone ||
             !booking_date ||
@@ -54,9 +55,10 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             customer_phone,
             passenger_count,
             booking_date,
+            price,
             note
             )
-            VALUES (?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?)
             `, [
             req.user.id,
             item.shop_id,
@@ -65,6 +67,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
             customer_phone,
             passenger_count,
             booking_date,
+            price,
             note || null
         ])
         return res.status(201).json({
@@ -104,12 +107,11 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         b.passenger_count,
         b.status,
         b.note,
+        b.price
 
         t.name AS thonebane_name,
         t.price,
         t.price_per_day,
-        t.discount,
-        t.total_price,
         t.phone,
         t.location,
         t.status,
@@ -319,12 +321,11 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
         b.passenger_count,
         b.status,
         b.note,
+        b.price
 
         t.name AS thonebane_name,
         t.price,
         t.price_per_day,
-        t.discount,
-        t.total_price,
         t.phone,
         t.location,
         t.status,

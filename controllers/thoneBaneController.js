@@ -305,10 +305,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
 
             updatedImageString = `images/hotel/${fileName}`;
         }
-        price = Number(price);
-        discount = Number(discount || 0);
-
-        const total_price = price - (price * discount / 100);
+       
 
         const [data] = await db.query(
             `

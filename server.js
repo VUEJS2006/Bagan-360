@@ -14,6 +14,7 @@ import thonbaneCategoryRouter from "./routers/thonebane_categoryRouter.js"
 import thonbaneRouter from "./routers/thonebaneRouter.js"
 import thonebaneBookingRouter from "./routers/thoneBaneBookingRouter.js"
 import restaurantBookingRouter from "./routers/restaurantBookingRouter.js"
+import e_bikeBookingRouter from "./routers/e_bikeBookingRouter.js"
 
 import cors from "cors"
 import path from "path";
@@ -52,7 +53,7 @@ app.use('/api', thonbaneCategoryRouter);
 app.use('/api', thonbaneRouter);
 app.use('/api',thonebaneBookingRouter)
 app.use('/api',restaurantBookingRouter)
-
+app.use('/api',e_bikeBookingRouter)
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

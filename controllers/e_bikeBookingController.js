@@ -430,7 +430,6 @@ export const e_bikeMobileBooking = asyncHandel(async (req, res) => {
                 b.booking_date,
                 b.passenger_count,
 
-                b.price_type,
                 b.price,
                 b.total_amount,
 

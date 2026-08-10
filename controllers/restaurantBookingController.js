@@ -97,7 +97,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         b.customer_name,
         b.customer_phone,
         DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-        TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time
+        TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
         b.guests,
         b.status,
         b.customer_request,

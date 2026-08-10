@@ -100,7 +100,7 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         
         b.customer_name,
         b.customer_phone,
-        b.booking_date,
+        DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
         b.passenger_count,
         b.status,
         b.note,
@@ -315,7 +315,7 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
         
         b.customer_name,
         b.customer_phone,
-        b.booking_date,
+        DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
         b.passenger_count,
         b.status,
         b.note,

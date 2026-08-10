@@ -177,7 +177,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
 
                 b.customer_name,
                 b.customer_phone,
-                b.booking_date,
+                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
                 b.passenger_count,
 
 
@@ -424,7 +424,7 @@ export const e_bikeMobileBooking = asyncHandel(async (req, res) => {
 
                 b.customer_name,
                 b.customer_phone,
-                b.booking_date,
+                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
                 b.passenger_count,
 
               

@@ -51,9 +51,9 @@ app.use('/api', e_bikeRouter);
 app.use('/api', e_bikePriceRouter);
 app.use('/api', thonbaneCategoryRouter);
 app.use('/api', thonbaneRouter);
-app.use('/api',thonebaneBookingRouter)
-app.use('/api',restaurantBookingRouter)
-app.use('/api',e_bikeBookingRouter)
+app.use('/api', thonebaneBookingRouter)
+app.use('/api', restaurantBookingRouter)
+app.use('/api', e_bikeBookingRouter)
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

@@ -303,7 +303,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 })
                 .toFile(savePath);
 
-            updatedImageString = `images/hotel/${fileName}`;
+            updatedImageString = `images/thonebane/${fileName}`;
         }
        
 

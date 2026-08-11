@@ -107,12 +107,9 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         b.passenger_count,
         b.status,
         b.note,
-        b.price.
+        b.price,
 
         t.name AS thonebane_name,
-        t.price,
-        t.price_per_day,
-        t.phone,
         t.location,
         t.status,
         t.image,
@@ -324,8 +321,6 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
         b.price,
 
         t.name AS thonebane_name,
-        t.price,
-        t.price_per_day,
         t.phone,
         t.location,
         t.status,

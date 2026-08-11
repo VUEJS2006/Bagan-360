@@ -353,7 +353,13 @@ export const eBikeList = asyncHandel(async (req, res) => {
             SELECT
                 id,
                 e_bike_id,
-                price_type,
+                CASE
+                    WHEN price_type = 'full_day' THEN 'Full Day'
+                    WHEN price_type = 'half_day_1' THEN 'Half Day 1'
+                    WHEN price_type = 'half_day_2' THEN 'Half Day 2'
+                    WHEN price_type = 'hourly' THEN 'Hourly'
+                    ELSE price_type
+                END AS price_type,
                 start_time,
                 end_time,
                 price
@@ -807,18 +813,25 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
                     JSON_ARRAYAGG(
                         CASE
                             WHEN p.id IS NOT NULL THEN
-                                JSON_OBJECT(
-                                    'id', p.id,
-                                    'price_type', p.price_type,
-                                    'start_time', p.start_time,
-                                    'end_time', p.end_time,
-                                    'price', p.price
-                                )
+                               JSON_OBJECT(
+                                'id', p.id,
+                                'price_type',
+                                CASE
+                                    WHEN p.price_type = 'full_day' THEN 'Full Day'
+                                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
+                                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
+                                    WHEN p.price_type = 'hourly' THEN 'Hourly'
+                                    ELSE p.price_type
+                                END,
+
+                                'start_time', p.start_time,
+                                'end_time', p.end_time,
+                                'price', p.price
+                            )
                         END
                     ),
                     JSON_ARRAY()
                 ) AS prices
-
 
             FROM e_bikes e
 
@@ -958,7 +971,13 @@ export const eBikeMobileList = asyncHandel(async (req, res) => {
             SELECT
                 id,
                 e_bike_id,
-                price_type,
+                CASE
+                    WHEN price_type = 'full_day' THEN 'Full Day'
+                    WHEN price_type = 'half_day_1' THEN 'Half Day 1'
+                    WHEN price_type = 'half_day_2' THEN 'Half Day 2'
+                    WHEN price_type = 'hourly' THEN 'Hourly'
+                    ELSE price_type
+                END AS price_type,
                 start_time,
                 end_time,
                 price

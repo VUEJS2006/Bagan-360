@@ -207,7 +207,13 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
 
                 s.shop_name,
 
-                p.price_type AS selected_price_type,
+                CASE
+                    WHEN p.price_type = 'full_day' THEN 'Full Day'
+                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
+                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
+                    WHEN p.price_type = 'hourly' THEN 'Hourly'
+                    ELSE p.price_type
+                END AS selected_price_type,
                 p.start_time,
                 p.end_time,
                 p.price AS selected_price
@@ -452,7 +458,13 @@ export const e_bikeMobileBooking = asyncHandel(async (req, res) => {
 
                 s.shop_name,
 
-                p.price_type AS selected_price_type,
+                CASE
+                    WHEN p.price_type = 'full_day' THEN 'Full Day'
+                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
+                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
+                    WHEN p.price_type = 'hourly' THEN 'Hourly'
+                    ELSE p.price_type
+                END AS selected_price_type,
                 p.start_time,
                 p.end_time,
                 p.price AS selected_price

@@ -183,8 +183,6 @@ export const destinationList = asyncHandel(async (req, res) => {
                 price
 
             FROM destination_prices
-
-            ORDER BY created_at ASC
             `
         );
 

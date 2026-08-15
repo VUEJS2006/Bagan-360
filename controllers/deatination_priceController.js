@@ -9,7 +9,7 @@ export const destinationPriceCreate = asyncHandel(async (req, res) => {
     try {
 
         const { destination_id, passenger, price } = req.body || {};  
-        if (!destination_id || !passenger || !price) {
+        if (!destination_id  || !price) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required!"

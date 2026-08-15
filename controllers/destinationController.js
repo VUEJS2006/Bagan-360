@@ -173,10 +173,38 @@ export const destinationList = asyncHandel(async (req, res) => {
                 DATE_FORMAT(created_at, '%Y-%m-%d') AS created_at
             FROM destinations
         `);
+
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                destination_id,
+                passenger,
+                price
+
+            FROM destination_prices
+
+            ORDER BY created_at ASC
+            `
+        );
+
+        const result = data.map((destination) => {
+
+            return {
+                ...destination,
+
+                prices: prices.filter(
+                    (price) =>
+                        price.description_id === destination.id
+                )
+            };
+
+        });
+
         res.status(200).json({
             success: true,
             count: data.length,
-            data
+            data: result
         });
 
     } catch (error) {
@@ -396,33 +424,83 @@ export const destinationDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [data] = await db.query(
-            ` SELECT
-                id,
-                title,
-                zone,
-                duration,
-                transport,
-                tips,
-                tags,
-                itinerary,
-                image,
-                description,
-                DATE_FORMAT(created_at, '%Y-%m-%d') AS created_at
-                FROM destinations WHERE id = ?`,
-            [id]);
 
-        res.status(200).json({
+        const [data] = await db.query(
+            `
+            SELECT
+                d.id,
+                d.title,
+                d.zone,
+                d.duration,
+                d.transport,
+                d.tips,
+                d.tags,
+                d.itinerary,
+                d.image,
+                d.description,
+
+                DATE_FORMAT(
+                    d.created_at,
+                    '%Y-%m-%d'
+                ) AS created_at,
+
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        CASE
+                            WHEN p.id IS NOT NULL THEN
+                                JSON_OBJECT(
+                                    'id', p.id,
+                                    'passenger', p.passenger,
+                                    'price', p.price
+                                )
+                        END
+                    ),
+                    JSON_ARRAY()
+                ) AS prices
+
+            FROM destinations d
+
+            LEFT JOIN destination_prices p
+                ON d.id = p.destination_id
+
+            WHERE d.id = ?
+
+            GROUP BY
+                d.id,
+                d.title,
+                d.zone,
+                d.duration,
+                d.transport,
+                d.tips,
+                d.tags,
+                d.itinerary,
+                d.image,
+                d.description,
+                d.created_at
+            `,
+            [id]
+        );
+
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Destination not found!"
+            });
+        }
+
+        return res.status(200).json({
             success: true,
-            message: "Success!",
-            data
+            message: "Destination Detail Success",
+            data: data[0]
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});

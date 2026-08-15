@@ -58,15 +58,20 @@ export const destinationPriceList = asyncHandel(async (req, res) => {
             FROM destination_prices
 
             LEFT JOIN destinations
-                ON destinations.destination_id = destinations.id
+                ON destination_prices.destination_id = destinations.id
+
+            ORDER BY destination_prices.id DESC
         `);
 
         return res.status(200).json({
             success: true,
+            count: data.length,
             data
         });
 
     } catch (error) {
+
+        console.log(error);
 
         return res.status(500).json({
             success: false,

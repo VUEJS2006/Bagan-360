@@ -323,7 +323,7 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
                 tips=?,
                 tags=?,
                 itinerary=?,
-                image=?
+                image=?,
                 description = ?
             WHERE id=?
             `,

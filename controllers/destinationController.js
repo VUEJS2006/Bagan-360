@@ -172,19 +172,17 @@ export const destinationList = asyncHandel(async (req, res) => {
                 description,
                 DATE_FORMAT(created_at, '%Y-%m-%d') AS created_at
             FROM destinations
+            ORDER BY id DESC
         `);
 
-        const [prices] = await db.query(
-            `
+        const [prices] = await db.query(`
             SELECT
                 id,
                 destination_id,
                 passenger,
                 price
-
             FROM destination_prices
-            `
-        );
+        `);
 
         const result = data.map((destination) => {
 
@@ -193,26 +191,28 @@ export const destinationList = asyncHandel(async (req, res) => {
 
                 prices: prices.filter(
                     (price) =>
-                        price.description_id === destination.id
+                        price.destination_id === destination.id
                 )
             };
 
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            count: data.length,
+            count: result.length,
             data: result
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 
 export const destinationUpdate = asyncHandel(async (req, res) => {

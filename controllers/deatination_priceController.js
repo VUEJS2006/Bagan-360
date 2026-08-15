@@ -53,7 +53,8 @@ export const destinationPriceList = asyncHandel(async (req, res) => {
                 destination_prices.passenger,
                 destination_prices.price,
 
-                destinations.name,
+                destinations.name
+                
             FROM destination_prices
 
             LEFT JOIN destinations

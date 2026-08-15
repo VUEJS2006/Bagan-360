@@ -8,7 +8,7 @@ import { v4 as uuid } from "uuid";
 export const destinationPriceCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { destination_id, passenger, price } = req.body;
+        const { destination_id, passenger, price } = req.body || {};  
         if (!destination_id || !passenger || !price) {
             return res.status(400).json({
                 success: false,

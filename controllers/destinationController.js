@@ -9,78 +9,170 @@ import { v4 as uuid } from "uuid";
 export const destinationCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { name, location, price, discount, start_date, end_date, description, visit_date, activities } = req.body;
+        let {
+            title,
+            zone,
+            duration,
+            transport,
+            tips,
+            tags,
+            itinerary,
+            description
+        } = req.body;
 
-        if (!name || !location || !price || !discount || !start_date || !end_date) {
+        if (!title || !zone || !duration) {
             return res.status(400).json({
                 success: false,
-                message: "All field are required!"
+                message: "Title, zone and duration are required!"
             });
         }
-        const total_amount = Number(price) - (Number(price) * Number(discount) / 100);
 
-        const uploadFolder = path.join(process.cwd(), "images", "destination");
+
+        if (!transport) {
+            transport = [];
+        }
+
+        if (typeof transport === "string") {
+            try {
+                transport = JSON.parse(transport);
+            } catch (error) {
+                transport = transport
+                    .split(",")
+                    .map(item => item.trim())
+                    .filter(Boolean);
+            }
+        }
+
+
+        if (!tags) {
+            tags = [];
+        }
+
+        if (typeof tags === "string") {
+            try {
+                tags = JSON.parse(tags);
+            } catch (error) {
+                tags = tags
+                    .split(",")
+                    .map(item => item.trim())
+                    .filter(Boolean);
+            }
+        }
+
+
+        if (!itinerary) {
+            itinerary = [];
+        }
+
+        if (typeof itinerary === "string") {
+            try {
+                itinerary = JSON.parse(itinerary);
+            } catch (error) {
+                itinerary = [];
+            }
+        }
+
+        const uploadFolder = path.join(
+            process.cwd(),
+            "images",
+            "destination"
+        );
+
         if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, { recursive: true });
+            fs.mkdirSync(uploadFolder, {
+                recursive: true
+            });
         }
 
         let imagePath = null;
 
         if (req.file) {
+
             const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName);
+
+            const savePath = path.join(
+                uploadFolder,
+                fileName
+            );
 
             await sharp(req.file.buffer)
                 .resize({
                     width: 1920,
                     withoutEnlargement: true
                 })
-                .webp({ quality: 90 })
+                .webp({
+                    quality: 90
+                })
                 .toFile(savePath);
 
             imagePath = `images/destination/${fileName}`;
         }
+
         const [data] = await db.query(
-            `INSERT INTO destinations
-            
+            `
+            INSERT INTO destinations
             (
-            name,
-            location,
-            price,
-            discount,
-            total_amount,
-            start_date,
-            end_date,
-            description,
-            visit_date,
-            activities,
-            image
+                title,
+                zone,
+                duration,
+                transport,
+                tips,
+                tags,
+                itinerary,
+                image,
+                description
             )
-
-            VALUES(?,?,?,?,?,?,?,?,?,?,?)
-
-            `, [name, location, price, discount, total_amount, start_date, end_date, description, visit_date, activities, imagePath]
+            VALUES (?, ?, ?, ?, ?, ?, ?, ? ,?)
+            `,
+            [
+                title,
+                zone,
+                duration,
+                JSON.stringify(transport),
+                tips,
+                JSON.stringify(tags),
+                JSON.stringify(itinerary),
+                imagePath,
+                description
+            ]
         );
 
         return res.status(201).json({
             success: true,
             message: "Destination created successfully.",
             data
-        })
+        });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
+
 
 export const destinationList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query(`SELECT id, name, location, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description,visit_date, activities, image FROM destinations ORDER BY id DESC`);
+        const [data] = await db.query(`
+            SELECT
+                id,
+                title,
+                zone,
+                duration,
+                transport,
+                tips,
+                tags,
+                itinerary,
+                image,
+                description,
+                DATE_FORMAT(created_at, '%Y-%m-%d') AS created_at
+            FROM destinations
+        `);
         res.status(200).json({
             success: true,
             count: data.length,
@@ -103,15 +195,14 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
         const { id } = req.params;
 
         let {
-            name,
-            location,
-            price,
-            discount,
-            start_date,
-            end_date,
-            description,
-            visit_date,
-            activities
+            title,
+            zone,
+            duration,
+            transport,
+            tips,
+            tags,
+            itinerary,
+            description
         } = req.body;
 
         const [destination] = await db.query(
@@ -126,6 +217,51 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+        // Transport
+        if (!transport) {
+            transport = [];
+        }
+
+        if (typeof transport === "string") {
+            try {
+                transport = JSON.parse(transport);
+            } catch (error) {
+                transport = transport
+                    .split(",")
+                    .map(item => item.trim())
+                    .filter(Boolean);
+            }
+        }
+
+        // Tags
+        if (!tags) {
+            tags = [];
+        }
+
+        if (typeof tags === "string") {
+            try {
+                tags = JSON.parse(tags);
+            } catch (error) {
+                tags = tags
+                    .split(",")
+                    .map(item => item.trim())
+                    .filter(Boolean);
+            }
+        }
+
+        // Itinerary
+        if (!itinerary) {
+            itinerary = [];
+        }
+
+        if (typeof itinerary === "string") {
+            try {
+                itinerary = JSON.parse(itinerary);
+            } catch (error) {
+                itinerary = [];
+            }
+        }
+
         let updatedImageString = destination[0].image;
 
         // New Image Upload
@@ -133,6 +269,7 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
 
             // Delete Old Image
             if (destination[0].image) {
+
                 const oldPath = path.join(
                     process.cwd(),
                     destination[0].image
@@ -156,6 +293,7 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
             }
 
             const fileName = `${uuid()}.webp`;
+
             const savePath = path.join(
                 uploadFolder,
                 fileName
@@ -171,43 +309,34 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
                 })
                 .toFile(savePath);
 
-            updatedImageString = `images/destination/${fileName}`;
+            updatedImageString =
+                `images/destination/${fileName}`;
         }
-
-        price = Number(price);
-        discount = Number(discount || 0);
-
-        const total_amount =
-            price - (price * discount / 100);
 
         const [data] = await db.query(
             `
             UPDATE destinations SET
-                name=?,
-                location=?,
-                price=?,
-                discount=?,
-                total_amount=?,
-                start_date=?,
-                end_date=?,
-                description=?,
-                visit_date=?,
-                activities=?,
+                title=?,
+                zone=?,
+                duration=?,
+                transport=?,
+                tips=?,
+                tags=?,
+                itinerary=?,
                 image=?
+                description = ?
             WHERE id=?
             `,
             [
-                name,
-                location,
-                price,
-                discount,
-                total_amount,
-                start_date,
-                end_date,
-                description,
-                visit_date,
-                activities,
+                title,
+                zone,
+                duration,
+                JSON.stringify(transport),
+                tips,
+                JSON.stringify(tags),
+                JSON.stringify(itinerary),
                 updatedImageString,
+                description,
                 id
             ]
         );
@@ -219,6 +348,7 @@ export const destinationUpdate = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
+
         console.log(error);
 
         return res.status(500).json({
@@ -266,9 +396,25 @@ export const destinationDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [data] = await db.query(`SELECT id, name, location, price, discount, total_amount, DATE_FORMAT(start_date, '%d-%m-%Y') as start_date, DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, description,visit_date, activities, image FROM destinations WHERE id = ?`, [id]);
+        const [data] = await db.query(
+            ` SELECT
+                id,
+                title,
+                zone,
+                duration,
+                transport,
+                tips,
+                tags,
+                itinerary,
+                image,
+                description,
+                DATE_FORMAT(created_at, '%Y-%m-%d') AS created_at
+                FROM destinations WHERE id = ?`,
+            [id]);
+
         res.status(200).json({
             success: true,
+            message: "Success!",
             data
         });
 

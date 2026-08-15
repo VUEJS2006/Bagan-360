@@ -7,7 +7,7 @@ const router = express.Router()
 // Admin
 router.post('/admin/destination/price/create', authenticated, isAdmin, destinationPriceCreate);
 router.get('/admin/destination/price/list', authenticated, isAdmin, destinationPriceList);
-router.put('/admin/destination/price/update/:id', authenticated, isAdmin, destinationPriceList);
+router.put('/admin/destination/price/update/:id', authenticated, isAdmin, destinationPriceUpdate);
 router.delete('/admin/destination/price/delete/:id', authenticated, isAdmin, destinationPriceDelete);
 
 // Mobile

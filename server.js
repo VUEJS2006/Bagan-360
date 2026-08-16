@@ -16,6 +16,10 @@ import thonebaneBookingRouter from "./routers/thoneBaneBookingRouter.js"
 import restaurantBookingRouter from "./routers/restaurantBookingRouter.js"
 import e_bikeBookingRouter from "./routers/e_bikeBookingRouter.js"
 import destinationPriceRouter from "./routers/destination_priceRouter.js"
+import destinationBookingRouter from "./routers/destinationBookingRouter.js"
+
+
+
 
 import cors from "cors"
 import path from "path";
@@ -56,6 +60,7 @@ app.use('/api', thonebaneBookingRouter);
 app.use('/api', restaurantBookingRouter);
 app.use('/api', e_bikeBookingRouter);
 app.use('/api', destinationPriceRouter);
+app.use('/api', destinationBookingRouter);
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

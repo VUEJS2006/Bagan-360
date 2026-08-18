@@ -93,30 +93,31 @@ export const eBikePriceCreate = asyncHandel(async (req, res) => {
 
 export const eBikePriceList = asyncHandel(async (req, res) => {
     try {
+
         let query = "";
         let params = [];
 
         if (req.user.role === "admin") {
 
             query = `
-               SELECT
-                e_bike_prices.id,
-                e_bike_prices.e_bike_id,
-                e_bike_prices.price_type,
-                e_bike_prices.start_time,
-                e_bike_prices.end_time,
-                e_bike_prices.price,
+                SELECT
+                    e_bike_prices.id,
+                    e_bike_prices.shop_id,
+                    e_bike_prices.e_bike_id,
+                    e_bike_prices.price_type,
+                    e_bike_prices.start_time,
+                    e_bike_prices.end_time,
+                    e_bike_prices.price,
 
-                e_bikes.name AS e_bike_name,
-                e_bikes.code AS e_bike_code
+                    e_bikes.name AS e_bike_name,
+                    e_bikes.code AS e_bike_code
 
+                FROM e_bike_prices
 
-            FROM e_bike_prices
+                LEFT JOIN e_bikes
+                    ON e_bike_prices.e_bike_id = e_bikes.id
 
-            LEFT JOIN e_bikes
-                ON e_bike_prices.e_bike_id = e_bikes.id
-
-            ORDER BY e_bike_prices.created_at DESC
+                ORDER BY e_bike_prices.created_at DESC
             `;
         }
 
@@ -133,27 +134,30 @@ export const eBikePriceList = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+
             query = `
-               SELECT
-                e_bike_prices.id,
-                e_bike_prices.e_bike_id,
-                e_bike_prices.price_type,
-                e_bike_prices.start_time,
-                e_bike_prices.end_time,
-                e_bike_prices.price,
+                SELECT
+                    e_bike_prices.id,
+                    e_bike_prices.shop_id,
+                    e_bike_prices.e_bike_id,
+                    e_bike_prices.price_type,
+                    e_bike_prices.start_time,
+                    e_bike_prices.end_time,
+                    e_bike_prices.price,
 
-                e_bikes.name AS e_bike_name,
-                e_bikes.code AS e_bike_code
+                    e_bikes.name AS e_bike_name,
+                    e_bikes.code AS e_bike_code
 
+                FROM e_bike_prices
 
-            FROM e_bike_prices
+                LEFT JOIN e_bikes
+                    ON e_bike_prices.e_bike_id = e_bikes.id
 
-            LEFT JOIN e_bikes
-                ON e_bike_prices.e_bike_id = e_bikes.id
-            
-            WHERE shop_id = ? 
-            ORDER BY e_bike_prices.created_at DESC
+                WHERE e_bike_prices.shop_id = ?
+
+                ORDER BY e_bike_prices.created_at DESC
             `;
+
             params.push(shop[0].id);
         }
 
@@ -163,6 +167,7 @@ export const eBikePriceList = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
+
         const [data] = await db.query(
             query,
             params
@@ -170,11 +175,13 @@ export const eBikePriceList = asyncHandel(async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            data,
-            message: "E Bike Success"
+            message: "E-bike Price List Success",
+            data
         });
 
     } catch (error) {
+
+        console.log(error);
 
         return res.status(500).json({
             success: false,

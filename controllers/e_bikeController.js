@@ -158,7 +158,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
         }
 
 
-    
+
 
         const [data] = await db.query(
             `
@@ -580,8 +580,8 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
             updateImage = `images/e-bike/${fileName}`;
         }
 
-       
-        
+
+
 
         const [data] = await db.query(
             `
@@ -619,7 +619,7 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
                 location || null,
                 updateImage,
 
-            
+
                 status || "available",
                 battery_percentage ?? 100,
 

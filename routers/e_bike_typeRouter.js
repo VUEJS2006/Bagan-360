@@ -5,10 +5,10 @@ import express from "express";
 
 const router = express.Router()
 // Admin
-router.post('/admin/e-bike/type/create', authenticated, isAdmin, eBikeTypeCreate);
-router.get('/admin/e-bike/type/list', authenticated, isAdmin, eBikeTypeList);
-router.put('/admin/e-bike/type/update/:id', authenticated, isAdmin, eBikeTypeUpdate);
-router.delete('/admin/e-bike/type/delete/:id', authenticated, isAdmin, eBikeTypeDelete);
+router.post('/admin/e-bike/type/create', authenticated, eBikeTypeCreate);
+router.get('/admin/e-bike/type/list', authenticated, eBikeTypeList);
+router.put('/admin/e-bike/type/update/:id', authenticated, eBikeTypeUpdate);
+router.delete('/admin/e-bike/type/delete/:id', authenticated, eBikeTypeDelete);
 
 // Mobile
 router.get('/mobile/e-bike/type/list', authenticated, eBikeTypeList);

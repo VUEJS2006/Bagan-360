@@ -5,10 +5,10 @@ import express from "express";
 
 const router = express.Router()
 // Admin
-router.post('/admin/thonebane/category/create', authenticated, isAdmin, thoneBaneCategoryCreate);
-router.get('/admin/thonebane/category/list', authenticated, isAdmin, thoneBaneCategoryList);
-router.put('/admin/thonebane/category/update/:id', authenticated, isAdmin, thoneBaneCategoryUpdate);
-router.delete('/admin/thonebane/category/delete/:id', authenticated, isAdmin, thoneBaneCategoryDelete);
+router.post('/admin/thonebane/category/create', authenticated, thoneBaneCategoryCreate);
+router.get('/admin/thonebane/category/list', authenticated, thoneBaneCategoryList);
+router.put('/admin/thonebane/category/update/:id', authenticated, thoneBaneCategoryUpdate);
+router.delete('/admin/thonebane/category/delete/:id', authenticated, thoneBaneCategoryDelete);
 
 // Mobile
 router.get('/mobile/thonebane/category/list', authenticated, thoneBaneCategoryList);

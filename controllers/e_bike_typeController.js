@@ -171,8 +171,10 @@ export const eBikeTypeList = asyncHandel(async (req, res) => {
 
 export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
     try {
+
         const { id } = req.params;
         const { name, distance } = req.body || {};
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -181,6 +183,7 @@ export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
         }
 
         let shop_id = null;
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -205,18 +208,20 @@ export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
         `;
 
         let typeParams = [id];
+
         if (req.user.role === "shop") {
 
             typeQuery += `
                 AND shop_id = ?
             `;
-
-            bikeParams.push(shop_id);
+            typeParams.push(shop_id);
         }
+
         const [type] = await db.query(
             typeQuery,
             typeParams
         );
+
         if (type.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -224,12 +229,19 @@ export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
             });
         }
 
-
         const [data] = await db.query(
             `
-            UPDATE e_bike_types SET name = ?,distance = ? WHERE id = ?
+            UPDATE e_bike_types
+            SET
+                name = ?,
+                distance = ?
+            WHERE id = ?
             `,
-            [name, distance, id]
+            [
+                name,
+                distance,
+                id
+            ]
         );
 
         return res.status(200).json({
@@ -247,7 +259,7 @@ export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
             message: error.message
         });
     }
-})
+});
 
 export const eBikeTypeDelete = asyncHandel(async (req, res) => {
     try {

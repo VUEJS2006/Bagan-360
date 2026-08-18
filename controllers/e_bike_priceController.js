@@ -185,8 +185,17 @@ export const eBikePriceList = asyncHandel(async (req, res) => {
 
 export const eBikePriceUpdate = asyncHandel(async (req, res) => {
     try {
+
         const { id } = req.params;
-        const { e_bike_id, price_type, start_time, end_time, price } = req.body;
+
+        const {
+            e_bike_id,
+            price_type,
+            start_time,
+            end_time,
+            price
+        } = req.body;
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -212,6 +221,9 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
 
             shop_id = shop[0].id;
         }
+
+
+        // E-bike price ရှိ/မရှိစစ်မယ်
         let priceQuery = `
             SELECT *
             FROM e_bike_prices
@@ -219,27 +231,41 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
         `;
 
         let priceParams = [id];
+
+
+        // Shop ဖြစ်ရင် ကိုယ့် shop ရဲ့ price ပဲ update လုပ်ခွင့်ရှိမယ်
         if (req.user.role === "shop") {
 
             priceQuery += `
                 AND shop_id = ?
             `;
+
             priceParams.push(shop_id);
         }
 
-        const [price] = await db.query(
+
+        // price မသုံးဘဲ priceData လို့သုံးမယ်
+        // req.body က price နဲ့ variable name မတူအောင်
+        const [priceData] = await db.query(
             priceQuery,
             priceParams
         );
 
-        if (price.length === 0) {
+
+        if (priceData.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "E-bike Price not found!"
             });
         }
 
-        const [bike] = await db.query("SELECT id FROM e_bikes  WHERE id = ?", [e_bike_id]);
+
+        // Update လုပ်မယ့် E-bike ရှိ/မရှိစစ်မယ်
+        const [bike] = await db.query(
+            "SELECT id FROM e_bikes WHERE id = ?",
+            [e_bike_id]
+        );
+
         if (bike.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -247,19 +273,34 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+
         const [data] = await db.query(
             `
-             UPDATE e_bike_prices SET e_bike_id = ?, price_type = ?, start_time = ?,end_time = ?, price = ?  WHERE id = ?
-
+            UPDATE e_bike_prices
+            SET
+                e_bike_id = ?,
+                price_type = ?,
+                start_time = ?,
+                end_time = ?,
+                price = ?
+            WHERE id = ?
             `,
-            [e_bike_id, price_type, start_time, end_time, price, id]
-        )
+            [
+                e_bike_id,
+                price_type,
+                start_time,
+                end_time,
+                price,
+                id
+            ]
+        );
+
+
         return res.status(200).json({
             success: true,
             message: "E-bike price Update successfully!",
             data
         });
-
 
     } catch (error) {
 
@@ -270,7 +311,7 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
             message: error.message
         });
     }
-})
+});
 
 export const eBikePriceDelete = asyncHandel(async (req, res) => {
     try {
@@ -282,9 +323,6 @@ export const eBikePriceDelete = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
-
-
-        let shop_id = null;
         let shop_id = null;
 
         if (req.user.role === "shop") {

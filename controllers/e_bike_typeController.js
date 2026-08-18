@@ -101,14 +101,23 @@ export const eBikeTypeCreate = asyncHandel(async (req, res) => {
 
 export const eBikeTypeList = asyncHandel(async (req, res) => {
     try {
+
         let query = "";
         let params = [];
 
         if (req.user.role === "admin") {
+
             query = `
-           SELECT id,shop_id,name,distance ORDER BY id DESC
-         `
+                SELECT
+                    id,
+                    shop_id,
+                    name,
+                    distance
+                FROM e_bike_types
+                ORDER BY id DESC
+            `;
         }
+
         else if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -122,12 +131,21 @@ export const eBikeTypeList = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+
             query = `
-           SELECT id,shop_id,name,distance WHERE e.shop_id = ?
-            ORDER BY e.id DESC
-         `
+                SELECT
+                    id,
+                    shop_id,
+                    name,
+                    distance
+                FROM e_bike_types
+                WHERE shop_id = ?
+                ORDER BY id DESC
+            `;
+
             params.push(shop[0].id);
         }
+
         else {
             return res.status(403).json({
                 success: false,
@@ -155,7 +173,7 @@ export const eBikeTypeList = asyncHandel(async (req, res) => {
             message: error.message
         });
     }
-})
+});
 
 export const eBikeTypeUpdate = asyncHandel(async (req, res) => {
     try {

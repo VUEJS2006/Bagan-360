@@ -69,12 +69,6 @@ export const eBikeTypeCreate = asyncHandel(async (req, res) => {
             [name]
         );
 
-        if (existingType.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: "E-bike type already exists!"
-            });
-        }
 
         const [data] = await db.query(
             `

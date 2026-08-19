@@ -68,7 +68,7 @@ export const planList = asyncHandel(async (req, res) => {
             let item = null;
             if (plan.item_type === "pagoda") {
                 const [data] = await db.query(`
-                       SELECT id,name,image,location,description FROM pagodas WHERE id = ?
+                       SELECT id,name,images,location,description FROM pagodas WHERE id = ?
                     `, [plan.item_id]);
                 if (data.length > 0) {
                     item = data[0];

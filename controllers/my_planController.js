@@ -58,7 +58,7 @@ export const planList = asyncHandel(async (req, res) => {
         }
 
         const [plans] = await db.query(`
-            SELECT id,item_type,item_id,is_visited,create_at FROM my_plans 
+            SELECT id,item_type,item_id,is_visited FROM my_plans 
             WHERE user_id = ? ORDER BY id DESC
             `, [req.user.id]);
 

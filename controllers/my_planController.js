@@ -50,6 +50,7 @@ export const planCreate = asyncHandel(async (req, res) => {
 
 export const planList = asyncHandel(async (req, res) => {
     try {
+
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
@@ -57,27 +58,73 @@ export const planList = asyncHandel(async (req, res) => {
             });
         }
 
-        const [plans] = await db.query(`
-            SELECT id,item_type,item_id,is_visited FROM my_plans 
-            WHERE user_id = ? ORDER BY id DESC
-            `, [req.user.id]);
+        const [plans] = await db.query(
+            `
+            SELECT
+                id,
+                item_type,
+                item_id,
+                is_visited
+            FROM my_plans
+            WHERE user_id = ?
+            ORDER BY id DESC
+            `,
+            [req.user.id]
+        );
 
         const result = [];
 
         for (const plan of plans) {
+
             let item = null;
+
+            // PAGODA
             if (plan.item_type === "pagoda") {
-                const [data] = await db.query(`
-                       SELECT id,name,images,location,description FROM pagodas WHERE id = ?
-                    `, [plan.item_id]);
+
+                const [data] = await db.query(
+                    `
+                    SELECT
+                        p.id,
+                        p.name,
+                        p.location,
+                        p.description,
+
+                        COALESCE(
+                            JSON_ARRAYAGG(
+                                CASE
+                                    WHEN pi.id IS NOT NULL
+                                    THEN pi.image
+                                END
+                            ),
+                            JSON_ARRAY()
+                        ) AS images
+
+                    FROM pagodas p
+
+                    LEFT JOIN pagoda_images pi
+                        ON p.id = pi.pagoda_id
+
+                    WHERE p.id = ?
+
+                    GROUP BY
+                        p.id,
+                        p.name,
+                        p.location,
+                        p.description
+                    `,
+                    [plan.item_id]
+                );
+
                 if (data.length > 0) {
                     item = data[0];
                 }
             }
 
+            // HOTEL
             else if (plan.item_type === "hotel") {
 
-                const [data] = await db.query(`
+                const [data] = await db.query(
+                    `
                     SELECT
                         id,
                         name,
@@ -86,15 +133,20 @@ export const planList = asyncHandel(async (req, res) => {
                         description
                     FROM hotels
                     WHERE id = ?
-                `, [plan.item_id]);
+                    `,
+                    [plan.item_id]
+                );
 
                 if (data.length > 0) {
                     item = data[0];
                 }
             }
+
+            // RESTAURANT
             else if (plan.item_type === "restaurant") {
 
-                const [data] = await db.query(`
+                const [data] = await db.query(
+                    `
                     SELECT
                         id,
                         name,
@@ -104,13 +156,15 @@ export const planList = asyncHandel(async (req, res) => {
                         description
                     FROM restaurants
                     WHERE id = ?
-                `, [plan.item_id]);
+                    `,
+                    [plan.item_id]
+                );
 
                 if (data.length > 0) {
                     item = data[0];
-
                 }
             }
+
             if (item) {
                 result.push({
                     ...plan,
@@ -118,12 +172,12 @@ export const planList = asyncHandel(async (req, res) => {
                 });
             }
         }
+
         return res.status(200).json({
             success: true,
             count: result.length,
             data: result
         });
-
 
     } catch (error) {
 

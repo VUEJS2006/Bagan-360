@@ -252,9 +252,27 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
 
         query += ` ORDER BY b.id DESC`
         const [booking] = await db.query(query, params);
+        let countQuery = `
+        SELECT COUNT(*) As total_count,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
+        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count
+        FROM e_bike_bookings
+        `
+        let countParams = [];
+        if (req.user.role === "shop") {
+            countQuery += ` WHERE shop_id = ?`;
+            countParams.push(shop_id);
+        }
+        const [counts] = await db.query(countQuery, countParams);
+
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
+            total_count: counts[0].total_count,
+            pending_count: counts[0].pending_count,
+            approved_count: counts[0].approved_count,
+            cancelled_count: counts[0].cancelled_count,
             booking
         });
 

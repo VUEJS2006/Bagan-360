@@ -166,10 +166,10 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
-        let query = ` 
-        SELECT 
-                b.id AS booking_id,
 
+        let query = ` 
+            SELECT 
+                b.id AS booking_id,
                 b.user_id,
                 b.shop_id,
                 b.e_bike_id,
@@ -180,10 +180,8 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
                 DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
                 b.passenger_count,
 
-
                 b.status,
                 b.note,
-
 
                 e.name AS e_bike_name,
                 e.code,
@@ -191,8 +189,6 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
                 e.color,
                 e.location,
                 e.image,
-
-             
 
                 e.status AS bike_status,
                 e.battery_percentage,
@@ -214,6 +210,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
                     WHEN p.price_type = 'hourly' THEN 'Hourly'
                     ELSE p.price_type
                 END AS selected_price_type,
+
                 p.start_time,
                 p.end_time,
                 p.price AS selected_price
@@ -234,57 +231,89 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
         `;
 
         let params = [];
+        let shop_id = null;
+
+        // Shop user
         if (req.user.role === "shop") {
+
             const [shops] = await db.query(
                 "SELECT id FROM shops WHERE user_id = ?",
                 [req.user.id]
             );
+
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
-            const shop_id = shops[0].id;
+
+            shop_id = shops[0].id;
+
             query += ` WHERE b.shop_id = ?`;
-            params.push(shop_id)
+            params.push(shop_id);
         }
 
-        query += ` ORDER BY b.id DESC`
+        query += ` ORDER BY b.id DESC`;
+
         const [booking] = await db.query(query, params);
+
+
+        // Count query
         let countQuery = `
-        SELECT COUNT(*) As total_count,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
-        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count,
-        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count
-        FROM e_bike_bookings
-        `
+            SELECT
+                COUNT(*) AS total_count,
+
+                COALESCE(
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END),
+                    0
+                ) AS pending_count,
+
+                COALESCE(
+                    SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END),
+                    0
+                ) AS approved_count,
+
+                COALESCE(
+                    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END),
+                    0
+                ) AS cancelled_count
+
+            FROM e_bike_bookings
+        `;
+
         let countParams = [];
-        const shop_id = booking[0].id;
+
         if (req.user.role === "shop") {
             countQuery += ` WHERE shop_id = ?`;
             countParams.push(shop_id);
         }
+
         const [counts] = await db.query(countQuery, countParams);
+
 
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
+
             total_count: counts[0].total_count,
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
+
             booking
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const e_bikeBookingApproved = asyncHandel(async (req, res) => {
     try {

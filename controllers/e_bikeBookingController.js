@@ -260,6 +260,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
         FROM e_bike_bookings
         `
         let countParams = [];
+        const shop_id = booking[0].id;
         if (req.user.role === "shop") {
             countQuery += ` WHERE shop_id = ?`;
             countParams.push(shop_id);

@@ -323,7 +323,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
             WHEN p.price_type = 'hourly' THEN 'Hourly'
             ELSE p.price_type
         
-        ELSE AS price_type
+        END AS price_type,
         COUNT(b.id) AS count
         FROM e_bike_bookings b 
         JOIN e_bike_prices p 

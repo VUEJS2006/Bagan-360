@@ -317,7 +317,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
         let priceQuery = `
         SELECT 
         CASE 
-            WHEN p.pice_type = 'full_day' THEN 'Full Day'
+            WHEN p.price_type = 'full_day' THEN 'Full Day'
             WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
             WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
             WHEN p.price_type = 'hourly' THEN 'Hourly'

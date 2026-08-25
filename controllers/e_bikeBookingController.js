@@ -321,7 +321,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
             WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
             WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
             WHEN p.price_type = 'hourly' THEN 'Hourly'
-            ELSE p.price_type
+            ELSE p.price_type,
         
         ELSE AS price_type,
         COUNT(b.id) AS count

@@ -226,6 +226,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
 
         let query = "";
         let params = [];
+        let shop_id = null;
 
         if (req.user.role === "admin") {
 
@@ -379,7 +380,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
                 )
             };
         });
-        
+
         let typeCountQuery = `
         SELECT COUNT(e.id) AS type_count
         FROM e_bikes e

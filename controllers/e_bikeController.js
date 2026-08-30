@@ -371,22 +371,59 @@ export const eBikeList = asyncHandel(async (req, res) => {
         );
 
         const result = data.map((bike) => {
-
             return {
                 ...bike,
-
                 prices: prices.filter(
                     (price) =>
                         price.e_bike_id === bike.id
                 )
             };
-
         });
+        
+        let typeCountQuery = `
+        SELECT COUNT(e.id) AS type_count
+        FROM e_bikes e
+        `;
+
+        let typeCountParams = [];
+
+        if (req.user.role === "shop") {
+            typeCountQuery += ` WHERE e.shop_id = ?`;
+            typeCountParams.push(shop_id);
+        }
+
+        const [typeCount] = await db.query(
+            typeCountQuery,
+            typeCountParams
+        );
+
+
+        let priceCountQuery = `
+        SELECT COUNT(p.id) AS price_count
+        FROM e_bike_prices p
+        JOIN e_bikes e
+        ON p.e_bike_id = e.id
+         `;
+
+        let priceCountParams = [];
+
+        if (req.user.role === "shop") {
+            priceCountQuery += ` WHERE e.shop_id = ?`;
+            priceCountParams.push(shop_id);
+        }
+
+        const [priceCount] = await db.query(
+            priceCountQuery,
+            priceCountParams
+        );
+
 
         return res.status(200).json({
             success: true,
             message: "E-bike List Success",
             count: result.length,
+            type_count: typeCount[0].type_count,
+            price_count: priceCount[0].price_count,
             data: result
         });
 

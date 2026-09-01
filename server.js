@@ -18,7 +18,6 @@ import e_bikeBookingRouter from "./routers/e_bikeBookingRouter.js"
 import destinationPriceRouter from "./routers/destination_priceRouter.js"
 import destinationBookingRouter from "./routers/destinationBookingRouter.js"
 import my_planRouter from "./routers/my_planRouter.js"
-import my_planRouter from "./routers/my_planRouter.js"
 import hotelBookingRouter from "./routers/hotelBookingRouter.js"
 
 

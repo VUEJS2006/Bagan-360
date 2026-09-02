@@ -92,7 +92,7 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
         b.customer_name,
         b.customer_phone,
         DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
-        DATE_FORMAT(b.check_out_date, '%d-%m-%Y) AS check_out_date,
+        DATE_FORMAT(b.check_out_date, '%d-%m-%Y') AS check_out_date,
         b.passenger,
         b.status,
         b.customer_request,

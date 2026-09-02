@@ -297,7 +297,7 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
         }
         const [data] = await db.query(`
         SELECT 
-       b.id AS booking_id,
+        b.id AS booking_id,
         b.user_id,
         b.shop_id,
         b.shop_id,

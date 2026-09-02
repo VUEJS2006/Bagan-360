@@ -297,7 +297,7 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
         }
         const [data] = await db.query(`
         SELECT 
-        b.id AS booking_id,
+       b.id AS booking_id,
         b.user_id,
         b.shop_id,
         b.shop_id,
@@ -305,12 +305,12 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
         b.customer_name,
         b.customer_phone,
         DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
-        TIME_FORMAT(b.check_out_date, '%h:%i %p') AS check_out_date,
+        DATE_FORMAT(b.check_out_date, '%d-%m-%Y') AS check_out_date,
         b.passenger,
         b.status,
         b.customer_request,
 
-       h.name AS hotel_name,
+        h.name AS hotel_name,
         h.type,
         h.price,
         h.image,

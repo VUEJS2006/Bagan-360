@@ -92,12 +92,12 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
         b.customer_name,
         b.customer_phone,
         DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
-        TIME_FORMAT(b.check_out_date, '%h:%i %p') AS check_out_date,
+        DATE_FORMAT(b.check_out_date, '%d-%m-%Y) AS check_out_date,
         b.passenger,
         b.status,
         b.customer_request,
 
-       h.name AS hotel_name,
+        h.name AS hotel_name,
         h.type,
         h.price,
         h.image,
@@ -107,7 +107,7 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
         s.shop_name
 
-        FROM hotel_bookings b JOIN hotels r ON b.hotel_id = h.id
+        FROM hotel_bookings b JOIN hotels h ON b.hotel_id = h.id
         JOIN shops s ON b.shop_id = s.id 
         `;
 

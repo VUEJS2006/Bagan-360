@@ -289,49 +289,61 @@ export const hotel_bookingCancelled = asyncHandel(async (req, res) => {
 
 export const hotelMobileBooking = asyncHandel(async (req, res) => {
     try {
+
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         const [data] = await db.query(`
-        SELECT 
-        b.id AS booking_id,
-        b.user_id,
-        b.shop_id,
-        b.shop_id,
-        
-        b.customer_name,
-        b.customer_phone,
-        DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
-        DATE_FORMAT(b.check_out_date, '%d-%m-%Y') AS check_out_date,
-        b.passenger,
-        b.status,
-        b.customer_request,
+            SELECT 
+                b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
+                b.hotel_id,
 
-        h.name AS hotel_name,
-        h.type,
-        h.price,
-        h.image,
-        h.location,
-        h.facilities,
-        h.description,
+                b.customer_name,
+                b.customer_phone,
 
-        s.shop_name
+                DATE_FORMAT(
+                    b.check_in_date,
+                    '%d-%m-%Y'
+                ) AS check_in_date,
 
-        FROM restaurant_bookings b
+                DATE_FORMAT(
+                    b.check_out_date,
+                    '%d-%m-%Y'
+                ) AS check_out_date,
 
-        JOIN restaurants r
-        ON b.restaurant_id = r.id
+                b.passenger,
+                b.status,
+                b.customer_request,
 
-        JOIN shops s
-        ON b.shop_id = s.id
+                h.name AS hotel_name,
+                h.type,
+                h.price,
+                h.image,
+                h.location,
+                h.facilities,
+                h.description,
 
-        WHERE b.user_id = ?
+                s.shop_name
 
-        ORDER BY b.id DESC
-        `, [req.user.id])
+            FROM hotel_bookings b
+
+            JOIN hotels h
+                ON b.hotel_id = h.id
+
+            JOIN shops s
+                ON b.shop_id = s.id
+
+            WHERE b.user_id = ?
+
+            ORDER BY b.id DESC
+        `, [req.user.id]);
+
         return res.status(200).json({
             success: true,
             message: "Booking Success",
@@ -343,9 +355,9 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
 
         console.log(error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});

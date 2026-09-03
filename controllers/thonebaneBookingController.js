@@ -1,9 +1,6 @@
 import db from "../config/db.js";
 import { asyncHandel } from "../middlewares/asyncMiddleware.js";
-import fs from "fs";
-import path from "path";
-import sharp from "sharp";
-import { v4 as uuid } from "uuid";
+
 
 
 export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
@@ -122,6 +119,7 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         `;
 
         let params = [];
+        let shop_id = null;
         if (req.user.role === "shop") {
             const [shops] = await db.query(
                 "SELECT id FROM shops WHERE user_id = ?",

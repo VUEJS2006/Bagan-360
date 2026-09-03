@@ -139,6 +139,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
 
         let query = "";
         let params = [];
+        let shop_id = null;
 
         if (req.user.role === "admin") {
             query = `

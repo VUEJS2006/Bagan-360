@@ -135,10 +135,46 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
 
         query += ` ORDER BY b.id DESC`
         const [booking] = await db.query(query, params);
+
+        let countQuery = `
+            SELECT
+                COUNT(*) AS total_count,
+
+                COALESCE(
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END),
+                    0
+                ) AS pending_count,
+
+                COALESCE(
+                    SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END),
+                    0
+                ) AS approved_count,
+
+                COALESCE(
+                    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END),
+                    0
+                ) AS cancelled_count
+
+            FROM restaurant_bookings
+        `;
+
+        let countParams = [];
+
+        if (req.user.role === "shop") {
+            countQuery += ` WHERE shop_id = ?`;
+            countParams.push(shop_id);
+        }
+
+        const [counts] = await db.query(countQuery, countParams);
+
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
-            booking
+            booking,
+            total_count: counts[0].total_count,
+            pending_count: counts[0].pending_count,
+            approved_count: counts[0].approved_count,
+            cancelled_count: counts[0].cancelled_count,
         });
 
     } catch (error) {

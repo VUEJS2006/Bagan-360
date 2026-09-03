@@ -247,7 +247,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
                     e.location,
                     e.image,
 
-
                     e.status,
                     e.battery_percentage,
 
@@ -276,10 +275,15 @@ export const eBikeList = asyncHandel(async (req, res) => {
             `;
         }
 
+
         else if (req.user.role === "shop") {
 
             const [shop] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                `
+                SELECT id
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -290,6 +294,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
                 });
             }
 
+            shop_id = shop[0].id;
 
             query = `
                 SELECT
@@ -306,7 +311,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
                     e.color,
                     e.location,
                     e.image,
-
 
                     e.status,
                     e.battery_percentage,
@@ -334,10 +338,11 @@ export const eBikeList = asyncHandel(async (req, res) => {
                 ORDER BY e.id DESC
             `;
 
-            params.push(shop[0].id);
+            params.push(shop_id);
         }
 
         else {
+
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
@@ -354,13 +359,23 @@ export const eBikeList = asyncHandel(async (req, res) => {
             SELECT
                 id,
                 e_bike_id,
+
                 CASE
-                    WHEN price_type = 'full_day' THEN 'Full Day'
-                    WHEN price_type = 'half_day_1' THEN 'Half Day 1'
-                    WHEN price_type = 'half_day_2' THEN 'Half Day 2'
-                    WHEN price_type = 'hourly' THEN 'Hourly'
+                    WHEN price_type = 'full_day'
+                        THEN 'Full Day'
+
+                    WHEN price_type = 'half_day_1'
+                        THEN 'Half Day 1'
+
+                    WHEN price_type = 'half_day_2'
+                        THEN 'Half Day 2'
+
+                    WHEN price_type = 'hourly'
+                        THEN 'Hourly'
+
                     ELSE price_type
                 END AS price_type,
+
                 start_time,
                 end_time,
                 price
@@ -372,8 +387,10 @@ export const eBikeList = asyncHandel(async (req, res) => {
         );
 
         const result = data.map((bike) => {
+
             return {
                 ...bike,
+
                 prices: prices.filter(
                     (price) =>
                         price.e_bike_id === bike.id
@@ -382,14 +399,20 @@ export const eBikeList = asyncHandel(async (req, res) => {
         });
 
         let typeCountQuery = `
-        SELECT COUNT(e.id) AS type_count
-        FROM e_bikes e
+            SELECT
+                COUNT(DISTINCT e.type_id) AS type_count
+
+            FROM e_bikes e
         `;
 
         let typeCountParams = [];
 
         if (req.user.role === "shop") {
-            typeCountQuery += ` WHERE e.shop_id = ?`;
+
+            typeCountQuery += `
+                WHERE e.shop_id = ?
+            `;
+
             typeCountParams.push(shop_id);
         }
 
@@ -398,18 +421,24 @@ export const eBikeList = asyncHandel(async (req, res) => {
             typeCountParams
         );
 
-
         let priceCountQuery = `
-        SELECT COUNT(p.id) AS price_count
-        FROM e_bike_prices p
-        JOIN e_bikes e
-        ON p.e_bike_id = e.id
-         `;
+            SELECT
+                COUNT(p.id) AS price_count
+
+            FROM e_bike_prices p
+
+            JOIN e_bikes e
+                ON p.e_bike_id = e.id
+        `;
 
         let priceCountParams = [];
 
         if (req.user.role === "shop") {
-            priceCountQuery += ` WHERE e.shop_id = ?`;
+
+            priceCountQuery += `
+                WHERE e.shop_id = ?
+            `;
+
             priceCountParams.push(shop_id);
         }
 
@@ -417,8 +446,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
             priceCountQuery,
             priceCountParams
         );
-
-
         return res.status(200).json({
             success: true,
             message: "E-bike List Success",
@@ -427,7 +454,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
             price_count: priceCount[0].price_count,
             data: result
         });
-
 
     } catch (error) {
 

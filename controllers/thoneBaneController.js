@@ -208,16 +208,35 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         }
         const [data] = await db.query(query, params);
 
+        let categoryQuery = `
+        SELECT COUNT(DISTINCT t.category_id) AS category_count
+        FROM thonebanes t
+        `
+
+        let categoryParams = []
+
+        if (req.user.role === "shop") {
+
+            categoryQuery += `
+                WHERE t.shop_id = ?
+            `;
+
+            categoryParams.push(shop_id);
+        }
+
+        const [categoryCount] = await db.query(categoryQuery, categoryParams)
+
         return res.status(200).json({
             success: true,
+            message: "Thoone Bane List Suucess!",
             count: data.length,
-            data: data
+            data: data,
+            category_count: categoryCount[0].category_count
         });
 
     } catch (error) {
 
         console.log(error);
-
         res.status(500).json({
             success: false,
             message: error.message
@@ -305,7 +324,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
 
             updatedImageString = `images/thonebane/${fileName}`;
         }
-       
+
 
         const [data] = await db.query(
             `

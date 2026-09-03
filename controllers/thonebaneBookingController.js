@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { thonebane_id, price,customer_name, customer_phone, booking_date, passenger_count, note } = req.body;
+        const { thonebane_id, price, customer_name, customer_phone, booking_date, passenger_count, note } = req.body;
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
@@ -18,7 +18,7 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
         }
         if (
             !thonebane_id ||
-            !price||
+            !price ||
             !customer_name ||
             !customer_phone ||
             !booking_date ||
@@ -140,9 +140,41 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
 
         query += ` ORDER BY b.id DESC`
         const [booking] = await db.query(query, params);
+
+
+        let countQuery = `
+        SELECT 
+             COUNT(*) AS total_count,
+                COALESCE(
+                        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END),
+                        0
+                    ) AS pending_count,
+
+                    COALESCE(
+                        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END),
+                        0
+                    ) AS approved_count,
+
+                    COALESCE(
+                        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END),
+                        0
+                    ) AS cancelled_count
+            FROM thonebane_bookings
+        `
+        let countParam = []
+        if (req.user.role === "shop") {
+            countQuery += ` WHERE shop_id = ?`;
+            countParam.push(shop_id);
+        }
+        const [counts] = await db.query(countQuery, countParam);
+
+
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
+            pending_count: counts[0].pending_count,
+            approved_count: counts[0].approved_count,
+            cancelled_count: counts[0].cancelled_count,
             booking
         });
 

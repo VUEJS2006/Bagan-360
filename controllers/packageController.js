@@ -180,7 +180,22 @@ export const packageUpdate = asyncHandel(async (req, res) => {
         } = req.body;
 
         const [packages] = await db.query("SLECT * FROM packages WHERE id = ?", [id]);
-        
+
+        if (packages.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Package not found"
+            });
+        }
+
+        const [data] = await db.query(
+            `
+            UPDATE 
+          
+
+            `
+        )
+
 
 
     } catch (error) {

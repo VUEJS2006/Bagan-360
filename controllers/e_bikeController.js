@@ -432,16 +432,17 @@ export const eBikeList = asyncHandel(async (req, res) => {
         );
 
         let priceCountQuery = `
-        SELECT COUNT(p.id) AS price_count
-        FROM e_bike_prices p
-        JOIN e_bikes e
-            ON p.e_bike_id = e.id
+            SELECT COUNT(*) AS price_count
+            FROM e_bike_prices
         `;
 
         let priceCountParams = [];
 
         if (req.user.role === "shop") {
-            priceCountQuery += ` WHERE e.shop_id = ?`;
+            priceCountQuery += `
+            WHERE shop_id = ?
+        `;
+
             priceCountParams.push(shop_id);
         }
 
@@ -469,6 +470,8 @@ export const eBikeList = asyncHandel(async (req, res) => {
         });
     }
 });
+
+
 export const eBikeUpdate = asyncHandel(async (req, res) => {
     try {
 

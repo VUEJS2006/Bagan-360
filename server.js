@@ -19,6 +19,7 @@ import destinationPriceRouter from "./routers/destination_priceRouter.js"
 import destinationBookingRouter from "./routers/destinationBookingRouter.js"
 import my_planRouter from "./routers/my_planRouter.js"
 import hotelBookingRouter from "./routers/hotelBookingRouter.js"
+import packageRouter from "./routers/packageRouter.js"
 
 
 import cors from "cors"
@@ -63,6 +64,9 @@ app.use('/api', destinationPriceRouter);
 app.use('/api', destinationBookingRouter);
 app.use('/api', my_planRouter);
 app.use('/api', hotelBookingRouter);
+app.use('/api', packageRouter);
+
+
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

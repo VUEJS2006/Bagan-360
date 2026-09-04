@@ -101,7 +101,6 @@ export const pagodaCreate = asyncHandel(async (req, res) => {
         const pagodaId = result.insertId;
 
         for (const image of imagePaths) {
-
             await db.query(
                 `
                 INSERT INTO pagoda_images

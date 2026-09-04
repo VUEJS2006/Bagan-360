@@ -5,7 +5,7 @@ import express from "express";
 
 const router = express.Router()
 // Admin
-router.post("/admin/package/create", authenticated, isAdmin, upload.array("images"), packageCreate);
+router.post("/admin/package/create", authenticated, isAdmin, upload.array("images",3), packageCreate);
 
 
 // Mobile

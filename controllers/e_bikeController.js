@@ -275,7 +275,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
             `;
         }
 
-
         else if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -398,28 +397,33 @@ export const eBikeList = asyncHandel(async (req, res) => {
             };
         });
 
-        let typeCountQuery = `
+        let eBikeCountQuery = `
             SELECT
-                COUNT(DISTINCT e.type_id) AS type_count
-
+                COUNT(e.id) AS e_bike_all_count
             FROM e_bikes e
         `;
 
-        let typeCountParams = [];
+        let eBikeCountParams = [];
 
         if (req.user.role === "shop") {
 
-            typeCountQuery += `
+            eBikeCountQuery += `
                 WHERE e.shop_id = ?
             `;
 
-            typeCountParams.push(shop_id);
+            eBikeCountParams.push(shop_id);
         }
 
-        const [typeCount] = await db.query(
-            typeCountQuery,
-            typeCountParams
+        const [eBikeCount] = await db.query(
+            eBikeCountQuery,
+            eBikeCountParams
         );
+
+        const [typeCount] = await db.query(`
+            SELECT
+                COUNT(*) AS type_count
+            FROM e_bike_types
+        `);
 
         let priceCountQuery = `
             SELECT
@@ -446,12 +450,20 @@ export const eBikeList = asyncHandel(async (req, res) => {
             priceCountQuery,
             priceCountParams
         );
+
         return res.status(200).json({
+
             success: true,
+
             message: "E-bike List Success",
-            count: result.length,
+
+            e_bike_all_count: eBikeCount[0].e_bike_all_count,
+
             type_count: typeCount[0].type_count,
+
             price_count: priceCount[0].price_count,
+            count: result.length,
+
             data: result
         });
 
@@ -465,7 +477,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
         });
     }
 });
-
 export const eBikeUpdate = asyncHandel(async (req, res) => {
     try {
 

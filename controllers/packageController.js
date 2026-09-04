@@ -144,7 +144,7 @@ export const packageList = asyncHandel(async (req, res) => {
              GROUP BY p.id 
             `
         )
-        return req.status(200).json({
+        return res.status(200).json({
             message: "Package List Success",
             data: data.length,
             data

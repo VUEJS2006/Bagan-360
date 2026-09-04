@@ -230,8 +230,9 @@ export const thonebaneList = asyncHandel(async (req, res) => {
             success: true,
             message: "Thoone Bane List Suucess!",
             count: data.length,
+            category_count: categoryCount[0].category_count,
             data: data,
-            category_count: categoryCount[0].category_count
+           
         });
 
     } catch (error) {

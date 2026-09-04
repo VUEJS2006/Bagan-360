@@ -180,7 +180,7 @@ export const packageUpdate = asyncHandel(async (req, res) => {
             transport_url
         } = req.body;
 
-        const [packages] = await db.query("SLECT * FROM packages WHERE id = ?", [id]);
+        const [packages] = await db.query("SELECT * FROM packages WHERE id = ?", [id]);
 
         if (packages.length === 0) {
             return res.status(404).json({

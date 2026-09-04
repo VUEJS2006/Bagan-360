@@ -318,7 +318,7 @@ export const packageDelete = asyncHandel(async (req, res) => {
         await db.query("DELETE FROM packages WHERE id = ?", [id]);
         res.status(200).json({
             success: true,
-            message: "Pagoda deleted successfully"
+            message: "Package deleted successfully"
         });
 
     } catch (error) {

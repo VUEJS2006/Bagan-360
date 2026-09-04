@@ -414,35 +414,34 @@ export const eBikeList = asyncHandel(async (req, res) => {
             eBikeCountParams.push(shop_id);
         }
 
-        const [eBikeCount] = await db.query(
-            eBikeCountQuery,
-            eBikeCountParams
+        let typeCountQuery = `
+        SELECT COUNT(*) AS type_count
+        FROM e_bike_types
+        `;
+
+        let typeCountParams = [];
+
+        if (req.user.role === "shop") {
+            typeCountQuery += ` WHERE shop_id = ?`;
+            typeCountParams.push(shop_id);
+        }
+
+        const [typeCount] = await db.query(
+            typeCountQuery,
+            typeCountParams
         );
 
-        const [typeCount] = await db.query(`
-            SELECT
-                COUNT(*) AS type_count
-            FROM e_bike_types
-        `);
-
         let priceCountQuery = `
-            SELECT
-                COUNT(p.id) AS price_count
-
-            FROM e_bike_prices p
-
-            JOIN e_bikes e
-                ON p.e_bike_id = e.id
+        SELECT COUNT(p.id) AS price_count
+        FROM e_bike_prices p
+        JOIN e_bikes e
+            ON p.e_bike_id = e.id
         `;
 
         let priceCountParams = [];
 
         if (req.user.role === "shop") {
-
-            priceCountQuery += `
-                WHERE e.shop_id = ?
-            `;
-
+            priceCountQuery += ` WHERE e.shop_id = ?`;
             priceCountParams.push(shop_id);
         }
 
@@ -452,18 +451,11 @@ export const eBikeList = asyncHandel(async (req, res) => {
         );
 
         return res.status(200).json({
-
             success: true,
-
             message: "E-bike List Success",
-
-            e_bike_all_count: eBikeCount[0].e_bike_all_count,
-
             type_count: typeCount[0].type_count,
-
             price_count: priceCount[0].price_count,
             count: result.length,
-
             data: result
         });
 

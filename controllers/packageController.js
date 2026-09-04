@@ -190,14 +190,100 @@ export const packageUpdate = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(
             `
-            UPDATE 
-          
+            UPDATE packages SET 
+            title = ?,
+            description = ?,
+            hotel_title = ?,
+            hotel_description = ? ,
+            hotel_url = ?,
+            restaurant_title = ?,
+            restaurant_description = ?,
+            restaurant_url = ?,
+            transport_title = ?,
+            transport_description = ?,
+            transport_url = ?
+            WHERE id = ?
+            `,
+            [
+                title,
+                description,
+                hotel_title,
+                hotel_description,
+                hotel_url,
+                restaurant_title,
+                restaurant_description,
+                restaurant_url,
+                transport_title,
+                transport_description,
+                transport_url,
+                id
+            ]
+        );
 
-            `
-        )
+        if (req.files && req.files.length > 0) {
+            const [oldImages] = await db.query(
+                "SELECT * FROM package_images WHERE package_id=?",
+                [id]
+            );
+            for (const img of oldImages) {
+                const oldPath = path.join(process.cwd(), img.image);
 
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath)
+                }
+            }
+            await db.query(
+                "DELETE FROM package_images WHERE package_id=?",
+                [id]
+            );
+            const uploadFolder = path.join(
+                process.cwd(),
+                "images",
+                "package"
+            );
 
+            if (!fs.existsSync(uploadFolder)) {
+                fs.mkdirSync(uploadFolder, {
+                    recursive: true
+                });
+            }
+            for (const file of req.files) {
 
+                const fileName = `${uuid()}.webp`;
+
+                const savePath = path.join(
+                    uploadFolder,
+                    fileName
+                );
+
+                await sharp(file.buffer)
+                    .resize({
+                        width: 1920,
+                        withoutEnlargement: true
+                    })
+                    .webp({
+                        quality: 90
+                    })
+                    .toFile(savePath);
+
+                await db.query(
+                    `
+                    INSERT INTO package_images
+                    (package_id,image)
+                    VALUES (?,?)
+                    `,
+                    [
+                        id,
+                        `images/package/${fileName}`
+                    ]
+                );
+            }
+        }
+        return res.status(200).json({
+            success: true,
+            message: "Package Updated Successfully",
+            data
+        });
     } catch (error) {
         console.log(error);
         return res.status(500).json({
@@ -205,5 +291,41 @@ export const packageUpdate = asyncHandel(async (req, res) => {
             message: error.message
         });
 
+    }
+})
+
+export const packageDelete = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        const [packages] = await db.query("SELECT * FROM packages WHERE id = ?", [id]);
+        if (packages.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Package not found"
+            });
+        }
+
+        const [images] = await db.query("SELECT * FROM package_images WHERE package_id=?", [id]);
+        for (const img of images) {
+            const imagePath = path.join(process.cwd(), img.image);
+
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath)
+            }
+        }
+        await db.query("DELETE FROM packages WHERE id = ?", [id]);
+        res.status(200).json({
+            success: true,
+            message: "Pagoda deleted successfully"
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 })

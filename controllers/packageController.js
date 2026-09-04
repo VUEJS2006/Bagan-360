@@ -38,10 +38,10 @@ export const packageCreate = asyncHandel(async (req, res) => {
         let imagePaths = [];
         if (req.files && req.files.length > 0) {
             for (const file of req.files) {
-                const fileName = `${uuid()}.wepb`;
+                const fileName = `${uuid()}.webp`;
                 const savePath = path.join(uploadFolder, fileName)
 
-                await sharp(file.burffer)
+                await sharp(file.buffer)
                     .resize({ width: 920, withoutEnlargement: true })
                     .webp({ quality: 90 })
                     .toFile(savePath)

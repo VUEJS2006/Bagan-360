@@ -202,7 +202,7 @@ export const packageUpdate = asyncHandel(async (req, res) => {
             restaurant_url = ?,
             transport_title = ?,
             transport_description = ?,
-            transport_url = ?
+            transport_url = ?,
             WHERE id = ?
             `,
             [

@@ -210,22 +210,21 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         const [data] = await db.query(query, params);
 
         let categoryQuery = `
-        SELECT COUNT(DISTINCT t.category_id) AS category_count
-        FROM thonebanes t
-        `
+            SELECT COUNT(*) AS category_count
+            FROM thonebane_categories
+        `;
 
-        let categoryParams = []
+        let categoryParams = [];
 
         if (req.user.role === "shop") {
-
-            categoryQuery += `
-                WHERE t.shop_id = ?
-            `;
-
+            categoryQuery += ` WHERE shop_id = ?`;
             categoryParams.push(shop_id);
         }
 
-        const [categoryCount] = await db.query(categoryQuery, categoryParams)
+        const [categoryCount] = await db.query(
+            categoryQuery,
+            categoryParams
+        );
 
         return res.status(200).json({
             success: true,

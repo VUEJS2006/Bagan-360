@@ -140,10 +140,10 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         let query = "";
         let params = [];
         let shop_id = null;
-
         if (req.user.role === "admin") {
+
             query = `
-              SELECT
+                SELECT
                     t.id,
                     t.shop_id,
                     t.capacity,
@@ -170,6 +170,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         }
 
         else if (req.user.role === "shop") {
+
             const [shop] = await db.query(
                 "SELECT id FROM shops WHERE user_id = ?",
                 [req.user.id]
@@ -181,6 +182,10 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+
+            // ⭐ IMPORTANT
+            shop_id = shop[0].id;
+
             query = `
                 SELECT
                     t.id,
@@ -204,11 +209,10 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                 WHERE t.shop_id = ?
                 ORDER BY t.id DESC
             `;
-            params.push(shop[0].id);
 
+            params.push(shop_id);
         }
         const [data] = await db.query(query, params);
-
         let categoryQuery = `
             SELECT COUNT(*) AS category_count
             FROM thonebane_categories
@@ -217,7 +221,11 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         let categoryParams = [];
 
         if (req.user.role === "shop") {
-            categoryQuery += ` WHERE shop_id = ?`;
+
+            categoryQuery += `
+                WHERE shop_id = ?
+            `;
+
             categoryParams.push(shop_id);
         }
 
@@ -228,22 +236,23 @@ export const thonebaneList = asyncHandel(async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Thoone Bane List Suucess!",
+            message: "Thone Bane List Success!",
             count: data.length,
             category_count: categoryCount[0].category_count,
-            data: data,
-           
+
+            data: data
         });
 
     } catch (error) {
 
         console.log(error);
+
         res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {

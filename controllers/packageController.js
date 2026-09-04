@@ -114,3 +114,81 @@ export const packageCreate = asyncHandel(async (req, res) => {
     }
 })
 
+export const packageList = asyncHandel(async (req, res) => {
+    try {
+
+        const [data] = await db.query(
+            `
+            SELECT
+             p.id,
+             p.title,
+             p.description,
+             p.hotel_title,
+             p.hotel_description,
+             p.hotel_url,
+             p.restaurant_title,
+             p.restaurant_description,
+             p.restaurant_url,
+             p.transport_title,
+             p.transport_description,
+             p.transport_url,
+             DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+            COALESCE(
+                    JSON_ARRAYAGG(pi.image),
+                    JSON_ARRAY()
+            ) AS images
+
+            FROM packages p
+            LEFT JOIN package_images pi
+            ON p.id = pi.package_id
+            `
+        )
+        return req.status(200).json({
+            message: "Package List Success",
+            data: data.length,
+            data
+        })
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+})
+
+export const packageUpdate = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        let {
+
+            title,
+            description,
+            hotel_title,
+            hotel_description,
+            hotel_url,
+            restaurant_title,
+            restaurant_description,
+            restaurant_url,
+            transport_title,
+            transport_description,
+            transport_url
+        } = req.body;
+
+        const [packages] = await db.query("SLECT * FROM packages WHERE id = ?", [id]);
+        
+
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+})

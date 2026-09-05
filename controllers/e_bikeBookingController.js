@@ -291,61 +291,6 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
         }
 
         const [counts] = await db.query(countQuery, countParams);
-
-        let typeQuery = `
-        SELECT t.id AS type_id,
-        t.name AS type_name,
-        COUNT(b.id) AS count
-        FROM e_bike_bookings b JOIN e_bikes e ON b.e_bike_id = e.id
-        JOIN e_bike_types t ON e.type_id = t.id
-        `
-        let typeParams = [];
-
-        if (req.user.role === "shop") {
-            typeQuery += ` WHERE b.shop_id = ?`;
-            typeParams.push(shop_id);
-        }
-        typeQuery += `
-            GROUP BY t.id, t.name
-            ORDER BY count DESC
-        `;
-        const [type_count] = await db.query(
-            typeQuery,
-            typeParams
-        );
-
-        let priceQuery = `
-        SELECT 
-        CASE 
-            WHEN p.price_type = 'full_day' THEN 'Full Day'
-            WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
-            WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
-            WHEN p.price_type = 'hourly' THEN 'Hourly'
-            ELSE p.price_type
-        
-        END AS price_type,
-        COUNT(b.id) AS count
-        FROM e_bike_bookings b 
-        JOIN e_bike_prices p 
-        ON b.price_id = p.id
-    
-        `
-        let priceParams = [];
-        if (req.user.role === "shop") {
-            priceQuery += ` WHERE b.shop_id = ?`;
-            priceParams.push(shop_id);
-        }
-
-        priceQuery += `
-            GROUP BY p.price_type
-            ORDER BY count DESC
-        `;
-
-        const [price_count] = await db.query(
-            priceQuery,
-            priceParams
-        );
-
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
@@ -354,8 +299,6 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
-            type_count,
-            price_count,
             booking
         });
 

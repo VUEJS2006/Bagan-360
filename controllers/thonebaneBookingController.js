@@ -84,105 +84,162 @@ export const thonebaneBookingCreate = asyncHandel(async (req, res) => {
 
 export const thonebaneBookingList = asyncHandel(async (req, res) => {
     try {
-
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
-        let query = ` 
-        SELECT 
-        b.id AS booking_id,
-        b.user_id,
-        b.shop_id,
-        b.thonebane_id,
-        
-        b.customer_name,
-        b.customer_phone,
-        DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-        b.passenger_count,
-        b.status,
-        b.note,
-        b.price,
 
-        t.name AS thonebane_name,
-        t.location,
-        t.image,
+        let query = `
+            SELECT 
+                b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
+                b.thonebane_id,
 
+                b.customer_name,
+                b.customer_phone,
 
-        s.shop_name
+                DATE_FORMAT(
+                    b.booking_date,
+                    '%d-%m-%Y'
+                ) AS booking_date,
 
-        FROM thonebane_bookings b JOIN thonebanes t ON b.thonebane_id = t.id
-        JOIN shops s ON b.shop_id = s.id 
+                b.passenger_count,
+                b.status,
+                b.note,
+                b.price,
+
+                t.name AS thonebane_name,
+                t.location,
+                t.image,
+
+                s.shop_name
+
+            FROM thonebane_bookings b
+
+            JOIN thonebanes t
+                ON b.thonebane_id = t.id
+
+            JOIN shops s
+                ON b.shop_id = s.id
         `;
 
         let params = [];
         let shop_id = null;
+
         if (req.user.role === "shop") {
+
             const [shops] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                `
+                SELECT id
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
+
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
-            const shop_id = shops[0].id;
-            query += ` WHERE b.shop_id = ?`;
-            params.push(shop_id)
+            shop_id = shops[0].id;
+
+            query += `
+                WHERE b.shop_id = ?
+            `;
+
+            params.push(shop_id);
         }
 
-        query += ` ORDER BY b.id DESC`
-        const [booking] = await db.query(query, params);
-
+        query += `
+            ORDER BY b.id DESC
+        `;
+        const [booking] = await db.query(
+            query,
+            params
+        );
 
         let countQuery = `
-        SELECT 
-             COUNT(*) AS total_count,
+            SELECT 
+                COUNT(*) AS total_count,
+
                 COALESCE(
-                        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END),
-                        0
-                    ) AS pending_count,
+                    SUM(
+                        CASE 
+                            WHEN status = 'pending'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS pending_count,
 
-                    COALESCE(
-                        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END),
-                        0
-                    ) AS approved_count,
+                COALESCE(
+                    SUM(
+                        CASE 
+                            WHEN status = 'approved'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS approved_count,
 
-                    COALESCE(
-                        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END),
-                        0
-                    ) AS cancelled_count
+                COALESCE(
+                    SUM(
+                        CASE 
+                            WHEN status = 'cancelled'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS cancelled_count
+
             FROM thonebane_bookings
-        `
-        let countParam = []
+        `;
+
+        let countParam = [];
         if (req.user.role === "shop") {
-            countQuery += ` WHERE shop_id = ?`;
+
+            countQuery += `
+                WHERE shop_id = ?
+            `;
+
             countParam.push(shop_id);
         }
-        const [counts] = await db.query(countQuery, countParam);
 
 
+        const [counts] = await db.query(
+            countQuery,
+            countParam
+        );
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
+
+            total_count: counts[0].total_count,
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
+
             booking
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const thonebane_bookingApproved = asyncHandel(async (req, res) => {
     try {

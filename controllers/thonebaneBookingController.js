@@ -108,7 +108,6 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
 
         t.name AS thonebane_name,
         t.location,
-        t.status,
         t.image,
 
 

@@ -103,10 +103,10 @@ export const packageBookingList = asyncHandel(async (req, res) => {
               b.special_request,
               b.status,
 
-              p.title
+              p.title,
               p.hotel_title,
               p.restaurant_title,
-              p.transport_title
+              p.transport_title,
               COALESCE(
                     JSON_ARRAYAGG(pi.image),
                     JSON_ARRAY()

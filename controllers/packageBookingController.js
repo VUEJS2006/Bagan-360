@@ -83,35 +83,38 @@ export const packageBookingList = asyncHandel(async (req, res) => {
     try {
 
         const [data] = await db.query(`
-              SELECT 
-              b.id,
-              b.user_id,
-              b.package_id,  
-              b.customer_name,
-              b.customer_phone, 
-              b.customer_email,
-              b.customer_address,
-              DATE_FORMAT(
-              b.start_date,
-              '%d-%m-%Y'
-              ) AS start_date, 
-              DATE_FORMAT(
-              b.end_date,
-              '%d-%m-%Y'
-              ) AS end_date,  
-              b.passenger,
-              b.special_request,
-              b.status,
+            SELECT 
+                b.id,
+                b.user_id,
+                b.package_id,
+                b.customer_name,
+                b.customer_phone,
+                b.customer_email,
+                b.customer_address,
 
-              p.title,
-              p.hotel_title,
-              p.restaurant_title,
-              p.transport_title,
-              COALESCE(
+                DATE_FORMAT(
+                    b.start_date,
+                    '%d-%m-%Y'
+                ) AS start_date,
+
+                DATE_FORMAT(
+                    b.end_date,
+                    '%d-%m-%Y'
+                ) AS end_date,
+
+                b.passenger,
+                b.special_request,
+                b.status,
+
+                p.title,
+                p.hotel_title,
+                p.restaurant_title,
+                p.transport_title,
+
+                COALESCE(
                     JSON_ARRAYAGG(pi.image),
                     JSON_ARRAY()
-              ) AS images
-
+                ) AS images
 
             FROM package_bookings b
 
@@ -119,19 +122,22 @@ export const packageBookingList = asyncHandel(async (req, res) => {
                 ON b.package_id = p.id
 
             LEFT JOIN package_images pi
-            ON p.id = pi.package_id
-            ORDER BY b.id DESC
-            `)
+                ON p.id = pi.package_id
+
+           GROUP BY b.id
+           ORDER BY b.id DESC
+        `);
 
         return res.status(200).json({
             message: "Booking List Success",
             success: true,
-            data,
-            count: data.length
-        })
+            count: data.length,
+            data
+        });
 
     } catch (error) {
         console.log(error);
+
         return res.status(500).json({
             success: false,
             message: error.message

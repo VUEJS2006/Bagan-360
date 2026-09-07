@@ -229,10 +229,10 @@ export const packageMobileBooking = asyncHandel(async (req, res) => {
               b.special_request,
               b.status,
 
-              p.title
+              p.title,
               p.hotel_title,
               p.restaurant_title,
-              p.transport_title
+              p.transport_title,
               COALESCE(
                     JSON_ARRAYAGG(pi.image),
                     JSON_ARRAY()
@@ -248,7 +248,8 @@ export const packageMobileBooking = asyncHandel(async (req, res) => {
             ON p.id = pi.package_id
             WHERE b.user_id = ?
 
-        ORDER BY b.id DESC
+          GROUP BY b.id
+           ORDER BY b.id DESC
         `, [req.user.id])
         return res.status(200).json({
             success: true,

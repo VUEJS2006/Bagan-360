@@ -209,7 +209,6 @@ export const packageMobileBooking = asyncHandel(async (req, res) => {
     try {
         const [data] = await db.query(`
         SELECT
-         SELECT 
               b.id,
               b.user_id,
               b.package_id,  

@@ -177,6 +177,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             hotel_id: data.insertId,
             shop_id: shop_id
         });
+        
 
 
     } catch (error) {
@@ -574,6 +575,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
         const [data] = await db.query(`
             SELECT
                 h.id,
@@ -582,8 +584,17 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.price,
                 h.discount,
                 h.total_amount,
-                DATE_FORMAT(h.start_date, '%d-%m-%Y') AS start_date,
-                DATE_FORMAT(h.end_date, '%d-%m-%Y') AS end_date,
+
+                DATE_FORMAT(
+                    h.start_date,
+                    '%d-%m-%Y'
+                ) AS start_date,
+
+                DATE_FORMAT(
+                    h.end_date,
+                    '%d-%m-%Y'
+                ) AS end_date,
+
                 h.description,
                 h.facilities,
                 h.location,
@@ -599,22 +610,32 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             INNER JOIN shops s
                 ON h.shop_id = s.id
 
-            WHERE s.status = 'approved'
+            WHERE h.id = ?
+            AND s.status = 'approved'
+
         `, [id]);
-        res.status(200).json({
+
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Hotel Not Found!"
+            });
+        }
+
+        return res.status(200).json({
             success: true,
-            data
+            data: data[0]
         });
 
     } catch (error) {
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
-
+});
 export const hotelSearch = asyncHandel(async (req, res) => {
     try {
 

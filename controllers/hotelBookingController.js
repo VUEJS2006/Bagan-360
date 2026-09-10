@@ -82,68 +82,158 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
+
         let query = ` 
-        SELECT 
-        b.id AS booking_id,
-        b.user_id,
-        b.shop_id,
-        b.shop_id,
-        
-        b.customer_name,
-        b.customer_phone,
-        DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
-        DATE_FORMAT(b.check_out_date, '%d-%m-%Y') AS check_out_date,
-        b.passenger,
-        b.status,
-        b.customer_request,
+            SELECT 
+                b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
+                b.hotel_id,
 
-        h.name AS hotel_name,
-        h.type,
-        h.price,
-        h.image,
-        h.location,
-        h.facilities,
-        h.description,
+                b.customer_name,
+                b.customer_phone,
+                DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
+                DATE_FORMAT(b.check_out_date, '%d-%m-%Y') AS check_out_date,
+                b.passenger,
+                b.status,
+                b.customer_request,
 
-        s.shop_name
+                h.name AS hotel_name,
+                h.type,
+                h.price,
+                h.image,
+                h.location,
+                h.facilities,
+                h.description,
 
-        FROM hotel_bookings b JOIN hotels h ON b.hotel_id = h.id
-        JOIN shops s ON b.shop_id = s.id 
+                s.shop_name
+
+            FROM hotel_bookings b
+            JOIN hotels h 
+                ON b.hotel_id = h.id
+            JOIN shops s 
+                ON b.shop_id = s.id
         `;
 
         let params = [];
+
+        // shop_id
+        let shop_id = null;
+
         if (req.user.role === "shop") {
+
             const [shops] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                `
+                SELECT id 
+                FROM shops 
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
+
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
-            const shop_id = shops[0].id;
+
+            shop_id = shops[0].id;
+
             query += ` WHERE b.shop_id = ?`;
-            params.push(shop_id)
+            params.push(shop_id);
         }
 
-        query += ` ORDER BY b.id DESC`
+        query += ` ORDER BY b.id DESC`;
+
         const [booking] = await db.query(query, params);
+
+
+        // =========================
+        // Booking Status Count
+        // =========================
+
+        let countQuery = `
+            SELECT
+                COUNT(*) AS total_count,
+
+                COALESCE(
+                    SUM(
+                        CASE 
+                            WHEN status = 'pending' 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                    ),
+                    0
+                ) AS pending_count,
+
+                COALESCE(
+                    SUM(
+                        CASE 
+                            WHEN status = 'approved' 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                    ),
+                    0
+                ) AS approved_count,
+
+                COALESCE(
+                    SUM(
+                        CASE 
+                            WHEN status = 'cancelled' 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                    ),
+                    0
+                ) AS cancelled_count
+
+            FROM hotel_bookings
+        `;
+
+        let countParams = [];
+
+        if (req.user.role === "shop") {
+
+            countQuery += ` WHERE shop_id = ?`;
+
+            countParams.push(shop_id);
+        }
+
+        const [counts] = await db.query(
+            countQuery,
+            countParams
+        );
+
+
+        // =========================
+        // Response
+        // =========================
+
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
-            booking
+
+            booking,
+
+            total_count: counts[0].total_count,
+            pending_count: counts[0].pending_count,
+            approved_count: counts[0].approved_count,
+            cancelled_count: counts[0].cancelled_count
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const hotel_bookingApproved = asyncHandel(async (req, res) => {
     try {

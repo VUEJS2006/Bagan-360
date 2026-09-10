@@ -393,24 +393,29 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
         }
         const [data] = await db.query(`
         SELECT
-        b.id AS booking_id,
-        b.user_id,
-        b.shop_id,
-        b.thonebane_id
-        b.customer_name,
-        b.customer_phone
-        DATE_FORMAT(
-            b.booking_date,
-            '%d-%m-%Y'
-        ) AS booking_date
-        b.passenger_count,
-        b.status,
-        b.note,
-        b.price
-        t.name AS thonebane_name,
-        t.location,
-        t.image
-        s.shop_name
+       b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
+                b.thonebane_id,
+
+                b.customer_name,
+                b.customer_phone,
+
+                DATE_FORMAT(
+                    b.booking_date,
+                    '%d-%m-%Y'
+                ) AS booking_date,
+
+                b.passenger_count,
+                b.status,
+                b.note,
+                b.price,
+
+                t.name AS thonebane_name,
+                t.location,
+                t.image,
+
+                s.shop_name
         FROM thonebane_bookings b JOIN thonebanes t ON b.thonebane_id = t.id
         JOIN shops s ON b.shop_id = s.id 
 

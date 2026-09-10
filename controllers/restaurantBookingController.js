@@ -87,54 +87,71 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
+
         let query = ` 
-        SELECT 
-        b.id AS booking_id,
-        b.user_id,
-        b.shop_id,
-        b.restaurant_id,
-        
-        b.customer_name,
-        b.customer_phone,
-        DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-        TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
-        b.guests,
-        b.status,
-        b.customer_request,
+            SELECT 
+                b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
+                b.restaurant_id,
 
-       r.name AS restaurant_name,
-        r.dishes,
-        r.location,
-        r.image,
-        r.discount,
-        r.phone,
-        r.address,
+                b.customer_name,
+                b.customer_phone,
+                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
+                TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
+                b.guests,
+                b.status,
+                b.customer_request,
 
-        s.shop_name
+                r.name AS restaurant_name,
+                r.dishes,
+                r.location,
+                r.image,
+                r.discount,
+                r.phone,
+                r.address,
 
-        FROM restaurant_bookings b JOIN restaurants r ON b.restaurant_id = r.id
-        JOIN shops s ON b.shop_id = s.id 
+                s.shop_name
+
+            FROM restaurant_bookings b
+            JOIN restaurants r ON b.restaurant_id = r.id
+            JOIN shops s ON b.shop_id = s.id
         `;
 
         let params = [];
+
+        // shop_id ကို အပြင်မှာ declare
+        let shop_id = null;
+
         if (req.user.role === "shop") {
+
             const [shops] = await db.query(
                 "SELECT id FROM shops WHERE user_id = ?",
                 [req.user.id]
             );
+
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
-            const shop_id = shops[0].id;
+
+            // shop_id value ထည့်
+            shop_id = shops[0].id;
+
             query += ` WHERE b.shop_id = ?`;
-            params.push(shop_id)
+            params.push(shop_id);
         }
 
-        query += ` ORDER BY b.id DESC`
+        query += ` ORDER BY b.id DESC`;
+
         const [booking] = await db.query(query, params);
+
+
+        // =========================
+        // Count
+        // =========================
 
         let countQuery = `
             SELECT
@@ -161,30 +178,39 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         let countParams = [];
 
         if (req.user.role === "shop") {
+
             countQuery += ` WHERE shop_id = ?`;
             countParams.push(shop_id);
         }
 
-        const [counts] = await db.query(countQuery, countParams);
+        const [counts] = await db.query(
+            countQuery,
+            countParams
+        );
+
 
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
+
             booking,
+
             total_count: counts[0].total_count,
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
-            cancelled_count: counts[0].cancelled_count,
+            cancelled_count: counts[0].cancelled_count
         });
 
     } catch (error) {
+
         console.log(error);
+
         res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
     try {

@@ -119,36 +119,41 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
 });
 
 export const restaurantList = asyncHandel(async (req, res) => {
-
     try {
 
         let query = "";
         let params = [];
+
         if (req.user.role === "admin") {
+
             query = `
                 SELECT 
-                r.id,
-                r.shop_id,
-                s.shop_name,
-                r.name,
-                r.location,
-                r.address,
-                r.phone,
-                r.description,
-                r.dishes,
-                r.image,
-                r.discount,
-                DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
+                    r.id,
+                    r.shop_id,
+                    s.shop_name,
+                    r.name,
+                    r.location,
+                    r.address,
+                    r.phone,
+                    r.description,
+                    r.dishes,
+                    r.image,
+                    r.discount,
+                    DATE_FORMAT(r.created_at, '%d-%m-%Y') AS created_at
                 FROM restaurants r
                 LEFT JOIN shops s
-                ON r.shop_id = s.id
+                    ON r.shop_id = s.id
                 ORDER BY r.id DESC
-              `
-        }
+            `;
 
-        else if (req.user.role === "shop") {
+        } else if (req.user.role === "shop") {
+
             const [shop] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                `
+                SELECT id
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -159,41 +164,48 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 });
             }
 
+            const shop_id = shop[0].id;
+
             query = `
                 SELECT 
-                r.id,
-                r.shop_id,
-                s.shop_name,
-                r.name,
-                r.location,
-                r.address,
-                r.phone,
-                r.description,
-                r.dishes,
-                r.image,
-                r.discount,
-                DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
+                    r.id,
+                    r.shop_id,
+                    s.shop_name,
+                    r.name,
+                    r.location,
+                    r.address,
+                    r.phone,
+                    r.description,
+                    r.dishes,
+                    r.image,
+                    r.discount,
+                    DATE_FORMAT(r.created_at, '%d-%m-%Y') AS created_at
                 FROM restaurants r
                 LEFT JOIN shops s
-                ON r.shop_id = s.id
+                    ON r.shop_id = s.id
                 WHERE r.shop_id = ?
                 ORDER BY r.id DESC
-            `
-            params = [shop[0].id];
-        }
-        else {
+            `;
+
+            params = [shop_id];
+
+        } else {
+
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         const [data] = await db.query(query, params);
+
         return res.status(200).json({
-            message: "Restaurant Data Success",
             success: true,
+            message: "Restaurant Data Success",
             count: data.length,
             data
-        })
+        });
+
     } catch (error) {
 
         console.log(error);
@@ -202,9 +214,8 @@ export const restaurantList = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
-
     }
-})
+});
 
 export const restaurantUpdate = asyncHandel(async (req, res) => {
     try {

@@ -59,7 +59,7 @@ export const restMenuPriceCreate = asyncHandel(async (req, res) => {
             INNER JOIN shops s
             ON m.shop_id = s.id
             WHERE m.id = ?
-            AND s.type 'restaurant'
+            AND s.type =  'restaurant'
         `
         let menuParams = [menu_id]
         if (req.user.role === "shop") {

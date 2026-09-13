@@ -29,6 +29,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+            console.log("LOGIN SHOP:", shops[0]);
             if (shops[0].type !== "restaurant") {
                 return res.status(400).json({
                     success: false,
@@ -49,10 +50,6 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
 
             shop_id = bodyShopId;
         }
-
-
-
-
 
         if (!name || !description) {
             return res.status(400).json({

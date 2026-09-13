@@ -527,7 +527,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                 s.shop_address,
                 s.image,
                 s.type,
-                s.status,
+                s.status
             FROM shops s
             WHERE s.id = ?
             AND s.type = 'restaurant'

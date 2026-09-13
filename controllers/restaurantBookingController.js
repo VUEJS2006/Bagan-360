@@ -279,7 +279,7 @@ export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
         }
 
         let updateQuery = `
-            UPDATE restaurant_bookings
+            UPDATE res_bookings
             SET status = 'approved'
             WHERE id = ?
         `;
@@ -370,7 +370,7 @@ export const restaurant_bookingCancelled = asyncHandel(async (req, res) => {
         }
 
         let updateQuery = `
-            UPDATE restaurant_bookings
+            UPDATE res_bookings
             SET status = 'cancelled'
             WHERE id = ?
         `;

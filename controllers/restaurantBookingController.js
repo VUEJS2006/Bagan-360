@@ -234,7 +234,7 @@ export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
             });
         }
 
-        let shop_id;
+        let shop_id = null;
 
         if (req.user.role === "shop") {
 
@@ -253,11 +253,16 @@ export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
-        let bookingQuery = "SELECT * FROM restaurant_bookings WHERE id = ?";
+        let bookingQuery = `
+            SELECT *
+            FROM res_bookings
+            WHERE id = ?
+        `;
+
         let bookingParams = [id];
 
         if (req.user.role === "shop") {
-            bookingQuery += " AND shop_id = ?";
+            bookingQuery += ` AND shop_id = ?`;
             bookingParams.push(shop_id);
         }
 
@@ -273,8 +278,23 @@ export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
             });
         }
 
+        let updateQuery = `
+            UPDATE restaurant_bookings
+            SET status = 'approved'
+            WHERE id = ?
+        `;
 
-        const [data] = await db.query("UPDATE restaurant_bookings SET status ='approved'  WHERE id = ? AND shop_id = ?", [id, shop_id]);
+        let updateParams = [id];
+
+        if (req.user.role === "shop") {
+            updateQuery += ` AND shop_id = ?`;
+            updateParams.push(shop_id);
+        }
+
+        const [data] = await db.query(
+            updateQuery,
+            updateParams
+        );
 
         return res.status(200).json({
             success: true,
@@ -286,7 +306,7 @@ export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
 
         console.log(error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
@@ -305,7 +325,7 @@ export const restaurant_bookingCancelled = asyncHandel(async (req, res) => {
             });
         }
 
-        let shop_id;
+        let shop_id = null;
 
         if (req.user.role === "shop") {
 
@@ -324,11 +344,16 @@ export const restaurant_bookingCancelled = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
-        let bookingQuery = "SELECT * FROM restaurant_bookings WHERE id = ?";
+        let bookingQuery = `
+            SELECT *
+            FROM res_bookings
+            WHERE id = ?
+        `;
+
         let bookingParams = [id];
 
         if (req.user.role === "shop") {
-            bookingQuery += " AND shop_id = ?";
+            bookingQuery += ` AND shop_id = ?`;
             bookingParams.push(shop_id);
         }
 
@@ -344,8 +369,23 @@ export const restaurant_bookingCancelled = asyncHandel(async (req, res) => {
             });
         }
 
+        let updateQuery = `
+            UPDATE restaurant_bookings
+            SET status = 'cancelled'
+            WHERE id = ?
+        `;
 
-        const [data] = await db.query("UPDATE restaurant_bookings SET status ='cancelled'  WHERE id = ? AND shop_id = ?", [id, shop_id]);
+        let updateParams = [id];
+
+        if (req.user.role === "shop") {
+            updateQuery += ` AND shop_id = ?`;
+            updateParams.push(shop_id);
+        }
+
+        const [data] = await db.query(
+            updateQuery,
+            updateParams
+        );
 
         return res.status(200).json({
             success: true,
@@ -357,12 +397,13 @@ export const restaurant_bookingCancelled = asyncHandel(async (req, res) => {
 
         console.log(error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
 });
+
 
 export const restaurantMobileBooking = asyncHandel(async (req, res) => {
     try {
@@ -373,45 +414,63 @@ export const restaurantMobileBooking = asyncHandel(async (req, res) => {
             });
         }
         const [data] = await db.query(`
-        SELECT 
-        b.id AS booking_id,
-        b.user_id,
-        b.shop_id,
-        b.restaurant_id,
-        
-        b.customer_name,
-        b.customer_phone,
-        DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-        TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
-        b.guests,
-        b.status,
-        b.customer_request,
+            SELECT 
+                b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
 
-        r.name AS restaurant_name,
-        r.dishes,
-        r.location,
-        r.image,
-        r.discount,
-        r.phone,
-        r.address,
+                b.customer_name,
+                b.customer_phone,
+                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
+                TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
+                b.passenger_count,
+                b.status,
+                b.note,
 
-        s.shop_name
+                s.shop_name
 
-        FROM restaurant_bookings b
+            FROM res_bookings b
 
-        JOIN restaurants r
-        ON b.restaurant_id = r.id
+            INNER JOIN shops s
+                ON b.shop_id = s.id
 
-        JOIN shops s
-        ON b.shop_id = s.id
+            WHERE b.user_id = ?
 
-        WHERE b.user_id = ?
+            ORDER BY b.id DESC
+        `, [req.user.id]);
 
-        ORDER BY b.id DESC
-        `, [req.user.id])
+        for (const item of data) {
+
+            const [items] = await db.query(`
+                SELECT
+                    bi.id,
+                    bi.booking_id,
+                    bi.menu_id,
+
+                    m.name AS menu_name,
+                    m.image,
+
+                    bi.size,
+                    bi.price,
+                    bi.quantity,
+                    bi.subtotal
+
+                FROM res_booking_items bi
+
+                INNER JOIN res_menu m
+                    ON bi.menu_id = m.id
+
+                WHERE bi.booking_id = ?
+
+                ORDER BY bi.id ASC
+            `, [item.booking_id]);
+
+            item.items = items;
+        }
+
         return res.status(200).json({
             success: true,
-            message: "Booking Success",
+            message: "Booking List Success",
             count: data.length,
             data
         });

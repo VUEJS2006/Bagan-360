@@ -8,18 +8,30 @@ import { v4 as uuid } from "uuid";
 export const restMenuCreate = asyncHandel(async (req, res) => {
     try {
 
-        let { shop_id: bodyShopId, name, description } = req.body;
+        let {
+            shop_id: bodyShopId,
+            name,
+            description,
+            prices
+        } = req.body;
+
         let shop_id;
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         if (req.user.role === "shop") {
 
             const [shops] = await db.query(
-                "SELECT id, type  FROM shops WHERE user_id = ?",
+                `
+                SELECT id, type
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -29,7 +41,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
-            console.log("LOGIN SHOP:", shops[0]);
+
             if (shops[0].type !== "restaurant") {
                 return res.status(400).json({
                     success: false,
@@ -39,6 +51,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
 
             shop_id = shops[0].id;
         }
+
         if (req.user.role === "admin") {
 
             if (!bodyShopId) {
@@ -48,47 +61,165 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                 });
             }
 
+            const [shop] = await db.query(
+                `
+                SELECT id, type
+                FROM shops
+                WHERE id = ?
+                `,
+                [bodyShopId]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            if (shop[0].type !== "restaurant") {
+                return res.status(400).json({
+                    success: false,
+                    message: "This shop is not a restaurant!"
+                });
+            }
+
             shop_id = bodyShopId;
         }
 
         if (!name || !description) {
             return res.status(400).json({
                 success: false,
-                message: "All fields are required!"
+                message: "Name and description are required!"
             });
         }
 
-        const uploadFolder = path.join(process.cwd(), "images", "res_menu");
-        if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, { recursive: true })
+        if (typeof prices === "string") {
+            try {
+                prices = JSON.parse(prices);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid prices format!"
+                });
+            }
         }
+
+        if (!Array.isArray(prices) || prices.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "At least one menu price is required!"
+            });
+        }
+
+        for (const item of prices) {
+
+            if (!item.size || item.price === undefined || item.price === null) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Each price must have size and price!"
+                });
+            }
+
+            if (Number(item.price) <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Price must be greater than 0!"
+                });
+            }
+        }
+
+
+        const uploadFolder = path.join(
+            process.cwd(),
+            "images",
+            "res_menu"
+        );
+
+        if (!fs.existsSync(uploadFolder)) {
+            fs.mkdirSync(uploadFolder, {
+                recursive: true
+            });
+        }
+
         let imagePath = null;
+
         if (req.file) {
+
             const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName)
+
+            const savePath = path.join(
+                uploadFolder,
+                fileName
+            );
 
             await sharp(req.file.buffer)
-                .resize({ width: 1920, withoutEnlargement: true })
-                .webp({ quality: 90 })
-                .toFile(savePath)
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
+                .toFile(savePath);
 
-            imagePath = `images/res_menu/${fileName}`
+            imagePath = `images/res_menu/${fileName}`;
         }
-        const [data] = await db.query(
+
+
+        const [menuData] = await db.query(
             `
             INSERT INTO res_menu
-            (shop_id,name,image,description) VALUES (?,?,?,?)
+            (
+                shop_id,
+                name,
+                image,
+                description
+            )
+            VALUES (?, ?, ?, ?)
             `,
             [
-                shop_id, name, imagePath, description
+                shop_id,
+                name,
+                imagePath,
+                description
             ]
-        )
-        return res.status(201).json({
-            message: "Res Menu Create Success",
-            success: true,
-            data
+        );
 
-        })
+        const menu_id = menuData.insertId;
+        for (const item of prices) {
+
+            await db.query(
+                `
+                INSERT INTO menu_price
+                (
+                    menu_id,
+                    size,
+                    price
+                )
+                VALUES (?, ?, ?)
+                `,
+                [
+                    menu_id,
+                    item.size,
+                    item.price
+                ]
+            );
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: "Restaurant Menu Create Success",
+            menu_id: menu_id,
+            data: {
+                shop_id,
+                name,
+                image: imagePath,
+                description,
+                prices
+            }
+        });
+
     } catch (error) {
 
         console.log(error);
@@ -97,7 +228,6 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
-
     }
 });
 
@@ -190,14 +320,17 @@ export const restaurantList = asyncHandel(async (req, res) => {
 
 export const resMenuList = asyncHandel(async (req, res) => {
     try {
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         let query = "";
         let params = [];
+
         if (req.user.role === "admin") {
 
             query = `
@@ -218,8 +351,8 @@ export const resMenuList = asyncHandel(async (req, res) => {
                 ORDER BY m.id DESC
             `;
 
-        }
-        else if (req.user.role === "shop") {
+        } else {
+
             const [shop] = await db.query(
                 `
                 SELECT id, type
@@ -261,9 +394,35 @@ export const resMenuList = asyncHandel(async (req, res) => {
                 AND s.type = 'restaurant'
                 ORDER BY m.id DESC
             `;
+
             params = [shop[0].id];
         }
+
         const [data] = await db.query(query, params);
+
+
+        // Price List ထည့်
+        for (const menu of data) {
+
+            const [prices] = await db.query(
+                `
+                SELECT
+                    id,
+                    menu_id,
+                    size,
+                    price,
+                    DATE_FORMAT(created_at, '%d-%m-%Y') AS created_at
+                FROM menu_price
+                WHERE menu_id = ?
+                ORDER BY id ASC
+                `,
+                [menu.id]
+            );
+
+            menu.prices = prices;
+        }
+
+
         return res.status(200).json({
             success: true,
             message: "Restaurant Menu Data Success",
@@ -272,30 +431,44 @@ export const resMenuList = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
+
         console.log(error);
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const resMenuUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
-        const { name, description } = req.body;
+
+        let {
+            name,
+            description,
+            prices
+        } = req.body;
+
         let shop_id = null;
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
-                "SELECT id,type FROM shops WHERE user_id = ?",
+                `
+                SELECT id, type
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -305,6 +478,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+
             if (shop[0].type !== "restaurant") {
                 return res.status(400).json({
                     success: false,
@@ -315,6 +489,21 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
+
+        // prices JSON string ဖြစ်ရင် parse
+        if (typeof prices === "string") {
+            prices = JSON.parse(prices);
+        }
+
+        if (!Array.isArray(prices)) {
+            return res.status(400).json({
+                success: false,
+                message: "Prices must be an array!"
+            });
+        }
+
+
+        // Menu check
         let menuQuery = `
             SELECT
                 m.*,
@@ -323,23 +512,20 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             INNER JOIN shops s
                 ON m.shop_id = s.id
             WHERE m.id = ?
+            AND s.type = 'restaurant'
         `;
 
         let menuParams = [id];
 
         if (req.user.role === "shop") {
+
             menuQuery += `
                 AND m.shop_id = ?
-                AND s.type = 'restaurant'
             `;
 
             menuParams.push(shop_id);
         }
-        if (req.user.role === "admin") {
-            menuQuery += `
-                AND s.type = 'restaurant'
-            `;
-        }
+
         const [menu] = await db.query(
             menuQuery,
             menuParams
@@ -351,13 +537,22 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 message: "Menu not found!"
             });
         }
+
+
+        // Image
         let updateImage = menu[0].image;
+
         if (req.file) {
+
             if (menu[0].image) {
-                const oldPath = path.join(process.cwd(), menu[0].image)
+
+                const oldPath = path.join(
+                    process.cwd(),
+                    menu[0].image
+                );
 
                 if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath)
+                    fs.unlinkSync(oldPath);
                 }
             }
 
@@ -366,12 +561,20 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 "images",
                 "res_menu"
             );
+
             if (!fs.existsSync(uploadFolder)) {
-                fs.mkdirSync(uploadFolder, { recursive: true })
+                fs.mkdirSync(uploadFolder, {
+                    recursive: true
+                });
             }
 
             const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName)
+
+            const savePath = path.join(
+                uploadFolder,
+                fileName
+            );
+
             await sharp(req.file.buffer)
                 .resize({
                     width: 1920,
@@ -382,29 +585,64 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 })
                 .toFile(savePath);
 
-
             updateImage = `images/res_menu/${fileName}`;
-
         }
 
-        const [data] = await db.query(
+
+        // Menu Update
+        await db.query(
             `
-            UPDATE res_menu SET
-            name=?,
-            description=?,
-            image=?
-            WHERE id= ?
+            UPDATE res_menu
+            SET
+                name = ?,
+                description = ?,
+                image = ?
+            WHERE id = ?
             `,
             [
-                name, description, updateImage, id
+                name,
+                description,
+                updateImage,
+                id
             ]
         );
 
+
+        // Price Update
+        for (const item of prices) {
+
+            if (!item.id || !item.size || item.price === undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Price id, size and price are required!"
+                });
+            }
+
+            await db.query(
+                `
+                UPDATE menu_price mp
+                INNER JOIN res_menu m
+                    ON mp.menu_id = m.id
+                SET
+                    mp.size = ?,
+                    mp.price = ?
+                WHERE mp.id = ?
+                AND mp.menu_id = ?
+                `,
+                [
+                    item.size,
+                    item.price,
+                    item.id,
+                    id
+                ]
+            );
+        }
+
+
         return res.status(200).json({
-            message: "Res Menu  Update Success",
             success: true,
-            data
-        })
+            message: "Restaurant Menu Update Success"
+        });
 
     } catch (error) {
 
@@ -414,14 +652,14 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
-
     }
-})
+});
 
 export const resMenuDelete = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -430,10 +668,15 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
         }
 
         let shop_id = null;
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
-                "SELECT id,type FROM shops WHERE user_id = ?",
+                `
+                SELECT id, type
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -443,6 +686,7 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+
             if (shop[0].type !== "restaurant") {
                 return res.status(400).json({
                     success: false,
@@ -453,6 +697,8 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
+
+        // Menu Check
         let menuQuery = `
             SELECT
                 m.*,
@@ -461,24 +707,20 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
             INNER JOIN shops s
                 ON m.shop_id = s.id
             WHERE m.id = ?
+            AND s.type = 'restaurant'
         `;
 
         let menuParams = [id];
 
         if (req.user.role === "shop") {
+
             menuQuery += `
                 AND m.shop_id = ?
-                AND s.type = 'restaurant'
             `;
 
             menuParams.push(shop_id);
         }
-        if (req.user.role === "admin") {
 
-            menuQuery += `
-                AND s.type = 'restaurant'
-            `;
-        }
         const [menu] = await db.query(
             menuQuery,
             menuParams
@@ -491,28 +733,56 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
             });
         }
 
+
+        // Delete Image
         if (menu[0].image) {
-            const oldPath = path.join(process.cwd(), menu[0].image);
+
+            const oldPath = path.join(
+                process.cwd(),
+                menu[0].image
+            );
+
             if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath)
+                fs.unlinkSync(oldPath);
             }
         }
-        await db.query("DELETE FROM res_menu WHERE id = ?", [id]);
-        res.status(200).json({
+
+
+        // Delete Prices
+        await db.query(
+            `
+            DELETE FROM menu_price
+            WHERE menu_id = ?
+            `,
+            [id]
+        );
+
+
+        // Delete Menu
+        await db.query(
+            `
+            DELETE FROM res_menu
+            WHERE id = ?
+            `,
+            [id]
+        );
+
+
+        return res.status(200).json({
             success: true,
-            message: "Res Menu deleted successfully"
+            message: "Restaurant Menu and Prices deleted successfully"
         });
 
     } catch (error) {
 
         console.log(error);
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
-
     }
-})
+});
 
 export const restaurantDetails = asyncHandel(async (req, res) => {
     try {

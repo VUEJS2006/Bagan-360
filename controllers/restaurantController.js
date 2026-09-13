@@ -523,12 +523,11 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             SELECT
                 s.id AS shop_id,
                 s.shop_name,
-                s.phone,
-                s.address,
+                s.shop_phone,
+                s.shop_address,
                 s.image,
                 s.type,
                 s.status,
-                DATE_FORMAT(s.created_at, '%d-%m-%Y') AS created_at
             FROM shops s
             WHERE s.id = ?
             AND s.type = 'restaurant'

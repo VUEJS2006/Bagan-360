@@ -130,7 +130,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.image,
                     s.status,
                     s.type,
-                    DATE_FORMAT(s.created_at, '%d-%m-%Y') AS created_at
                 FROM shops s
                 WHERE s.type = 'restaurant'
                 ORDER BY s.id DESC
@@ -165,7 +164,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.image,
                     s.status,
                     s.type,
-                    DATE_FORMAT(s.created_at, '%d-%m-%Y') AS created_at
                 FROM shops s
                 WHERE s.id = ?
                 AND s.type = 'restaurant'

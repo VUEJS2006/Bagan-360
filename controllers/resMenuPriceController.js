@@ -368,7 +368,7 @@ export const resMenuPriceDelete = asyncHandel(async (req, res) => {
             shop_id = shop[0].id
         }
         let query = `
-        SELECT
+        SELECT 
          mp.id,
          mp.menu_id,
          mp.size,
@@ -378,14 +378,15 @@ export const resMenuPriceDelete = asyncHandel(async (req, res) => {
          s.type
 
          FROM menu_price mp
+
          INNER JOIN res_menu m
          ON mp.menu_id = m.id
 
-         INNER JOIN shops s
-         ON m.shop_id = s.id
+        INNER JOIN shops s
+        ON m.shop_id = s.id
 
-         WHERE m.id = ?
-         AND s.type = 'restaurant'
+        WHERE mp.id = ?
+        AND s.type = 'restaurant'
         `;
         let params = [id];
         if (req.user.role === "shop") {

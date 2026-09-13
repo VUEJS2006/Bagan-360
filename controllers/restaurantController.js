@@ -19,7 +19,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
         if (req.user.role === "shop") {
 
             const [shops] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                "SELECT id, type  FROM shops WHERE user_id = ?",
                 [req.user.id]
             );
 
@@ -129,7 +129,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
 
             const [shop] = await db.query(
                 `
-                SELECT id
+                SELECT id,type
                 FROM shops
                 WHERE user_id = ?
                 `,
@@ -295,7 +295,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                "SELECT id,type FROM shops WHERE user_id = ?",
                 [req.user.id]
             );
 
@@ -433,7 +433,7 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                "SELECT id,type FROM shops WHERE user_id = ?",
                 [req.user.id]
             );
 

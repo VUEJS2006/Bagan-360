@@ -27,24 +27,29 @@ export const restaurantBookingCreate = asyncHandel(async (req, res) => {
         }
         const [cart] = await db.query(
             `
-        SELECT 
-        c.id AS cart_id,
-        c.menu_id,
-        c.size,
-        c.price,
-        c.quantity,
-        m.shop_id,
-        s.shop_name
-        FROM cart c
-        INNER JOIN res_menu m
-        ON c.menu_id = m.id
+            SELECT 
+                c.id AS cart_id,
+                c.menu_id,
+                c.size,
+                c.price,
+                c.quantity,
+                m.shop_id,
+                s.shop_name
 
-        INNER JOIN shops s
-        ON m.shop_id = s.id
+            FROM cart c
 
-        WHERE c.id = ? AND s.type = 'restaurant' AND s.status = 'approved'
-        `, [req.user.id]
-        )
+            INNER JOIN res_menu m
+                ON c.menu_id = m.id
+
+            INNER JOIN shops s
+                ON m.shop_id = s.id
+
+            WHERE c.user_id = ?
+            AND s.type = 'restaurant'
+            AND s.status = 'approved'
+            `,
+            [req.user.id]
+        );
         if (cart.length === 0) {
             return res.status(400).json({
                 success: false,

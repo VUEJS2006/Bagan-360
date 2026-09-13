@@ -389,10 +389,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(
             `
-            UPDATE  res_menu SET
+            UPDATE res_menu SET
             name=?,
             description=?,
-            image=?,
+            image=?
             WHERE id= ?
             `,
             [

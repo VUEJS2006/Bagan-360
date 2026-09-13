@@ -650,7 +650,7 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
 
             LEFT JOIN menu_price mp
                 ON m.id = mp.menu_id
-            WHERE id = ?
+            WHERE m.id = ?
             `, [id]
         )
         const result = {

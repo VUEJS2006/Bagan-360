@@ -520,7 +520,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
         const { id } = req.params;
         const [shop] = await db.query(
             `
-            SELECT
+            SELECT 
                 s.id AS shop_id,
                 s.shop_name,
                 s.shop_phone,
@@ -535,27 +535,74 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             `,
             [id]
         );
+
         if (shop.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Restaurant shop not found!"
             });
         }
-        const [menu] = await db.query(
+
+        const [menuData] = await db.query(
             `
-            SELECT
+            SELECT 
                 m.id,
                 m.shop_id,
                 m.name,
                 m.image,
                 m.description,
-                DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at
+                DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
+
+                mp.id AS price_id,
+                mp.size,
+                mp.price
+
             FROM res_menu m
+
+            LEFT JOIN menu_price mp
+                ON m.id = mp.menu_id
+
             WHERE m.shop_id = ?
-            ORDER BY m.id DESC
+
+            ORDER BY m.id DESC, mp.id ASC
             `,
             [id]
         );
+
+        const menu = [];
+
+        menuData.forEach((item) => {
+
+            let existingMenu = menu.find(
+                (menuItem) => menuItem.id === item.id
+            );
+
+            if (!existingMenu) {
+
+                existingMenu = {
+                    id: item.id,
+                    shop_id: item.shop_id,
+                    name: item.name,
+                    image: item.image,
+                    description: item.description,
+                    created_at: item.created_at,
+                    prices: []
+                };
+
+                menu.push(existingMenu);
+            }
+
+            // price ရှိမှထည့်
+            if (item.price_id) {
+                existingMenu.prices.push({
+                    id: item.price_id,
+                    size: item.size,
+                    price: item.price
+                });
+            }
+        });
+
+      
         return res.status(200).json({
             success: true,
             data: {
@@ -565,10 +612,12 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
+
         console.log(error);
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});

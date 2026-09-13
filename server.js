@@ -22,7 +22,7 @@ import hotelBookingRouter from "./routers/hotelBookingRouter.js"
 import packageRouter from "./routers/packageRouter.js"
 import packageBookingRouter from "./routers/packageBookingRouter.js"
 import resMenuPriceRouter from "./routers/resMenuPriceRouter.js"
-
+import cartRouter from "./routers/cartRouter.js"
 
 import cors from "cors"
 import path from "path";
@@ -69,6 +69,7 @@ app.use('/api', hotelBookingRouter);
 app.use('/api', packageRouter);
 app.use('/api', packageBookingRouter);
 app.use('/api', resMenuPriceRouter);
+app.use('/api', cartRouter);
 
 
 app.listen(PORT, () => {

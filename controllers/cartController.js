@@ -6,36 +6,40 @@ export const cartCreate = asyncHandel(async (req, res) => {
     try {
 
         let { menu_id, size, quantity } = req.body;
+
         if (!menu_id || !size || !quantity) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required!"
             });
         }
+
         if (quantity <= 0) {
             return res.status(400).json({
                 success: false,
                 message: "Quantity must be greater than 0!"
             });
         }
+
         const user_id = req.user.id;
+
         const [menu] = await db.query(`
-             SELECT 
-             m.id,
-             m.shop_id,
-             m.name,
-             s.type,
-             s.status
+            SELECT 
+                m.id,
+                m.shop_id,
+                m.name,
+                s.type,
+                s.status
 
-             FROM res_menu m 
-             INNER JOIN shops s
-             ON m.shop_id = s.id
-             WHERE m.id = ?
-             AND s.type = 'restaurant'
-             AND s.status = 'approved'
+            FROM res_menu m 
 
-            `, [menu_id]
-        )
+            INNER JOIN shops s
+                ON m.shop_id = s.id
+
+            WHERE m.id = ?
+            AND s.type = 'restaurant'
+            AND s.status = 'approved'
+        `, [menu_id]);
 
         if (menu.length === 0) {
             return res.status(404).json({
@@ -43,75 +47,89 @@ export const cartCreate = asyncHandel(async (req, res) => {
                 message: "Restaurant menu not found!"
             });
         }
+
+
         const [menuPrice] = await db.query(`
-              SELECT 
-              menu_id,
-              size,
-              price
+            SELECT 
+                menu_id,
+                size,
+                price
 
             FROM menu_price
+
             WHERE menu_id = ?
             AND size = ?
-            `, [menu_id, size]
-        )
+        `, [menu_id, size]);
+
         if (menuPrice.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Selected menu size not found!"
             });
         }
-        const [price] = menuPrice[0].price
+
+        const price = menuPrice[0].price;
+
         const [existCart] = await db.query(`
             SELECT
-            id,
-            quantity
+                id,
+                quantity
+
             FROM cart
+
             WHERE user_id = ?
             AND menu_id = ?
             AND size = ?
-            `, [user_id, menu_id, size]
-        );
+        `, [user_id, menu_id, size]);
 
-        if (existCart) {
-            const newQqantity = existCart[0].quantity + Number(quantity);
+        if (existCart.length > 0) {
+
+            const newQuantity =
+                existCart[0].quantity + Number(quantity);
 
             await db.query(`
-                UPDATE cart SET
-                quantity = ?,
-                price = ?
+                UPDATE cart 
+                SET
+                    quantity = ?,
+                    price = ?
+
                 WHERE id = ?
-                `, [
-                newQqantity, price, existCart[0].id
-            ]
-            );
+            `, [
+                newQuantity,
+                price,
+                existCart[0].id
+            ]);
+
             return res.status(200).json({
                 success: true,
                 message: "Cart quantity updated successfully!"
             });
         }
-        const [data] = await db.query(
-            `
+
+     
+        const [data] = await db.query(`
             INSERT INTO cart
             (
-            user_id,
-            menu_id,
-            price,
-            quantity,
-            size
+                user_id,
+                menu_id,
+                price,
+                quantity,
+                size
             )
-            VALUES (?,?,?,?,?)
+            VALUES (?, ?, ?, ?, ?)
         `, [
             user_id,
             menu_id,
             price,
             quantity,
             size
-        ]
-        );
+        ]);
+
         return res.status(201).json({
             success: true,
             message: "Add To Cart Success!"
         });
+
     } catch (error) {
 
         console.log(error);

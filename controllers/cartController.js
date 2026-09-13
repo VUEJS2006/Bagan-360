@@ -169,7 +169,7 @@ export const updateCart = asyncHandel(async (req, res) => {
         const [data] = await db.query(
             `
             UPDATE cart SET 
-            quantity = ?,
+            quantity = ?
             WHERE id = ?
             AND user_id = ?
             `,

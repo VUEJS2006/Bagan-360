@@ -29,6 +29,12 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+            if (shops[0].type !== "restaurant") {
+                return res.status(400).json({
+                    success: false,
+                    message: "This shop is not a restaurant!"
+                });
+            }
 
             shop_id = shops[0].id;
         }
@@ -43,24 +49,9 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
 
             shop_id = bodyShopId;
         }
-        const [shops] = await db.query(
-            "SELECT id FROM shops WHERE id = ?",
-            [shop_id]
-        );
 
-        if (shops.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Shop not found!"
-            });
-        }
 
-        if (shops[0].type !== "restaurant") {
-            return res.status(400).json({
-                success: false,
-                message: "This shop is not a restaurant!"
-            });
-        }
+
 
 
         if (!name || !description) {

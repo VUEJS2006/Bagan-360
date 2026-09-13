@@ -68,7 +68,7 @@ export const restaurantBookingCreate = asyncHandel(async (req, res) => {
             });
         }
         const [booking] = await db.query(`
-            INSERT INTO restaurant_bookings
+            INSERT INTO res_bookings
             (
                 user_id,
                 shop_id,
@@ -96,7 +96,7 @@ export const restaurantBookingCreate = asyncHandel(async (req, res) => {
             const subtotal = Number(item.price) * Number(item.quantity);
             await db.query(
                 `
-                INSERT INTO restaurant_booking_items (booking_id,menu_id,size,quantity,price,subtotal)
+                INSERT INTO res_booking_items (booking_id,menu_id,size,quantity,price,subtotal)
                 VALUES (?,?,?,?,?,?)
                 `,
                 [
@@ -152,7 +152,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
            b.status, 
            b.note, 
            s.shop_name 
-           FROM restaurant_bookings b 
+           FROM res_bookings b 
            INNER JOIN shops s ON b.shop_id = s.id `;
         let params = [];
         let shop_id = null;
@@ -182,7 +182,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
                 bi.price, 
                 bi.quantity, 
                 bi.subtotal 
-                FROM restaurant_booking_items bi 
+                FROM res_booking_items bi 
                 INNER JOIN res_menu m ON bi.menu_id = m.id 
                 WHERE bi.booking_id = ? 
                 ORDER BY bi.id ASC
@@ -196,7 +196,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         COALESCE( SUM( CASE WHEN status = 'pending' THEN 1 ELSE 0 END ), 0 )
         AS pending_count, COALESCE( SUM( CASE WHEN status = 'approved' THEN 1 ELSE 0 END ), 0 ) 
         AS approved_count, COALESCE( SUM( CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END ), 0 )
-        AS cancelled_count FROM restaurant_bookings `;
+        AS cancelled_count FROM res_bookings `;
 
         let countParams = [];
         if (req.user.role === "shop") {

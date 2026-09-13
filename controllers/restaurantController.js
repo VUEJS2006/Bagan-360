@@ -190,7 +190,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
 
 export const resMenuList = asyncHandel(async (req, res) => {
     try {
-        if (!["admin", "shop"], includes(req.user.role)) {
+        if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"

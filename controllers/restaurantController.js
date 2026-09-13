@@ -602,7 +602,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             }
         });
 
-      
+
         return res.status(200).json({
             success: true,
             data: {
@@ -619,5 +619,73 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
+    }
+});
+
+export const restMenuDeatils = asyncHandel(async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [menu] = await db.query("SELECT * FROM res_menu WHERE id = ?", [id]);
+        if (menu.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Res Menu not found!"
+            });
+        }
+        const [data] = await db.query(
+            `
+                SELECT 
+                m.id,
+                m.shop_id,
+                m.name,
+                m.image,
+                m.description,
+                DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
+
+                mp.id AS price_id,
+                mp.size,
+                mp.price
+
+            FROM res_menu m
+
+            LEFT JOIN menu_price mp
+                ON m.id = mp.menu_id
+            WHERE id = ?
+            `, [id]
+        )
+        const result = {
+            id: data[0].id,
+            shop_id: data[0].shop_id,
+            name: data[0].name,
+            image: data[0].image,
+            description: data[0].description,
+            created_at: data[0].created_at,
+
+            prices: []
+        };
+        data.forEach((item) => {
+            if (item.price_id) {
+                result.prices.push({
+                    id: item.price_id,
+                    size: item.size,
+                    price: item.price
+                });
+            }
+        })
+        return res.status(200).json({
+            success: true,
+            message: "Restaurant Menu Details Success",
+            data: result
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
     }
 });

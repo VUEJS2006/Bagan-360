@@ -1,4 +1,4 @@
-import { restMenuCreate, resMenuList, resMenuUpdate, resMenuDelete, restaurantList, restaurantDetails } from "../controllers/restaurantController.js";
+import { restMenuDeatils, restMenuCreate, resMenuList, resMenuUpdate, resMenuDelete, restaurantList, restaurantDetails } from "../controllers/restaurantController.js";
 import { upload } from "../middlewares/upload.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
@@ -13,4 +13,5 @@ router.delete('/admin/res/menu/delete/:id', authenticated, resMenuDelete)
 
 router.get('/restaurant/list', authenticated, restaurantList);
 router.get('/restaurant/details/:id', authenticated, restaurantDetails);
+router.get('/res/menu/deatils/:id', authenticated, restMenuDeatils)
 export default router;

@@ -129,7 +129,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.image,
                     s.status,
-                    s.type,
+                    s.type
                 FROM shops s
                 WHERE s.type = 'restaurant'
                 ORDER BY s.id DESC
@@ -163,7 +163,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.image,
                     s.status,
-                    s.type,
+                    s.type
                 FROM shops s
                 WHERE s.id = ?
                 AND s.type = 'restaurant'

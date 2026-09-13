@@ -3,13 +3,12 @@ import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-
 import { v4 as uuid } from "uuid";
 
-export const restaurantCreate = asyncHandel(async (req, res) => {
+export const restMenuCreate = asyncHandel(async (req, res) => {
     try {
 
-        let { shop_id: bodyShopId, name, location, address, dishes, phone, description, discount } = req.body;
+        let { shop_id: bodyShopId, name, description } = req.body;
         let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -44,38 +43,34 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
 
             shop_id = bodyShopId;
         }
-        const [shop] = await db.query(
+        const [shops] = await db.query(
             "SELECT id FROM shops WHERE id = ?",
             [shop_id]
         );
 
-        if (shop.length === 0) {
+        if (shops.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Shop not found!"
             });
         }
 
+        if (shops[0].type !== "restaurant") {
+            return res.status(400).json({
+                success: false,
+                message: "This shop is not a restaurant!"
+            });
+        }
 
-        if (!name || !location || !phone) {
+
+        if (!name || !description) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required!"
             });
         }
 
-        if (!dishes) {
-            dishes = []
-        }
-        if (typeof dishes === "string") {
-            try {
-                dishes = JSON.parse(dishes)
-            } catch (error) {
-                dishes = dishes.split(",").map(item => item.trim()).filter(Boolean);
-            }
-        }
-
-        const uploadFolder = path.join(process.cwd(), "images", "restaurant");
+        const uploadFolder = path.join(process.cwd(), "images", "res_menu");
         if (!fs.existsSync(uploadFolder)) {
             fs.mkdirSync(uploadFolder, { recursive: true })
         }
@@ -89,19 +84,19 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
                 .webp({ quality: 90 })
                 .toFile(savePath)
 
-            imagePath = `images/restaurant/${fileName}`
+            imagePath = `images/res_menu/${fileName}`
         }
         const [data] = await db.query(
             `
-            INSERT INTO restaurants 
-            (shop_id,name,location,address,dishes,phone,description,image,discount) VALUES (?,?,?,?,?,?,?,?,?)
+            INSERT INTO res_menu
+            (shop_id,name,image,description) VALUES (?,?,?,?)
             `,
             [
-                shop_id, name, location, address, JSON.stringify(dishes), phone, description, imagePath, discount
+                shop_id, name, imagePath, description
             ]
         )
         return res.status(201).json({
-            message: "Restaurant Create Success",
+            message: "Res Menu Create Success",
             success: true,
             data
 
@@ -119,36 +114,38 @@ export const restaurantCreate = asyncHandel(async (req, res) => {
 });
 
 export const restaurantList = asyncHandel(async (req, res) => {
-
     try {
 
         let query = "";
         let params = [];
+
         if (req.user.role === "admin") {
+
             query = `
-                SELECT 
-                r.id,
-                r.shop_id,
-                s.shop_name,
-                r.name,
-                r.location,
-                r.address,
-                r.phone,
-                r.description,
-                r.dishes,
-                r.image,
-                r.discount,
-                DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
-                FROM restaurants r
-                LEFT JOIN shops s
-                ON r.shop_id = s.id
-                ORDER BY r.id DESC
-              `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.address,
+                    s.phone,
+                    s.image,
+                    s.status,
+                    s.type,
+                    DATE_FORMAT(s.created_at, '%d-%m-%Y') AS created_at
+                FROM shops s
+                WHERE s.type = 'restaurant'
+                ORDER BY s.id DESC
+            `;
         }
 
+
         else if (req.user.role === "shop") {
+
             const [shop] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+                `
+                SELECT id
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -160,40 +157,40 @@ export const restaurantList = asyncHandel(async (req, res) => {
             }
 
             query = `
-                SELECT 
-                r.id,
-                r.shop_id,
-                s.shop_name,
-                r.name,
-                r.location,
-                r.address,
-                r.phone,
-                r.description,
-                r.dishes,
-                r.image,
-                r.discount,
-                DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
-                FROM restaurants r
-                LEFT JOIN shops s
-                ON r.shop_id = s.id
-                WHERE r.shop_id = ?
-                ORDER BY r.id DESC
-            `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.address,
+                    s.phone,
+                    s.image,
+                    s.status,
+                    s.type,
+                    DATE_FORMAT(s.created_at, '%d-%m-%Y') AS created_at
+                FROM shops s
+                WHERE s.id = ?
+                AND s.type = 'restaurant'
+                ORDER BY s.id DESC
+            `;
+
             params = [shop[0].id];
         }
+
         else {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         const [data] = await db.query(query, params);
+
         return res.status(200).json({
-            message: "Restaurant Data Success",
             success: true,
+            message: "Restaurant Data Success",
             count: data.length,
             data
-        })
+        });
+
     } catch (error) {
 
         console.log(error);
@@ -202,12 +199,102 @@ export const restaurantList = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
+    }
+});
 
+export const resMenuList = asyncHandel(async (req, res) => {
+    try {
+        if (!["admin", "shop"], includes(req.user.role)) {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        let query = "";
+        let params = [];
+        if (req.user.role === "admin") {
+
+            query = `
+                SELECT
+                    m.id,
+                    m.shop_id,
+                    s.shop_name,
+                    s.type AS shop_type,
+                    m.name,
+                    m.image,
+                    m.description,
+                    DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
+                    DATE_FORMAT(m.updated_at, '%d-%m-%Y') AS updated_at
+                FROM res_menu m
+                INNER JOIN shops s
+                    ON m.shop_id = s.id
+                WHERE s.type = 'restaurant'
+                ORDER BY m.id DESC
+            `;
+
+        }
+        else if (req.user.role === "shop") {
+            const [shop] = await db.query(
+                `
+                SELECT id, type
+                FROM shops
+                WHERE user_id = ?
+                `,
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            if (shop[0].type !== "restaurant") {
+                return res.status(400).json({
+                    success: false,
+                    message: "This shop is not a restaurant!"
+                });
+            }
+
+            query = `
+                SELECT
+                    m.id,
+                    m.shop_id,
+                    s.shop_name,
+                    s.type AS shop_type,
+                    m.name,
+                    m.image,
+                    m.description,
+                    DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
+                    DATE_FORMAT(m.updated_at, '%d-%m-%Y') AS updated_at
+                FROM res_menu m
+                INNER JOIN shops s
+                    ON m.shop_id = s.id
+                WHERE m.shop_id = ?
+                AND s.type = 'restaurant'
+                ORDER BY m.id DESC
+            `;
+            params = [shop[0].id];
+        }
+        const [data] = await db.query(query, params);
+        return res.status(200).json({
+            success: true,
+            message: "Restaurant Menu Data Success",
+            count: data.length,
+            data
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 })
 
-
-export const restaurantUpdate = asyncHandel(async (req, res) => {
+export const resMenuUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
@@ -217,8 +304,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
-        let { name, location, address, dishes, phone, description, discount } = req.body || {};
-
+        const { name, description } = req.body;
         let shop_id = null;
         if (req.user.role === "shop") {
 
@@ -233,46 +319,56 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+            if (shop[0].type !== "restaurant") {
+                return res.status(400).json({
+                    success: false,
+                    message: "This shop is not a restaurant!"
+                });
+            }
 
             shop_id = shop[0].id;
         }
-        let restaurantQuery = "SELECT * FROM restaurants WHERE id = ?";
 
-        let restaurantParams = [id];
+        let menuQuery = `
+            SELECT
+                m.*,
+                s.type AS shop_type
+            FROM res_menu m
+            INNER JOIN shops s
+                ON m.shop_id = s.id
+            WHERE m.id = ?
+        `;
+
+        let menuParams = [id];
 
         if (req.user.role === "shop") {
-            restaurantQuery += " AND shop_id = ?";
-            restaurantParams.push(shop_id);
+            menuQuery += `
+                AND m.shop_id = ?
+                AND s.type = 'restaurant'
+            `;
+
+            menuParams.push(shop_id);
         }
-        const [restaurant] = await db.query(
-            restaurantQuery,
-            restaurantParams
+        if (req.user.role === "admin") {
+            menuQuery += `
+                AND s.type = 'restaurant'
+            `;
+        }
+        const [menu] = await db.query(
+            menuQuery,
+            menuParams
         );
-        if (restaurant.length === 0) {
+
+        if (menu.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Restaurant not found"
+                message: "Menu not found!"
             });
         }
-        if (!dishes) {
-            dishes = [];
-        }
-
-        if (typeof dishes === "string") {
-            try {
-                dishes = JSON.parse(dishes);
-            } catch (error) {
-                dishes = dishes
-                    .split(",")
-                    .map(item => item.trim())
-                    .filter(Boolean);
-            }
-        }
-
-        let updateImage = restaurant[0].image;
+        let updateImage = menu[0].image;
         if (req.file) {
-            if (restaurant[0].image) {
-                const oldPath = path.join(process.cwd(), restaurant[0].image)
+            if (menu[0].image) {
+                const oldPath = path.join(process.cwd(), menu[0].image)
 
                 if (fs.existsSync(oldPath)) {
                     fs.unlinkSync(oldPath)
@@ -282,7 +378,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
             const uploadFolder = path.join(
                 process.cwd(),
                 "images",
-                "restaurant"
+                "res_menu"
             );
             if (!fs.existsSync(uploadFolder)) {
                 fs.mkdirSync(uploadFolder, { recursive: true })
@@ -301,30 +397,25 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
                 .toFile(savePath);
 
 
-            updateImage = `images/restaurant/${fileName}`;
+            updateImage = `images/res_menu/${fileName}`;
 
         }
 
         const [data] = await db.query(
             `
-            UPDATE  restaurants SET
+            UPDATE  res_menu SET
             name=?,
-            location=?,
-            address=?,
-            dishes=?,
-            phone=?,
             description=?,
             image=?,
-            discount=?
             WHERE id= ?
             `,
             [
-                name, location, address, JSON.stringify(dishes), phone, description, updateImage, discount, id
+                name, description, updateImage, id
             ]
         );
 
         return res.status(200).json({
-            message: "Restaurant Update Success",
+            message: "Res Menu  Update Success",
             success: true,
             data
         })
@@ -341,7 +432,7 @@ export const restaurantUpdate = asyncHandel(async (req, res) => {
     }
 })
 
-export const restaurantDelete = asyncHandel(async (req, res) => {
+export const resMenuDelete = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
@@ -366,34 +457,64 @@ export const restaurantDelete = asyncHandel(async (req, res) => {
                     message: "Shop not found!"
                 });
             }
+            if (shop[0].type !== "restaurant") {
+                return res.status(400).json({
+                    success: false,
+                    message: "This shop is not a restaurant!"
+                });
+            }
 
             shop_id = shop[0].id;
         }
 
-        let restaurantQuery = "SELECT * FROM restaurants WHERE id = ?";
-        let restaurantParams = [id];
-        if (req.user.role === "shop") {
-            restaurantQuery += " AND shop_id = ?";
-            restaurantParams.push(shop_id);
-        }
-        const [restaurant] = await db.query(restaurantQuery, restaurantParams);
+        let menuQuery = `
+            SELECT
+                m.*,
+                s.type AS shop_type
+            FROM res_menu m
+            INNER JOIN shops s
+                ON m.shop_id = s.id
+            WHERE m.id = ?
+        `;
 
-        if (restaurant.length === 0) {
+        let menuParams = [id];
+
+        if (req.user.role === "shop") {
+            menuQuery += `
+                AND m.shop_id = ?
+                AND s.type = 'restaurant'
+            `;
+
+            menuParams.push(shop_id);
+        }
+        if (req.user.role === "admin") {
+
+            menuQuery += `
+                AND s.type = 'restaurant'
+            `;
+        }
+        const [menu] = await db.query(
+            menuQuery,
+            menuParams
+        );
+
+        if (menu.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Restaurant not found"
+                message: "Menu not found!"
             });
         }
-        if (restaurant[0].image) {
-            const oldPath = path.join(process.cwd(), restaurant[0].image);
+
+        if (menu[0].image) {
+            const oldPath = path.join(process.cwd(), menu[0].image);
             if (fs.existsSync(oldPath)) {
                 fs.unlinkSync(oldPath)
             }
         }
-        await db.query("DELETE FROM restaurants WHERE id = ?", [id]);
+        await db.query("DELETE FROM res_menu WHERE id = ?", [id]);
         res.status(200).json({
             success: true,
-            message: "Restaurants deleted successfully"
+            message: "Res Menu deleted successfully"
         });
 
     } catch (error) {
@@ -411,34 +532,51 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const [data] = await db.query(
+        const [shop] = await db.query(
             `
-        SELECT 
-        r.id,
-        r.name,
-        r.location,
-        r.address,
-        r.phone,
-        r.description,
-        r.dishes,
-        r.image,
-        r.discount,
-        s.id AS shop_id,
-        s.shop_name,
-        s.shop_phone,
-        s.shop_address,
-        DATE_FORMAT(r.created_at, '%d-%m-%Y') as created_at
-        FROM restaurants r  
-        INNER JOIN shops s
-        ON r.shop_id = s.id
-        WHERE r.id = ?
-        AND s.status = 'approved'
-        `,
+            SELECT
+                s.id AS shop_id,
+                s.shop_name,
+                s.phone,
+                s.address,
+                s.image,
+                s.type,
+                s.status,
+                DATE_FORMAT(s.created_at, '%d-%m-%Y') AS created_at
+            FROM shops s
+            WHERE s.id = ?
+            AND s.type = 'restaurant'
+            AND s.status = 'approved'
+            `,
             [id]
-        )
-        res.status(200).json({
+        );
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Restaurant shop not found!"
+            });
+        }
+        const [menu] = await db.query(
+            `
+            SELECT
+                m.id,
+                m.shop_id,
+                m.name,
+                m.image,
+                m.description,
+                DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at
+            FROM res_menu m
+            WHERE m.shop_id = ?
+            ORDER BY m.id DESC
+            `,
+            [id]
+        );
+        return res.status(200).json({
             success: true,
-            data
+            data: {
+                shop: shop[0],
+                menu
+            }
         });
 
     } catch (error) {
@@ -449,53 +587,3 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
         });
     }
 })
-
-export const restaurantMobileList = asyncHandel(async (req, res) => {
-    try {
-
-        const [data] = await db.query(`
-            SELECT
-                r.id,
-                r.name,
-                r.location,
-                r.address,
-                r.phone,
-                r.description,
-                r.dishes,
-                r.image,
-                r.discount,
-
-                s.id AS shop_id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-
-                DATE_FORMAT(r.created_at,'%d-%m-%Y') AS created_at
-
-            FROM restaurants r
-
-            INNER JOIN shops s
-                ON r.shop_id = s.id
-
-            WHERE s.status = 'approved'
-
-            ORDER BY r.id DESC
-        `);
-
-        return res.status(200).json({
-            success: true,
-            count: data.length,
-            message: "Success data",
-            data
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-});

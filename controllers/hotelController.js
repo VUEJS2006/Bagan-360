@@ -289,7 +289,6 @@ export const hotelList = asyncHandel(async (req, res) => {
     }
 });
 
-
 export const hotelUpdate = asyncHandel(async (req, res) => {
     try {
 

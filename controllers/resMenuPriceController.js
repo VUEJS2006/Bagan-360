@@ -116,68 +116,93 @@ export const restMenuPriceCreate = asyncHandel(async (req, res) => {
 
 export const resMenuPriceList = asyncHandel(async (req, res) => {
     try {
+
         const { menu_id } = req.params;
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         if (!menu_id) {
             return res.status(400).json({
                 success: false,
                 message: "Menu ID is required!"
             });
         }
+
         let shop_id = null;
+
         if (req.user.role === "shop") {
-            const [shops] = await db.query("SELECT id,type FROM shops WHERE user_id = ?", [req.user.id])
+
+            const [shops] = await db.query(
+                `
+                SELECT 
+                    id,
+                    type
+                FROM shops
+                WHERE user_id = ?
+                `,
+                [req.user.id]
+            );
+
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
+
             if (shops[0].type !== "restaurant") {
                 return res.status(400).json({
                     success: false,
                     message: "This shop is not a restaurant!"
                 });
             }
+
             shop_id = shops[0].id;
         }
+
         let query = `
-          SELECT 
-          mp.id,
-          mp.menu_id,
-          mp.size,
-          mp.price,
-          s.shop_name,
-          m.name AS menu_name,
-          m.shop_id,
-          DATE_FORMAT(mp.created_at, '%d-%m-%Y') AS created_at
+            SELECT 
+                mp.id,
+                mp.menu_id,
+                mp.size,
+                mp.price,
+                s.shop_name,
+                m.name AS menu_name,
+                m.shop_id,
+                DATE_FORMAT(mp.created_at, '%d-%m-%Y') AS created_at
 
-          FROM menu_price mp
+            FROM menu_price mp
 
-          INNER JOIN res_menu m 
-          ON m.menu_id = m.id
+            INNER JOIN res_menu m 
+                ON mp.menu_id = m.id
 
-          INNER JOIN shops s
-          ON m.shop_id = s.id
-          
-          WHERE mp.menu_id = ?
-          AND s.type = 'restaurant'
-        `
+            INNER JOIN shops s
+                ON m.shop_id = s.id
+
+            WHERE mp.menu_id = ?
+            AND s.type = 'restaurant'
+        `;
+
         let params = [menu_id];
+
         if (req.user.role === "shop") {
+
             query += `
                 AND m.shop_id = ?
             `;
+
             params.push(shop_id);
         }
+
         query += `
             ORDER BY mp.id DESC
         `;
+
         const [data] = await db.query(
             query,
             params
@@ -188,14 +213,17 @@ export const resMenuPriceList = asyncHandel(async (req, res) => {
             message: "Menu Price List Success",
             data
         });
+
     } catch (error) {
+
         console.log(error);
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const resMenuPriceUpdate = asyncHandel(async (req, res) => {
     try {

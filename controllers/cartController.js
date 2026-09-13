@@ -6,7 +6,7 @@ export const cartCreate = asyncHandel(async (req, res) => {
     try {
 
         let { menu_id, size, quantity } = req.body;
-        if (!menu_id || !size || !price) {
+        if (!menu_id || !size || !quantity) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required!"

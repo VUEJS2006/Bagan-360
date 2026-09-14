@@ -17,6 +17,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
 
         let shop_id;
 
+        // Role check
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -24,9 +25,10 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // SHOP
         if (req.user.role === "shop") {
 
-            const [shops] = await db.query(
+            const [shop] = await db.query(
                 `
                 SELECT id, type
                 FROM shops
@@ -35,23 +37,24 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                 [req.user.id]
             );
 
-            if (shops.length === 0) {
+            if (shop.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
 
-            if (shops[0].type !== "restaurant") {
+            if (shop[0].type !== "restaurant") {
                 return res.status(400).json({
                     success: false,
                     message: "This shop is not a restaurant!"
                 });
             }
 
-            shop_id = shops[0].id;
+            shop_id = shop[0].id;
         }
 
+        // ADMIN
         if (req.user.role === "admin") {
 
             if (!bodyShopId) {
@@ -87,6 +90,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             shop_id = bodyShopId;
         }
 
+        // Menu validation
         if (!name || !description) {
             return res.status(400).json({
                 success: false,
@@ -94,6 +98,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // Prices parse
         if (typeof prices === "string") {
             try {
                 prices = JSON.parse(prices);
@@ -112,9 +117,14 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // Price validation
         for (const item of prices) {
 
-            if (!item.size || item.price === undefined || item.price === null) {
+            if (
+                !item.size ||
+                item.price === undefined ||
+                item.price === null
+            ) {
                 return res.status(400).json({
                     success: false,
                     message: "Each price must have size and price!"
@@ -129,22 +139,22 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             }
         }
 
-
-        const uploadFolder = path.join(
-            process.cwd(),
-            "images",
-            "res_menu"
-        );
-
-        if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, {
-                recursive: true
-            });
-        }
-
+        // Image
         let imagePath = null;
 
         if (req.file) {
+
+            const uploadFolder = path.join(
+                process.cwd(),
+                "images",
+                "res_menu"
+            );
+
+            if (!fs.existsSync(uploadFolder)) {
+                fs.mkdirSync(uploadFolder, {
+                    recursive: true
+                });
+            }
 
             const fileName = `${uuid()}.webp`;
 
@@ -166,7 +176,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             imagePath = `images/res_menu/${fileName}`;
         }
 
-
+        // Create Menu
         const [menuData] = await db.query(
             `
             INSERT INTO res_menu
@@ -187,6 +197,8 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
         );
 
         const menu_id = menuData.insertId;
+
+        // Create Prices
         for (const item of prices) {
 
             await db.query(
@@ -210,7 +222,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Restaurant Menu Create Success",
-            menu_id: menu_id,
+            menu_id,
             data: {
                 shop_id,
                 name,
@@ -321,112 +333,50 @@ export const restaurantList = asyncHandel(async (req, res) => {
 export const resMenuList = asyncHandel(async (req, res) => {
     try {
 
-        if (!["admin", "shop"].includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+        const [data] = await db.query(
+            `
+            SELECT
+                m.id,
+                m.shop_id,
+                m.name,
+                m.image,
+                m.description,
+                m.created_at,
 
-        let query = "";
-        let params = [];
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'size', mp.size,
+                            'price', mp.price
+                        )
+                    ),
+                    JSON_ARRAY()
+                ) AS prices
 
-        if (req.user.role === "admin") {
+            FROM res_menu m
 
-            query = `
-                SELECT
-                    m.id,
-                    m.shop_id,
-                    s.shop_name,
-                    s.type AS shop_type,
-                    m.name,
-                    m.image,
-                    m.description,
-                    DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
-                    DATE_FORMAT(m.updated_at, '%d-%m-%Y') AS updated_at
-                FROM res_menu m
-                INNER JOIN shops s
-                    ON m.shop_id = s.id
-                WHERE s.type = 'restaurant'
-                ORDER BY m.id DESC
-            `;
+            LEFT JOIN menu_price mp
+                ON m.id = mp.menu_id
 
-        } else {
+            INNER JOIN shops s
+                ON m.shop_id = s.id
 
-            const [shop] = await db.query(
-                `
-                SELECT id, type
-                FROM shops
-                WHERE user_id = ?
-                `,
-                [req.user.id]
-            );
+            WHERE s.type = 'restaurant'
 
-            if (shop.length === 0) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Shop not found!"
-                });
-            }
+            GROUP BY
+                m.id,
+                m.shop_id,
+                m.name,
+                m.image,
+                m.description,
+                m.created_at
 
-            if (shop[0].type !== "restaurant") {
-                return res.status(400).json({
-                    success: false,
-                    message: "This shop is not a restaurant!"
-                });
-            }
-
-            query = `
-                SELECT
-                    m.id,
-                    m.shop_id,
-                    s.shop_name,
-                    s.type AS shop_type,
-                    m.name,
-                    m.image,
-                    m.description,
-                    DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
-                    DATE_FORMAT(m.updated_at, '%d-%m-%Y') AS updated_at
-                FROM res_menu m
-                INNER JOIN shops s
-                    ON m.shop_id = s.id
-                WHERE m.shop_id = ?
-                AND s.type = 'restaurant'
-                ORDER BY m.id DESC
-            `;
-
-            params = [shop[0].id];
-        }
-
-        const [data] = await db.query(query, params);
-
-
-        // Price List ထည့်
-        for (const menu of data) {
-
-            const [prices] = await db.query(
-                `
-                SELECT
-                    id,
-                    menu_id,
-                    size,
-                    price,
-                    DATE_FORMAT(created_at, '%d-%m-%Y') AS created_at
-                FROM menu_price
-                WHERE menu_id = ?
-                ORDER BY id ASC
-                `,
-                [menu.id]
-            );
-
-            menu.prices = prices;
-        }
-
+            ORDER BY m.id DESC
+            `
+        );
 
         return res.status(200).json({
             success: true,
-            message: "Restaurant Menu Data Success",
-            count: data.length,
             data
         });
 
@@ -461,6 +411,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         let shop_id = null;
 
+        // SHOP
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -489,10 +440,17 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
-
-        // prices JSON string ဖြစ်ရင် parse
+        // Prices parse
         if (typeof prices === "string") {
-            prices = JSON.parse(prices);
+
+            try {
+                prices = JSON.parse(prices);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid prices format!"
+                });
+            }
         }
 
         if (!Array.isArray(prices)) {
@@ -501,7 +459,6 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 message: "Prices must be an array!"
             });
         }
-
 
         // Menu check
         let menuQuery = `
@@ -538,8 +495,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================
+        // IMAGE
+        // =========================
 
-        // Image
         let updateImage = menu[0].image;
 
         if (req.file) {
@@ -588,8 +547,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             updateImage = `images/res_menu/${fileName}`;
         }
 
+        // =========================
+        // MENU UPDATE
+        // =========================
 
-        // Menu Update
         await db.query(
             `
             UPDATE res_menu
@@ -607,37 +568,120 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             ]
         );
 
+        // =========================
+        // GET OLD PRICES
+        // =========================
 
-        // Price Update
+        const [oldPrices] = await db.query(
+            `
+            SELECT
+                size,
+                price
+            FROM menu_price
+            WHERE menu_id = ?
+            `,
+            [id]
+        );
+
+        // =========================
+        // UPDATE / INSERT
+        // =========================
+
         for (const item of prices) {
 
-            if (!item.id) {
+            if (!item.size) {
                 return res.status(400).json({
                     success: false,
-                    message: "Price id Required!"
+                    message: "Size is required!"
                 });
             }
 
-            await db.query(
-                `
-                UPDATE menu_price mp
-                INNER JOIN res_menu m
-                    ON mp.menu_id = m.id
-                SET
-                    mp.size = ?,
-                    mp.price = ?
-                WHERE mp.id = ?
-                AND mp.menu_id = ?
-                `,
-                [
-                    item.size,
-                    item.price,
-                    item.id,
-                    id
-                ]
+            if (
+                item.price === undefined ||
+                item.price === null
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Price is required!"
+                });
+            }
+
+            if (Number(item.price) <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Price must be greater than 0!"
+                });
+            }
+
+            // Check size
+            const existingPrice = oldPrices.find(
+                old => old.size === item.size
             );
+
+            if (existingPrice) {
+
+                // UPDATE
+                await db.query(
+                    `
+                    UPDATE menu_price
+                    SET price = ?
+                    WHERE menu_id = ?
+                    AND size = ?
+                    `,
+                    [
+                        item.price,
+                        id,
+                        item.size
+                    ]
+                );
+
+            } else {
+
+                // INSERT
+                await db.query(
+                    `
+                    INSERT INTO menu_price
+                    (
+                        menu_id,
+                        size,
+                        price
+                    )
+                    VALUES (?, ?, ?)
+                    `,
+                    [
+                        id,
+                        item.size,
+                        item.price
+                    ]
+                );
+            }
         }
 
+        // =========================
+        // DELETE OLD SIZE
+        // =========================
+
+        const requestSizes = prices.map(
+            item => item.size
+        );
+
+        for (const oldPrice of oldPrices) {
+
+            if (!requestSizes.includes(oldPrice.size)) {
+
+                await db.query(
+                    `
+                    DELETE FROM menu_price
+                    WHERE menu_id = ?
+                    AND size = ?
+                    `,
+                    [
+                        id,
+                        oldPrice.size
+                    ]
+                );
+            }
+        }
 
         return res.status(200).json({
             success: true,
@@ -669,6 +713,7 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
 
         let shop_id = null;
 
+        // SHOP
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -697,12 +742,9 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
-
         // Menu Check
         let menuQuery = `
-            SELECT
-                m.*,
-                s.type AS shop_type
+            SELECT m.*
             FROM res_menu m
             INNER JOIN shops s
                 ON m.shop_id = s.id
@@ -733,32 +775,21 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
             });
         }
 
-
-        // Delete Image
+        // Delete image
         if (menu[0].image) {
 
-            const oldPath = path.join(
+            const imagePath = path.join(
                 process.cwd(),
                 menu[0].image
             );
 
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
             }
         }
 
-
-        // Delete Prices
-        await db.query(
-            `
-            DELETE FROM menu_price
-            WHERE menu_id = ?
-            `,
-            [id]
-        );
-
-
         // Delete Menu
+        // menu_price တွေ ON DELETE CASCADE နဲ့ အလိုအလျောက်ဖျက်မယ်
         await db.query(
             `
             DELETE FROM res_menu
@@ -767,10 +798,9 @@ export const resMenuDelete = asyncHandel(async (req, res) => {
             [id]
         );
 
-
         return res.status(200).json({
             success: true,
-            message: "Restaurant Menu and Prices deleted successfully"
+            message: "Restaurant Menu deleted successfully"
         });
 
     } catch (error) {

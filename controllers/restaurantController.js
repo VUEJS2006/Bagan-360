@@ -333,8 +333,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
 export const resMenuList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query(
-            `
+        const [data] = await db.query(`
             SELECT
                 m.id,
                 m.shop_id,
@@ -343,23 +342,23 @@ export const resMenuList = asyncHandel(async (req, res) => {
                 m.description,
                 m.created_at,
 
-                COALESCE(
-                    JSON_ARRAYAGG(
+                CASE
+                    WHEN COUNT(mp.id) = 0 THEN JSON_ARRAY()
+                    ELSE JSON_ARRAYAGG(
                         JSON_OBJECT(
                             'size', mp.size,
                             'price', mp.price
                         )
-                    ),
-                    JSON_ARRAY()
-                ) AS prices
+                    )
+                END AS prices
 
             FROM res_menu m
 
-            LEFT JOIN menu_price mp
-                ON m.id = mp.menu_id
-
             INNER JOIN shops s
                 ON m.shop_id = s.id
+
+            LEFT JOIN menu_price mp
+                ON m.id = mp.menu_id
 
             WHERE s.type = 'restaurant'
 
@@ -372,8 +371,16 @@ export const resMenuList = asyncHandel(async (req, res) => {
                 m.created_at
 
             ORDER BY m.id DESC
-            `
-        );
+        `);
+
+        // mysql2 က JSON ကို string ပြန်ပေးနိုင်လို့ parse
+        data.forEach(item => {
+
+            if (typeof item.prices === "string") {
+                item.prices = JSON.parse(item.prices);
+            }
+
+        });
 
         return res.status(200).json({
             success: true,
@@ -388,6 +395,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
+
     }
 });
 

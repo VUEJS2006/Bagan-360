@@ -5,7 +5,7 @@ import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 export const hotelBookingCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { hotel_id, customer_name, customer_phone, check_in_date, passenger, check_out_date, customer_request } = req.body;
+        const { hotel_id, customer_name, customer_phone, booking_date, passenger, booking_time, customer_request } = req.body;
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
@@ -16,8 +16,8 @@ export const hotelBookingCreate = asyncHandel(async (req, res) => {
             !hotel_id ||
             !customer_name ||
             !customer_phone ||
-            !check_in_date ||
-            !check_out_date
+            !booking_date ||
+            !booking_time
         ) {
             return res.status(400).json({
                 success: false,
@@ -41,8 +41,8 @@ export const hotelBookingCreate = asyncHandel(async (req, res) => {
             hotel_id,
             customer_name,
             customer_phone,
-            check_in_date,
-            check_out_date,
+            booking_date,
+            booking_time,
             passenger,
             customer_request
             )
@@ -53,8 +53,8 @@ export const hotelBookingCreate = asyncHandel(async (req, res) => {
             item.id,
             customer_name,
             customer_phone,
-            check_in_date,
-            check_out_date,
+            booking_date,
+            booking_time,
             passenger,
             customer_request || null
         ])
@@ -92,8 +92,8 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 b.customer_name,
                 b.customer_phone,
-                DATE_FORMAT(b.check_in_date, '%d-%m-%Y') AS check_in_date,
-                DATE_FORMAT(b.check_out_date, '%d-%m-%Y') AS check_out_date,
+                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
+                TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
                 b.passenger,
                 b.status,
                 b.customer_request,
@@ -398,14 +398,14 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                 b.customer_phone,
 
                 DATE_FORMAT(
-                    b.check_in_date,
+                    b.booking_date,
                     '%d-%m-%Y'
-                ) AS check_in_date,
+                ) AS booking_date,
 
                 DATE_FORMAT(
-                    b.check_out_date,
+                    b.booking_time,
                     '%d-%m-%Y'
-                ) AS check_out_date,
+                ) AS booking_time,
 
                 b.passenger,
                 b.status,

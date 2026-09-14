@@ -996,25 +996,46 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
 
 export const restMenuDeatils = asyncHandel(async (req, res) => {
     try {
+
         const { id } = req.params;
-        const [menu] = await db.query("SELECT * FROM res_menu WHERE id = ?", [id]);
+
+        // =========================
+        // MENU CHECK
+        // =========================
+
+        const [menu] = await db.query(
+            `
+            SELECT id
+            FROM res_menu
+            WHERE id = ?
+            `,
+            [id]
+        );
+
         if (menu.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Res Menu not found!"
             });
         }
+
+        // =========================
+        // MENU DETAILS
+        // =========================
+
         const [data] = await db.query(
             `
-                SELECT 
+            SELECT
                 m.id,
                 m.shop_id,
                 m.name,
                 m.image,
                 m.description,
-                DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
+                DATE_FORMAT(
+                    m.created_at,
+                    '%d-%m-%Y'
+                ) AS created_at,
 
-                mp.id AS price_id,
                 mp.size,
                 mp.price
 
@@ -1022,9 +1043,16 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
 
             LEFT JOIN menu_price mp
                 ON m.id = mp.menu_id
+
             WHERE m.id = ?
-            `, [id]
-        )
+            `,
+            [id]
+        );
+
+        // =========================
+        // RESULT
+        // =========================
+
         const result = {
             id: data[0].id,
             shop_id: data[0].shop_id,
@@ -1035,15 +1063,24 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
 
             prices: []
         };
+
         data.forEach((item) => {
-            if (item.price_id) {
+
+            if (item.size !== null) {
+
                 result.prices.push({
-                    id: item.price_id,
                     size: item.size,
                     price: item.price
                 });
+
             }
-        })
+
+        });
+
+        // =========================
+        // RESPONSE
+        // =========================
+
         return res.status(200).json({
             success: true,
             message: "Restaurant Menu Details Success",

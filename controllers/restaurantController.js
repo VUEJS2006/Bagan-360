@@ -396,6 +396,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
+        // =========================
+        // ROLE CHECK
+        // =========================
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -411,12 +415,17 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         let shop_id = null;
 
-        // SHOP
+        // =========================
+        // SHOP CHECK
+        // =========================
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
                 `
-                SELECT id, type
+                SELECT
+                    id,
+                    type
                 FROM shops
                 WHERE user_id = ?
                 `,
@@ -440,12 +449,18 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
-        // Prices parse
+        // =========================
+        // PRICES PARSE
+        // =========================
+
         if (typeof prices === "string") {
 
             try {
+
                 prices = JSON.parse(prices);
+
             } catch (error) {
+
                 return res.status(400).json({
                     success: false,
                     message: "Invalid prices format!"
@@ -453,17 +468,29 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             }
         }
 
-        if (!Array.isArray(prices)) {
+        // prices မပို့ရင် OK
+        // prices ပို့ထားရင် Array ဖြစ်ရမယ်
+        if (
+            prices !== undefined &&
+            !Array.isArray(prices)
+        ) {
             return res.status(400).json({
                 success: false,
                 message: "Prices must be an array!"
             });
         }
 
-        // Menu check
+        // =========================
+        // MENU CHECK
+        // =========================
+
         let menuQuery = `
             SELECT
-                m.*,
+                m.id,
+                m.shop_id,
+                m.name,
+                m.image,
+                m.description,
                 s.type AS shop_type
             FROM res_menu m
             INNER JOIN shops s
@@ -474,6 +501,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         let menuParams = [id];
 
+        // SHOP ဆိုရင် ကိုယ့် shop ကိုပဲ update လုပ်ခွင့်ရှိ
         if (req.user.role === "shop") {
 
             menuQuery += `
@@ -503,6 +531,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         if (req.file) {
 
+            // Old image delete
             if (menu[0].image) {
 
                 const oldPath = path.join(
@@ -515,6 +544,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 }
             }
 
+            // Upload folder
             const uploadFolder = path.join(
                 process.cwd(),
                 "images",
@@ -527,6 +557,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 });
             }
 
+            // New file name
             const fileName = `${uuid()}.webp`;
 
             const savePath = path.join(
@@ -534,6 +565,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 fileName
             );
 
+            // Image resize
             await sharp(req.file.buffer)
                 .resize({
                     width: 1920,
@@ -569,119 +601,159 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
         );
 
         // =========================
-        // GET OLD PRICES
+        // PRICE UPDATE
         // =========================
+        //
+        // prices မပို့ရင် ဒီ block မလုပ်ဘူး
+        //
+        // prices = [] ဆိုရင်
+        // old price အားလုံး delete ဖြစ်မယ်
+        //
 
-        const [oldPrices] = await db.query(
-            `
-            SELECT
-                size,
-                price
-            FROM menu_price
-            WHERE menu_id = ?
-            `,
-            [id]
-        );
+        if (prices !== undefined) {
 
-        // =========================
-        // UPDATE / INSERT
-        // =========================
+            // =========================
+            // GET OLD PRICES
+            // =========================
 
-        for (const item of prices) {
-
-            if (!item.size) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Size is required!"
-                });
-            }
-
-            if (
-                item.price === undefined ||
-                item.price === null
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Price is required!"
-                });
-            }
-
-            if (Number(item.price) <= 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Price must be greater than 0!"
-                });
-            }
-
-            // Check size
-            const existingPrice = oldPrices.find(
-                old => old.size === item.size
+            const [oldPrices] = await db.query(
+                `
+                SELECT
+                    size,
+                    price
+                FROM menu_price
+                WHERE menu_id = ?
+                `,
+                [id]
             );
 
-            if (existingPrice) {
+            // =========================
+            // UPDATE / INSERT
+            // =========================
 
-                // UPDATE
-                await db.query(
-                    `
-                    UPDATE menu_price
-                    SET price = ?
-                    WHERE menu_id = ?
-                    AND size = ?
-                    `,
-                    [
-                        item.price,
-                        id,
-                        item.size
-                    ]
+            for (const item of prices) {
+
+                // Size check
+                if (!item.size) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Size is required!"
+                    });
+                }
+
+                // Price check
+                if (
+                    item.price === undefined ||
+                    item.price === null
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Price is required!"
+                    });
+                }
+
+                // Price > 0
+                if (Number(item.price) <= 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Price must be greater than 0!"
+                    });
+                }
+
+                // =========================
+                // CHECK EXISTING SIZE
+                // =========================
+
+                const existingPrice = oldPrices.find(
+                    old => old.size === item.size
                 );
 
-            } else {
+                // =========================
+                // EXISTING SIZE → UPDATE
+                // =========================
 
-                // INSERT
-                await db.query(
-                    `
-                    INSERT INTO menu_price
-                    (
-                        menu_id,
-                        size,
-                        price
-                    )
-                    VALUES (?, ?, ?)
-                    `,
-                    [
-                        id,
-                        item.size,
-                        item.price
-                    ]
-                );
+                if (existingPrice) {
+
+                    await db.query(
+                        `
+                        UPDATE menu_price
+                        SET price = ?
+                        WHERE menu_id = ?
+                        AND size = ?
+                        `,
+                        [
+                            item.price,
+                            id,
+                            item.size
+                        ]
+                    );
+
+                }
+
+                // =========================
+                // NEW SIZE → INSERT
+                // =========================
+
+                else {
+
+                    await db.query(
+                        `
+                        INSERT INTO menu_price
+                        (
+                            menu_id,
+                            size,
+                            price
+                        )
+                        VALUES (?, ?, ?)
+                        `,
+                        [
+                            id,
+                            item.size,
+                            item.price
+                        ]
+                    );
+                }
+            }
+
+            // =========================
+            // DELETE OLD SIZE
+            // =========================
+            //
+            // Request ထဲမပါတဲ့ old size
+            // တွေကို delete
+            //
+            // prices = []
+            // ဆိုရင် old size အားလုံး delete
+            //
+
+            const requestSizes = prices.map(
+                item => item.size
+            );
+
+            for (const oldPrice of oldPrices) {
+
+                if (
+                    !requestSizes.includes(oldPrice.size)
+                ) {
+
+                    await db.query(
+                        `
+                        DELETE FROM menu_price
+                        WHERE menu_id = ?
+                        AND size = ?
+                        `,
+                        [
+                            id,
+                            oldPrice.size
+                        ]
+                    );
+                }
             }
         }
 
         // =========================
-        // DELETE OLD SIZE
+        // SUCCESS
         // =========================
-
-        const requestSizes = prices.map(
-            item => item.size
-        );
-
-        for (const oldPrice of oldPrices) {
-
-            if (!requestSizes.includes(oldPrice.size)) {
-
-                await db.query(
-                    `
-                    DELETE FROM menu_price
-                    WHERE menu_id = ?
-                    AND size = ?
-                    `,
-                    [
-                        id,
-                        oldPrice.size
-                    ]
-                );
-            }
-        }
 
         return res.status(200).json({
             success: true,

@@ -611,10 +611,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
         // Price Update
         for (const item of prices) {
 
-            if (!item.id || !item.size || item.price === undefined) {
+            if (!item.id) {
                 return res.status(400).json({
                     success: false,
-                    message: "Price id, size and price are required!"
+                    message: "Price id Required!"
                 });
             }
 

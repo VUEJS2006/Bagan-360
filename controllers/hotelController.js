@@ -203,7 +203,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.shop_id,
                     s.shop_name,
                     s.shop_address,
-                    s.phone AS shop_phone,
+                   s.shop_phone,
                     h.name,
                     h.price,
                     h.facilities,
@@ -247,7 +247,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.shop_id,
                     s.shop_name,
                     s.shop_address,
-                    s.phone AS shop_phone,
+                   s.shop_phone,
                     h.name,
                     h.price,
                     h.facilities,
@@ -589,7 +589,7 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
                 h.image,
 
                 s.shop_name,
-                s.phone AS shop_phone,
+               s.shop_phone,
                 s.shop_address
 
             FROM hotels h
@@ -647,7 +647,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.image,
 
                 s.shop_name,
-                s.phone AS shop_phone,
+               s.shop_phone,
                 s.shop_address
 
             FROM hotels h

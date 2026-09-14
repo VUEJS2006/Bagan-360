@@ -99,10 +99,8 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 b.customer_request,
 
                 h.name AS hotel_name,
-                h.type,
                 h.price,
                 h.image,
-                h.location,
                 h.facilities,
                 h.description,
 
@@ -412,10 +410,8 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                 b.customer_request,
 
                 h.name AS hotel_name,
-                h.type,
                 h.price,
                 h.image,
-                h.location,
                 h.facilities,
                 h.description,
 

@@ -1008,26 +1008,6 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
         const { id } = req.params;
 
         // =========================
-        // MENU CHECK
-        // =========================
-
-        const [menu] = await db.query(
-            `
-            SELECT id
-            FROM res_menu
-            WHERE id = ?
-            `,
-            [id]
-        );
-
-        if (menu.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Res Menu not found!"
-            });
-        }
-
-        // =========================
         // MENU DETAILS
         // =========================
 
@@ -1039,6 +1019,7 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
                 m.name,
                 m.image,
                 m.description,
+
                 DATE_FORMAT(
                     m.created_at,
                     '%d-%m-%Y'
@@ -1049,13 +1030,28 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
 
             FROM res_menu m
 
+            INNER JOIN shops s
+                ON m.shop_id = s.id
+
             LEFT JOIN menu_price mp
                 ON m.id = mp.menu_id
 
             WHERE m.id = ?
+            AND s.type = 'restaurant'
             `,
             [id]
         );
+
+        // =========================
+        // MENU NOT FOUND
+        // =========================
+
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Res Menu not found!"
+            });
+        }
 
         // =========================
         // RESULT
@@ -1071,6 +1067,10 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
 
             prices: []
         };
+
+        // =========================
+        // PRICES
+        // =========================
 
         data.forEach((item) => {
 

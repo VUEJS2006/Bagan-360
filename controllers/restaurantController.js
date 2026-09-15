@@ -941,7 +941,6 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
-                s.image,
                 s.type,
                 s.status
             FROM shops s
@@ -1042,10 +1041,6 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-
-        // =========================
-        // MENU DETAILS
-        // =========================
 
         const [data] = await db.query(
             `

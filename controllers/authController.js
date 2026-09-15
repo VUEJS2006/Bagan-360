@@ -913,6 +913,7 @@ export const shopProfile = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(
             `
+            SELECT 
             s.shop_name,
             s.user_id,
             s.shop_address,

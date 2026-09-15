@@ -877,11 +877,11 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
             WHERE user_id = ?
             `,
             [
-                shop_name,
-                shop_address,
-                shop_phone,
-                nrc,
-                type,
+                shop_name || shops[0].shop_name,
+                shop_address || shops[0].shop_address,
+                shop_phone || shops[0].shop_phone,
+                nrc || shops[0].nrc,
+                type || shops[0].type,
                 userId
             ]
         );

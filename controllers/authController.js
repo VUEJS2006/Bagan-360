@@ -913,25 +913,36 @@ export const shopProfile = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(
             `
-            SELECT 
-            s.shop_name,
-            s.user_id,
-            s.shop_address,
-            s.shop_phone,
-            s.nrc,
-            s.type,
-            s.status,
+            SELECT
+                s.id AS shop_id,
+                s.shop_name,
+                s.user_id,
+                s.shop_address,
+                s.shop_phone,
+                s.nrc,
+                s.type,
+                s.status,
 
-            u.email,
-            u.township,
-            u.region
+                u.email,
+                u.township,
+                u.region,
+                u.image
+
             FROM shops s
-            LEFT JOIN users u 
-            ON s.user_id = u.id
-            WHERE s.id = ?
+
+            LEFT JOIN users u
+                ON s.user_id = u.id
+
+            WHERE s.user_id = ?
             `,
             [userId]
         );
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found!"
+            });
+        }
         res.status(200).json({
             success: true,
             message: "User Profile Success",

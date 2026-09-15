@@ -872,7 +872,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
             shop_address = ?,
             shop_phone = ?,
             nrc = ?,
-            type = ?,
+            type = ?
 
             WHERE user_id = ?
             `,

@@ -9,6 +9,7 @@ import { generateOTP } from "../helper/generatorOTP.js";
 import { sendMail, sentOTP } from "../helper/mail.js";
 import { v4 as uuid } from "uuid";
 
+// User
 export const register = asyncHandel(async (req, res) => {
     try {
         const { username, email, password, gender, township, region, phone, address } = req.body;
@@ -164,7 +165,7 @@ export const login = asyncHandel(async (req, res) => {
 
         let shop = null;
 
-        
+
         if (user.role === "shop") {
             const [shops] = await db.query("SELECT * FROM shops WHERE user_id = ?", [user.id])
             if (shops.length === 0) {
@@ -320,73 +321,7 @@ export const userProfile = asyncHandel(async (req, res) => {
     }
 })
 
-export const userProfileEdit = asyncHandel(async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { username, email, region, township, phone, address } = req.body;
 
-        const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
-        if (checkUser.length === 0) {
-            return res.status(401).json({
-                message: "User is not authenticated!",
-                success: false
-            })
-        }
-
-        let newImageUpdate = checkUser[0].image;
-        if (req.file) {
-            if (checkUser[0].image) {
-                const oldPath = path.join(process.cwd(), checkUser[0].image);
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath)
-                }
-            }
-
-            const uploadFolder = path.join(process.cwd(), "images", "authentication");
-            if (!fs.existsSync(uploadFolder)) {
-                fs.mkdirSync(uploadFolder, { recursive: true })
-            }
-            const fileName = `${uuid()}.webp`;
-            const savePath = path.join(uploadFolder, fileName);
-            await sharp(req.file.buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({
-                    quality: 90
-                })
-                .toFile(savePath);
-
-
-            newImageUpdate = `images/authentication/${fileName}`;
-
-        }
-        const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,region = ?,township = ?,image = ? WHERE id = ?",
-            [username || checkUser[0].username,
-            email || checkUser[0].email,
-            phone || checkUser[0].phone,
-            address || checkUser[0].address,
-            region || checkUser[0].region,
-            township || checkUser[0].township,
-                newImageUpdate,
-                userId
-            ]
-        );
-        return res.status(200).json({
-            message: "Profile updated successfully",
-            success: true,
-        });
-
-
-    } catch (error) {
-        console.log(error)
-        return res.status(500).json({
-            message: error.message,
-            success: false
-        })
-    }
-})
 
 export const userChangePassword = asyncHandel(async (req, res) => {
     try {
@@ -490,6 +425,9 @@ export const AccountDelete = asyncHandel(async (req, res) => {
     }
 })
 
+
+
+// Shop
 export const shopRegister = asyncHandel(async (req, res) => {
     try {
 
@@ -770,6 +708,165 @@ export const shopList = asyncHandel(async (req, res) => {
             success: true,
             data
         })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const userProfileEdit = asyncHandel(async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { username, email, region, township, phone, address } = req.body;
+
+        const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
+        if (checkUser.length === 0) {
+            return res.status(401).json({
+                message: "User is not authenticated!",
+                success: false
+            })
+        }
+
+        let newImageUpdate = checkUser[0].image;
+        if (req.file) {
+            if (checkUser[0].image) {
+                const oldPath = path.join(process.cwd(), checkUser[0].image);
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath)
+                }
+            }
+
+            const uploadFolder = path.join(process.cwd(), "images", "authentication");
+            if (!fs.existsSync(uploadFolder)) {
+                fs.mkdirSync(uploadFolder, { recursive: true })
+            }
+            const fileName = `${uuid()}.webp`;
+            const savePath = path.join(uploadFolder, fileName);
+            await sharp(req.file.buffer)
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
+                .toFile(savePath);
+
+
+            newImageUpdate = `images/authentication/${fileName}`;
+
+        }
+        const [data] = await db.query("UPDATE users SET username = ?,email = ?,phone = ? ,address = ?,region = ?,township = ?,image = ? WHERE id = ?",
+            [username || checkUser[0].username,
+            email || checkUser[0].email,
+            phone || checkUser[0].phone,
+            address || checkUser[0].address,
+            region || checkUser[0].region,
+            township || checkUser[0].township,
+                newImageUpdate,
+                userId
+            ]
+        );
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            success: true,
+        });
+
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})
+
+export const shopProfileUpdate = asyncHandel(async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+        const { shop_name, shop_address, shop_phone, email, nrc, type, township, region } = req.body;
+        const [users] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
+        if (users.length === 0) {
+            return res.status(401).json({
+                message: "User is not authenticated!",
+                success: false
+            })
+        }
+        let updateProfileImage = users[0].image;
+        if (req.file) {
+            if (users[0].image) {
+                const oldPath = path.join(process.cwd(), users[0].image)
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath)
+                }
+            }
+            const uploadFolder = path.join(process.cwd(), "images", "authenticated")
+            if (!fs.existsSync(uploadFolder)) {
+                fs.mkdirSync(uploadFolder, { recursive: true })
+            }
+            const fileName = `${uuid()}.webp`;
+            const savePath = path.join(uploadFolder, fileName)
+            await sharp(req.file.buffer)
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
+                .toFile(savePath);
+
+            updateProfileImage = `images/authentication/${fileName}`;
+        }
+        const [data] = await db.query(
+            `
+            UPDATE users SET 
+            email = ?,
+            township = ?,
+            region = ?
+            image = ?
+            WHERE id = ?
+
+            `,
+            [
+                users[0].email,
+                users[0].township,
+                users[0].region,
+                updateProfileImage,
+                userId
+            ]
+        );
+        const shop_Id = data.insertId;
+        await db.query(
+            `
+            UPDATE shops SET
+            shop_name =?,
+            shop_address = ?,
+            shop_phone = ?,
+            nrc = ?,
+            type = ?,
+
+            WHERE = ?
+            `,
+            [
+                shop_name,
+                shop_address,
+                shop_phone,
+                nrc,
+                type,
+                shop_Id
+            ]
+        );
+        return res.status(200).json({
+            message: "Shop Profile updated successfully",
+            success: true,
+        });
 
     } catch (error) {
         console.log(error)

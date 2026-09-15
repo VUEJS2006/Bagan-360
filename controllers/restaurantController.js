@@ -249,6 +249,10 @@ export const restaurantList = asyncHandel(async (req, res) => {
         let query = "";
         let params = [];
 
+        // =========================
+        // ADMIN
+        // =========================
+
         if (req.user.role === "admin") {
 
             query = `
@@ -266,12 +270,17 @@ export const restaurantList = asyncHandel(async (req, res) => {
             `;
         }
 
+        // =========================
+        // SHOP
+        // =========================
 
         else if (req.user.role === "shop") {
 
             const [shop] = await db.query(
                 `
-                SELECT id,type
+                SELECT
+                    id,
+                    type
                 FROM shops
                 WHERE user_id = ?
                 `,
@@ -303,7 +312,34 @@ export const restaurantList = asyncHandel(async (req, res) => {
             params = [shop[0].id];
         }
 
+        // =========================
+        // USER
+        // =========================
+
+        else if (req.user.role === "user") {
+
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    s.image,
+                    s.status,
+                    s.type
+                FROM shops s
+                WHERE s.type = 'restaurant'
+                AND s.status = 'approved'
+                ORDER BY s.id DESC
+            `;
+        }
+
+        // =========================
+        // OTHER ROLE
+        // =========================
+
         else {
+
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"

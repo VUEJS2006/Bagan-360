@@ -857,9 +857,9 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
 
             `,
             [
-                email,
-                township,
-                region,
+                email || users[0].email,
+                township || users[0].township,
+                region || users[0].region,
                 updateProfileImage,
                 userId
             ]

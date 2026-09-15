@@ -829,7 +829,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
             UPDATE users SET 
             email = ?,
             township = ?,
-            region = ?
+            region = ?,
             image = ?
             WHERE id = ?
 

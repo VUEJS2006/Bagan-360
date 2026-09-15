@@ -876,3 +876,50 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
         })
     }
 })
+
+export const shopProfile = asyncHandel(async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+        const [users] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
+        if (users.length === 0) {
+            return res.status(401).json({
+                message: "User is not authenticated!",
+                success: false
+            })
+        }
+
+        const [data] = await db.query(
+            `
+            s.shop_name,
+            s.user_id,
+            s.shop_address,
+            s.shop_phone,
+            s.nrc,
+            s.type,
+            s.status,
+
+            u.email,
+            u.township,
+            u.region
+            FROM shops s
+            LEFT JOIN users u 
+            ON s.user_id = u.id
+            WHERE s.id = ?
+            `,
+            [userId]
+        );
+        res.status(200).json({
+            success: true,
+            message: "User Profile Success",
+            data
+        });
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        })
+    }
+})

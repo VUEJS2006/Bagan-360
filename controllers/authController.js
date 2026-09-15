@@ -798,6 +798,28 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
                 success: false
             })
         }
+        const [shops] = await db.query(
+            `
+            SELECT
+                id,
+                user_id,
+                shop_name,
+                shop_address,
+                shop_phone,
+                nrc,
+                type
+            FROM shops
+            WHERE user_id = ?
+            `,
+            [userId]
+        );
+
+        if (shops.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found!"
+            });
+        }
         let updateProfileImage = users[0].image;
         if (req.file) {
             if (users[0].image) {
@@ -835,14 +857,14 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
 
             `,
             [
-                users[0].email,
-                users[0].township,
-                users[0].region,
+                email,
+                township,
+                region,
                 updateProfileImage,
                 userId
             ]
         );
-        const shop_Id = data.insertId;
+
         await db.query(
             `
             UPDATE shops SET
@@ -852,7 +874,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
             nrc = ?,
             type = ?,
 
-            WHERE = ?
+            WHERE user_id = ?
             `,
             [
                 shop_name,
@@ -860,7 +882,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
                 shop_phone,
                 nrc,
                 type,
-                shop_Id
+                userId
             ]
         );
         return res.status(200).json({

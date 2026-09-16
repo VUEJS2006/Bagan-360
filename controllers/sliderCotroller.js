@@ -160,24 +160,24 @@ export const sliderDelete = asyncHandel(async (req, res) => {
     }
 })
 
-export const sliderActivate = asyncHandel(async (req, res) => {
-    try {
+// export const sliderActivate = asyncHandel(async (req, res) => {
+//     try {
 
-        const { id } = req.params;
-        const [sliders] = await db.query("SELECT * FROM sliders WHERE id = ?", [id]);
-        if (sliders.length === 0) {
-            return res.status(404).json({
-                message: "Slider Not Found",
-                success: false
-            })
-        }
-        const activate = sliders[0].is_active
+//         const { id } = req.params;
+//         const [sliders] = await db.query("SELECT * FROM sliders WHERE id = ?", [id]);
+//         if (sliders.length === 0) {
+//             return res.status(404).json({
+//                 message: "Slider Not Found",
+//                 success: false
+//             })
+//         }
+//         const activate = sliders[0].is_active
 
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(500).json({
+//             success: false,
+//             message: error.message
+//         });
+//     }
+// })

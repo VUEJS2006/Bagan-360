@@ -410,7 +410,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     m.shop_id,
                     s.shop_name,
                     s.shop_address AS shop_address,
-                    s.phone AS shop_phone,
+                    s.shop_phone AS shop_phone,
                     m.name,
                     m.image,
                     m.description
@@ -459,7 +459,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     m.shop_id,
                     s.shop_name,
                     s.shop_address AS shop_address,
-                    s.phone AS shop_phone,
+                    s.shop_phone AS shop_phone,
                     m.name,
                     m.image,
                     m.description
@@ -486,7 +486,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     m.shop_id,
                     s.shop_name,
                     s.shop_address AS shop_address,
-                    s.phone AS shop_phone,
+                    s.shop_phone AS shop_phone,
                     m.name,
                     m.image,
                     m.description

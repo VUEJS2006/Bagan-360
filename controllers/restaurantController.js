@@ -300,7 +300,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_name,
                     s.shop_address,
                     s.shop_phone,
-                    s.image,
                     s.status,
                     s.type
                 FROM shops s
@@ -324,7 +323,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_name,
                     s.shop_address,
                     s.shop_phone,
-                    s.image,
                     s.status,
                     s.type
                 FROM shops s

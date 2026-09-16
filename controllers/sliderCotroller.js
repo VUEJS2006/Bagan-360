@@ -52,7 +52,7 @@ export const sliderList = asyncHandel(async (req, res) => {
     try {
 
         const [data] = await db.query("SELECT id,link,image,is_active FROM sliders ORDER BY id DESC");
-        return res.status(404).json({
+        return res.status(200).json({
             message: "Slider List Success",
             success: true,
             data

@@ -255,7 +255,7 @@ export const cartList = asyncHandel(async (req, res) => {
             `, [req.user.id]
         );
         const total = data.reduce((sum, item) => {
-            return sum + Number(item.subtotal);
+            return sum + Number(item.sub_total);
         }, 0);
         return res.status(200).json({
             success: true,

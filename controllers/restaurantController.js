@@ -392,7 +392,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
     }
 });
 
-export const restMenuList = asyncHandel(async (req, res) => {
+export const resMenuList = asyncHandel(async (req, res) => {
     try {
 
         let query = "";

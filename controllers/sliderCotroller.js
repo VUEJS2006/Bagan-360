@@ -79,7 +79,7 @@ export const sliderUpdate = asyncHandel(async (req, res) => {
                 success: false
             })
         }
-        const updateImage = sliders[0].image;
+        let updateImage = sliders[0].image;
         if (req.file) {
             const oldPath = path.join(process.cwd(), sliders[0].image);
             if (sliders[0].image) {

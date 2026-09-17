@@ -104,7 +104,9 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 h.facilities,
                 h.description,
 
-                s.shop_name
+                 s.shop_name,
+                s.shop_address,
+                s.shop_phone
 
             FROM hotel_bookings b
             JOIN hotels h 
@@ -415,7 +417,9 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                 h.facilities,
                 h.description,
 
-                s.shop_name
+                s.shop_name,
+                s.shop_address,
+                s.shop_phone
 
             FROM hotel_bookings b
 

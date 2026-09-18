@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 
 export const sliderCreate = asyncHandel(async (req, res) => {
     try {
-        const { link } = req.body;
+        const { link, title } = req.body;
         const uploadFolder = path.join(process.cwd(), "images", "slider")
 
         if (!fs.existsSync(uploadFolder)) {
@@ -30,7 +30,7 @@ export const sliderCreate = asyncHandel(async (req, res) => {
             imagePath = `images/slider/${fileName}`
         }
 
-        const [data] = await db.query("INSERT INTO sliders (link,image) VALUES (?,?)", [link, imagePath]);
+        const [data] = await db.query("INSERT INTO sliders (link,image,title) VALUES (?,?,?)", [link, imagePath, title]);
         return res.status(201).json({
             message: "slider Create Success",
             success: true,
@@ -51,7 +51,7 @@ export const sliderCreate = asyncHandel(async (req, res) => {
 export const sliderList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query("SELECT id,link,image,is_active FROM sliders ORDER BY id DESC");
+        const [data] = await db.query("SELECT id,link,image,is_active,title FROM sliders ORDER BY id DESC");
         return res.status(200).json({
             message: "Slider List Success",
             success: true,
@@ -71,7 +71,7 @@ export const sliderUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        const { link } = req.body;
+        const { link, title } = req.body;
         const [sliders] = await db.query("SELECT * FROM sliders WHERE id = ?", [id]);
         if (sliders.length === 0) {
             return res.status(404).json({
@@ -111,7 +111,7 @@ export const sliderUpdate = asyncHandel(async (req, res) => {
 
             updateImage = `images/slider/${fileName}`;
         }
-        const [data] = await db.query("UPDATE sliders SET link = ?,image = ? WHERE id = ?", [link, updateImage, id]);
+        const [data] = await db.query("UPDATE sliders SET link = ?,image = ?,title = ?  WHERE id = ?", [link, updateImage, title, id]);
         return res.status(200).json({
             success: true,
             message: "Slider Updated Successfully",
@@ -200,6 +200,7 @@ export const sliderMobileList = asyncHandel(async (req, res) => {
             SELECT 
                 id,
                 link,
+                title,
                 image,
                 is_active
             FROM sliders

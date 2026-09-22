@@ -828,7 +828,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
                     fs.unlinkSync(oldPath)
                 }
             }
-            const uploadFolder = path.join(process.cwd(), "images", "authenticated")
+            const uploadFolder = path.join(process.cwd(), "images", "authentication")
             if (!fs.existsSync(uploadFolder)) {
                 fs.mkdirSync(uploadFolder, { recursive: true })
             }

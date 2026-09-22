@@ -291,8 +291,11 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.image,
                     s.status,
-                    s.type
+                    s.type,
+                    s.user_id,
+                    u.image
                 FROM shops s
+                users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
                 ORDER BY s.id DESC
             `;
@@ -329,8 +332,13 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_address,
                     s.shop_phone,
                     s.status,
-                    s.type
+                    s.image,
+                    s.type,
+                    u.image,
+                    s.user_id
+
                 FROM shops s
+                users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'restaurant'
                 ORDER BY s.id DESC
@@ -352,8 +360,12 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_address,
                     s.shop_phone,
                     s.status,
-                    s.type
+                    s.type,
+                    u.image,
+                    s.user_id
+
                 FROM shops s
+                users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
                 ORDER BY s.id DESC

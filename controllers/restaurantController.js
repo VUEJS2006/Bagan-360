@@ -295,7 +295,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.user_id,
                     u.image
                 FROM shops s
-                users u ON s.user_id = u.id
+                JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
                 ORDER BY s.id DESC
             `;
@@ -338,7 +338,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.user_id
 
                 FROM shops s
-                users u ON s.user_id = u.id
+                JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'restaurant'
                 ORDER BY s.id DESC
@@ -365,7 +365,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.user_id
 
                 FROM shops s
-                users u ON s.user_id = u.id
+                JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
                 ORDER BY s.id DESC

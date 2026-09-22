@@ -1026,8 +1026,11 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                 s.shop_phone,
                 s.shop_address,
                 s.type,
+                s.user_id,
+                u.image,
                 s.status
             FROM shops s
+            JOIN users u ON s.user_id = u.id
             WHERE s.id = ?
             AND s.type = 'restaurant'
             AND s.status = 'approved'

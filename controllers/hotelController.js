@@ -14,7 +14,8 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             name,
             price,
             facilities,
-            description
+            description,
+            location
         } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
@@ -87,7 +88,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        if (!name || !price) {
+        if (!name || !price || !location) {
             return res.status(400).json({
                 success: false,
                 message: "Name and price are required!"
@@ -157,9 +158,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 price,
                 facilities,
                 description,
-                image
+                image,
+                location
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
@@ -167,7 +169,8 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 Number(price),
                 facilities ? JSON.stringify(facilities) : null,
                 description || null,
-                imagePath
+                imagePath,
+                location
             ]
         );
 
@@ -203,9 +206,10 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.shop_id,
                     s.shop_name,
                     s.shop_address,
-                   s.shop_phone,
+                    s.shop_phone,
                     h.name,
                     h.price,
+                    h.location,
                     h.facilities,
                     h.description,
                     h.image
@@ -247,8 +251,9 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.shop_id,
                     s.shop_name,
                     s.shop_address,
-                   s.shop_phone,
+                    s.shop_phone,
                     h.name,
+                    h.location,
                     h.price,
                     h.facilities,
                     h.description,
@@ -308,7 +313,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             name,
             price,
             description,
-            facilities
+            facilities,
+            location
         } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
@@ -443,6 +449,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 price = ?,
                 facilities = ?,
                 description = ?,
+                location = ?,
                 image = ?
             WHERE id = ?
             `,
@@ -454,6 +461,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     : null,
                 description || null,
                 updatedImage,
+                location,
                 id
             ]
         );
@@ -585,12 +593,13 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
                 h.name,
                 h.price,
                 h.facilities,
+                h.location,
                 h.description,
                 h.image,
 
-                s.shop_name,
+               s.shop_name,
                s.shop_phone,
-                s.shop_address
+               s.shop_address
 
             FROM hotels h
 
@@ -643,6 +652,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.name,
                 h.price,
                 h.facilities,
+                h.location,
                 h.description,
                 h.image,
 

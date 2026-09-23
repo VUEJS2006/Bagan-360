@@ -959,34 +959,61 @@ export const shopProfile = asyncHandel(async (req, res) => {
 })
 
 export const userDelete = asyncHandel(async (req, res) => {
+
     try {
 
         const { id } = req.params;
-        const [users] = await db.query("SELECT * FROM users WHERE id = ?", [id]);
+
+        const [users] = await db.query(
+            "SELECT * FROM users WHERE id = ?",
+            [id]
+        );
+
         if (users.length === 0) {
-            return res.status(401).json({
-                message: "User is not authenticated!",
+            return res.status(404).json({
+                message: "User not found!",
                 success: false
-            })
+            });
         }
 
+
+
         if (users[0].image) {
-            const oldPath = path.join(process.cwd(), users[0].image)
+
+            const oldPath = path.join(
+                process.cwd(),
+                users[0].image
+            );
+
             if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath)
+                fs.unlinkSync(oldPath);
             }
         }
-        await db.query("DELETE FROM users WHERE id = ?", [id]);
-        res.status(200).json({
+
+
+        await db.query(
+            "DELETE FROM shops WHERE user_id = ?",
+            [id]
+        );
+
+
+        await db.query(
+            "DELETE FROM users WHERE id = ?",
+            [id]
+        );
+
+        return res.status(200).json({
             success: true,
             message: "User deleted successfully"
         });
 
     } catch (error) {
-        console.log(error)
+
+        console.log(error);
+
         return res.status(500).json({
             message: error.message,
             success: false
-        })
+        });
     }
-})
+});

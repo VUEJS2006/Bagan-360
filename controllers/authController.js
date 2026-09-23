@@ -442,13 +442,14 @@ export const shopRegister = asyncHandel(async (req, res) => {
             shop_name,
             shop_address,
             shop_phone,
+            location,
             nrc,
             type
         } = req.body
 
 
         if (
-            !username || !email || !password || !shop_name || !shop_address || !shop_phone || !type
+            !username || !location || !email || !password || !shop_name || !shop_address || !shop_phone || !type
         ) {
             return res.status(400).json({
                 success: false,
@@ -487,6 +488,7 @@ export const shopRegister = asyncHandel(async (req, res) => {
             township,
             region,
             shop_name,
+            location,
             shop_address,
             shop_phone,
             nrc,
@@ -560,7 +562,7 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             INSERT INTO shops
             (user_id,shop_name,shop_address,shop_phone,nrc,type)
             VALUES (?,?,?,?,?,?)
-            `, [userId, user.shop_name, user.shop_address, user.shop_phone, user.nrc, user.type]);
+            `, [userId, user.location,user.shop_name, user.shop_address, user.shop_phone, user.nrc, user.type]);
 
         await db.query(
             "DELETE FROM otp_codes WHERE email = ?",
@@ -790,7 +792,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
     try {
 
         const userId = req.user.id;
-        const { shop_name, shop_address, shop_phone, email, nrc, type, township, region } = req.body;
+        const { shop_name,location, shop_address, shop_phone, email, nrc, type, township, region } = req.body;
         const [users] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
         if (users.length === 0) {
             return res.status(401).json({
@@ -804,6 +806,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
                 id,
                 user_id,
                 shop_name,
+                location,
                 shop_address,
                 shop_phone,
                 nrc,
@@ -872,7 +875,9 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
             shop_address = ?,
             shop_phone = ?,
             nrc = ?,
-            type = ?
+            type = ?,
+            location = ?
+
 
             WHERE user_id = ?
             `,
@@ -882,6 +887,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
                 shop_phone || shops[0].shop_phone,
                 nrc || shops[0].nrc,
                 type || shops[0].type,
+                location || users[0].location,
                 userId
             ]
         );
@@ -919,6 +925,7 @@ export const shopProfile = asyncHandel(async (req, res) => {
                 s.user_id,
                 s.shop_address,
                 s.shop_phone,
+                s.location,
                 s.nrc,
                 s.type,
                 s.status,

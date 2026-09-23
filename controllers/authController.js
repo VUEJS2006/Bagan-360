@@ -223,7 +223,8 @@ export const login = asyncHandel(async (req, res) => {
                 shop_phone: shop.shop_phone,
                 shop_address: shop.shop_address,
                 image: shop.image,
-                status: shop.status
+                status: shop.status,
+                location:shop.location
             }
                 :
                 null,

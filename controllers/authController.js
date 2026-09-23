@@ -224,7 +224,7 @@ export const login = asyncHandel(async (req, res) => {
                 shop_address: shop.shop_address,
                 image: shop.image,
                 status: shop.status,
-                location:shop.location
+                location: shop.location
             }
                 :
                 null,
@@ -560,10 +560,26 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
         const userId = userResult.insertId;
 
         await db.query(`
-            INSERT INTO shops
-            (user_id,shop_name,shop_address,shop_phone,nrc,type)
-            VALUES (?,?,?,?,?,?)
-            `, [userId, user.location,user.shop_name, user.shop_address, user.shop_phone, user.nrc, user.type]);
+    INSERT INTO shops
+    (
+        user_id,
+        shop_name,
+        location,
+        shop_address,
+        shop_phone,
+        nrc,
+        type
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+`, [
+            userId,
+            user.shop_name,
+            user.location,
+            user.shop_address,
+            user.shop_phone,
+            user.nrc,
+            user.type
+        ]);
 
         await db.query(
             "DELETE FROM otp_codes WHERE email = ?",
@@ -793,7 +809,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
     try {
 
         const userId = req.user.id;
-        const { shop_name,location, shop_address, shop_phone, email, nrc, type, township, region } = req.body;
+        const { shop_name, location, shop_address, shop_phone, email, nrc, type, township, region } = req.body;
         const [users] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
         if (users.length === 0) {
             return res.status(401).json({
@@ -888,7 +904,7 @@ export const shopProfileUpdate = asyncHandel(async (req, res) => {
                 shop_phone || shops[0].shop_phone,
                 nrc || shops[0].nrc,
                 type || shops[0].type,
-                location || users[0].location,
+                location || shops[0].location,
                 userId
             ]
         );

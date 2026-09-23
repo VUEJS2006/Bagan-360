@@ -1,4 +1,4 @@
-import { shopProfile, shopList, AccountDelete, register, verifyOTP, login, userList, roleUpdate, logout, userProfile, userProfileEdit, userChangePassword, shopRegister, shopVerifyOTP, shopApproved, shopCancel, shopProfileUpdate } from "../controllers/authController.js";
+import { userDelete, shopProfile, shopList, AccountDelete, register, verifyOTP, login, userList, roleUpdate, logout, userProfile, userProfileEdit, userChangePassword, shopRegister, shopVerifyOTP, shopApproved, shopCancel, shopProfileUpdate } from "../controllers/authController.js";
 import { validateRegister } from "../middlewares/authMiddleware.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
@@ -26,7 +26,7 @@ router.get('/shop/profile', authenticated, shopProfile);
 // Mobile + Admin
 router.post('/login', validateRegister, login)
 router.post('/logout', logout)
-
+router.delete('/user/delete/:id', authenticated, isAdmin, userDelete);
 
 
 // Admin

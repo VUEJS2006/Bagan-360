@@ -449,8 +449,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 price = ?,
                 facilities = ?,
                 description = ?,
-                location = ?,
-                image = ?
+                image = ?,
+                location = ?
             WHERE id = ?
             `,
             [

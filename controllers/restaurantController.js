@@ -288,6 +288,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.id,
                     s.shop_name,
                     s.shop_address,
+                    s.location,
                     s.shop_phone,
                     s.status,
                     s.type,
@@ -328,6 +329,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 SELECT
                     s.id,
                     s.shop_name,
+                    s.location,
                     s.shop_address,
                     s.shop_phone,
                     s.status,
@@ -357,6 +359,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_name,
                     s.shop_address,
                     s.shop_phone,
+                    s.location,
                     s.status,
                     s.type,
                     u.image,

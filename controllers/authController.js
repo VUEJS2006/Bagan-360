@@ -619,7 +619,6 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
 
 export const shopApproved = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
 
         const [checkShop] = await db.query(
@@ -631,42 +630,48 @@ export const shopApproved = asyncHandel(async (req, res) => {
                 u.username,
                 u.email
              FROM shops s
-             JOIN users u
-                ON s.user_id = u.id
+             JOIN users u ON s.user_id = u.id
              WHERE s.id = ?`,
             [id]
         );
-        if (checkShop === 0) {
+
+        // Shop ရှိ၊ မရှိ စစ်မယ်
+        if (checkShop.length === 0) {
             return res.status(404).json({
-                message: "User not found!",
+                message: "Shop not found!",
                 success: false
-            })
+            });
         }
 
-        const shop = checkShop[0]
+        const shop = checkShop[0];
 
-        const [data] = await db.query("UPDATE shops SET status = 'approved' WHERE id = ?", [id]);
+        // Shop status ကို approved ပြောင်းမယ်
+        const [data] = await db.query(
+            "UPDATE shops SET status = 'approved' WHERE id = ?",
+            [id]
+        );
 
+        // Shop email ကို ပို့မယ်
         await sendMail(
             shop.email,
-            `<h3>Hello ${shop.shop_name}, သင့်အကောက်အား အတည်ပြု စစ်ဆေး ပြီးပါပြီ။ </h3>`
-        )
-        res.status(200).json({
+            `<h3>Hello ${shop.shop_name}, သင့်အကောင့်အား အတည်ပြုပြီးပါပြီ။</h3>`
+        );
+
+        return res.status(200).json({
             success: true,
-            message: "User approved successfully",
+            message: "Shop approved successfully",
             data
         });
 
-
-
     } catch (error) {
-        console.log(error)
+        console.log(error);
+
         return res.status(500).json({
             message: error.message,
             success: false
-        })
+        });
     }
-})
+});
 
 export const shopCancel = asyncHandel(async (req, res) => {
     try {
@@ -687,11 +692,11 @@ export const shopCancel = asyncHandel(async (req, res) => {
              WHERE s.id = ?`,
             [id]
         );
-        if (checkShop === 0) {
+        if (checkShop.length === 0) {
             return res.status(404).json({
-                message: "User not found!",
+                message: "Shop not found!",
                 success: false
-            })
+            });
         }
 
         const shop = checkShop[0]

@@ -1111,12 +1111,26 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             }
         });
 
+        const [cart] = await db.query(
+            `
+        SELECT 
+             COALESCE(SUM(c.quantity), 0) AS cart_count
+        
+        FROM cart c INNER JOIN res_menu m 
+        ON c.menu_id = m.id
+        WHERE c.user_id = ?
+        AND m.shop_id = ?
+        `,
+            [req.user.id, id]
+        )
+        const cart_count = Number(cart[0].cart_count)
 
         return res.status(200).json({
             success: true,
             data: {
                 shop: shop[0],
-                menu
+                menu,
+                cart_count
             }
         });
 

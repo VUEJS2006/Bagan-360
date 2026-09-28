@@ -403,9 +403,14 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
-        let {
+        const {
+            shop_id: bodyShopId,
             name,
             price,
+            discount,
+            total_amount,
+            start_date,
+            end_date,
             description,
             location,
             facilities
@@ -418,71 +423,71 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             });
         }
 
-        let shop_id = null;
-
+        let shop_id = bodyShopId;
         if (req.user.role === "shop") {
 
-            const [shop] = await db.query(
-                `
-                SELECT id, type
-                FROM shops
-                WHERE user_id = ?
-                `,
+            const [checkShop] = await db.query(
+                `SELECT id, type
+                 FROM shops
+                 WHERE user_id = ?`,
                 [req.user.id]
             );
 
-            if (shop.length === 0) {
+            if (checkShop.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
 
-            if (shop[0].type !== "hotel") {
-                return res.status(400).json({
+            if (checkShop[0].type !== "hotel") {
+                return res.status(403).json({
                     success: false,
                     message: "This shop is not a hotel!"
                 });
             }
 
-            shop_id = shop[0].id;
+            shop_id = checkShop[0].id;
         }
 
-        let hotelQuery = `
+        let checkHotelQuery = `
             SELECT *
             FROM hotels
             WHERE id = ?
         `;
 
-        let hotelParams = [id];
+        let checkHotelValues = [id];
 
         if (req.user.role === "shop") {
-            hotelQuery += ` AND shop_id = ?`;
-            hotelParams.push(shop_id);
+            checkHotelQuery += ` AND shop_id = ?`;
+            checkHotelValues.push(shop_id);
         }
 
-        const [hotel] = await db.query(
-            hotelQuery,
-            hotelParams
+        const [checkHotel] = await db.query(
+            checkHotelQuery,
+            checkHotelValues
         );
 
-        if (hotel.length === 0) {
+        if (checkHotel.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Hotel not found!"
             });
         }
 
+        const oldHotel = checkHotel[0];
+
         let facilityList = null;
 
         if (facilities !== undefined) {
-
             try {
-                facilityList = JSON.parse(facilities);
+                facilityList = typeof facilities === "string"
+                    ? JSON.parse(facilities)
+                    : facilities;
             } catch (error) {
                 return res.status(400).json({
                     success: false,
-                    message: "Facilities must be a valid JSON array!"
+                    message: "Invalid facilities JSON!"
                 });
             }
 
@@ -494,236 +499,231 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
 
             for (const facility of facilityList) {
-                if (!facility.name || !facility.description) {
+                if (!facility.name) {
                     return res.status(400).json({
                         success: false,
-                        message: "Facility name and description are required!"
+                        message: "Each facility must have a name!"
+                    });
+                }
+
+                if (
+                    facility.image_index !== undefined &&
+                    (
+                        !Number.isInteger(Number(facility.image_index)) ||
+                        Number(facility.image_index) < 0
+                    )
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid facility image_index!"
                     });
                 }
             }
         }
 
+        const hotelImage = req.files?.image?.[0];
         const facilityImages = req.files?.facility_images || [];
-        if (
-            facilityList !== null &&
-            facilityImages.length > 0 &&
-            facilityImages.length !== facilityList.length
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "Each facility must have one image!"
-            });
-        }
 
-        let updatedImage = hotel[0].image;
+ 
+        let updatedImage = oldHotel.image;
+        const oldImagesToDelete = [];
 
-        if (req.files?.image?.[0]) {
+        if (hotelImage) {
 
-            const uploadFolder = path.join(
+            const hotelImageName = `${uuid()}.webp`;
+
+            const hotelImagePath = path.join(
                 process.cwd(),
                 "images",
-                "hotel"
+                "hotel",
+                hotelImageName
             );
 
-            if (!fs.existsSync(uploadFolder)) {
-                fs.mkdirSync(uploadFolder, {
-                    recursive: true
-                });
+            await fs.promises.mkdir(
+                path.dirname(hotelImagePath),
+                { recursive: true }
+            );
+
+            await sharp(hotelImage.buffer)
+                .resize({ width: 1920, withoutEnlargement: true })
+                .webp({ quality: 90 })
+                .toFile(hotelImagePath);
+
+            updatedImage = `images/hotel/${hotelImageName}`;
+
+            if (oldHotel.image) {
+                oldImagesToDelete.push(oldHotel.image);
             }
-
-            const fileName = `${uuid()}.webp`;
-
-            const savePath = path.join(
-                uploadFolder,
-                fileName
-            );
-
-            await sharp(req.files.image[0].buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({
-                    quality: 90
-                })
-                .toFile(savePath);
-
-            updatedImage = `images/hotel/${fileName}`;
         }
 
+
         await db.query(
-            `
-            UPDATE hotels
-            SET
+            `UPDATE hotels
+             SET
                 name = ?,
                 price = ?,
+                discount = ?,
+                total_amount = ?,
+                start_date = ?,
+                end_date = ?,
                 description = ?,
-                image = ?,
-                location = ?
-            WHERE id = ?
-            `,
+                location = ?,
+                image = ?
+             WHERE id = ?`,
             [
-                name,
-                Number(price),
-                description || null,
+                name ?? oldHotel.name,
+                price ?? oldHotel.price,
+                discount ?? oldHotel.discount,
+                total_amount ?? oldHotel.total_amount,
+                start_date ?? oldHotel.start_date,
+                end_date ?? oldHotel.end_date,
+                description ?? oldHotel.description,
+                location ?? oldHotel.location,
                 updatedImage,
-                location,
                 id
             ]
         );
 
+
         if (facilityList !== null) {
 
             const [oldFacilities] = await db.query(
-                `
-                SELECT id, name, description, image
-                FROM hotel_facilities
-                WHERE hotel_id = ?
-                ORDER BY id ASC
-                `,
+                `SELECT id, name, description, image
+                 FROM hotel_facilities
+                 WHERE hotel_id = ?
+                 ORDER BY id ASC`,
                 [id]
             );
 
-            const facilityFolder = path.join(
-                process.cwd(),
-                "images",
-                "hotel",
-                "facility"
-            );
-
-            if (!fs.existsSync(facilityFolder)) {
-                fs.mkdirSync(facilityFolder, {
-                    recursive: true
-                });
-            }
 
             for (let i = 0; i < facilityList.length; i++) {
 
                 const facility = facilityList[i];
 
                 let facilityImage = null;
-                if (oldFacilities[i]) {
-                    facilityImage = oldFacilities[i].image;
+
+                if (facility.image_index !== undefined) {
+
+                    const imageIndex = Number(facility.image_index);
+
+                    if (!facilityImages[imageIndex]) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Facility image_index ${imageIndex} has no matching uploaded image!`
+                        });
+                    }
                 }
-                if (facilityImages[i]) {
 
-                    const fileName = `${uuid()}.webp`;
+    
+                const oldFacility = oldFacilities[i];
 
-                    const savePath = path.join(
-                        facilityFolder,
-                        fileName
+                if (oldFacility) {
+                    facilityImage = oldFacility.image;
+                }
+                if (facility.image_index !== undefined) {
+
+                    const imageIndex = Number(facility.image_index);
+                    const facilityFile = facilityImages[imageIndex];
+
+                    const facilityImageName = `${uuid()}.webp`;
+
+                    const facilityImagePath = path.join(
+                        process.cwd(),
+                        "images",
+                        "hotel",
+                        "facility",
+                        facilityImageName
                     );
 
-                    await sharp(facilityImages[i].buffer)
-                        .resize({
-                            width: 1920,
-                            withoutEnlargement: true
-                        })
-                        .webp({
-                            quality: 90
-                        })
-                        .toFile(savePath);
+                    await fs.promises.mkdir(
+                        path.dirname(facilityImagePath),
+                        { recursive: true }
+                    );
 
-                    facilityImage = `images/hotel/facility/${fileName}`;
+                    await sharp(facilityFile.buffer)
+                        .resize({ width: 1920, withoutEnlargement: true })
+                        .webp({ quality: 90 })
+                        .toFile(facilityImagePath);
+
+                    facilityImage =
+                        `images/hotel/facility/${facilityImageName}`;
+
+                    if (oldFacility?.image) {
+                        oldImagesToDelete.push(oldFacility.image);
+                    }
                 }
 
-                if (oldFacilities[i]) {
+                if (oldFacility) {
                     await db.query(
-                        `
-                        UPDATE hotel_facilities
-                        SET
+                        `UPDATE hotel_facilities
+                         SET
                             name = ?,
                             description = ?,
                             image = ?
-                        WHERE id = ?
-                        AND hotel_id = ?
-                        `,
+                         WHERE id = ? AND hotel_id = ?`,
                         [
                             facility.name,
-                            facility.description,
+                            facility.description ?? null,
                             facilityImage,
-                            oldFacilities[i].id,
+                            oldFacility.id,
                             id
                         ]
                     );
 
                 } else {
                     await db.query(
-                        `
-                        INSERT INTO hotel_facilities
-                        (
-                            hotel_id,
-                            name,
-                            description,
-                            image
-                        )
-                        VALUES (?, ?, ?, ?)
-                        `,
+                        `INSERT INTO hotel_facilities
+                         (hotel_id, name, description, image)
+                         VALUES (?, ?, ?, ?)`,
                         [
                             id,
                             facility.name,
-                            facility.description,
+                            facility.description ?? null,
                             facilityImage
                         ]
                     );
                 }
             }
 
-            const deletedFacilities = oldFacilities.slice(
+            const facilitiesToDelete = oldFacilities.slice(
                 facilityList.length
             );
 
-            for (const facility of deletedFacilities) {
+            for (const facility of facilitiesToDelete) {
 
                 await db.query(
-                    `
-                    DELETE FROM hotel_facilities
-                    WHERE id = ?
-                    AND hotel_id = ?
-                    `,
-                    [
-                        facility.id,
-                        id
-                    ]
+                    `DELETE FROM hotel_facilities
+                     WHERE id = ? AND hotel_id = ?`,
+                    [facility.id, id]
                 );
 
                 if (facility.image) {
-
-                    const oldPath = path.join(
-                        process.cwd(),
-                        facility.image
-                    );
-
-                    if (fs.existsSync(oldPath)) {
-                        fs.unlinkSync(oldPath);
-                    }
+                    oldImagesToDelete.push(facility.image);
                 }
             }
         }
 
-        if (
-            req.files?.image?.[0] &&
-            hotel[0].image
-        ) {
+        for (const oldImage of oldImagesToDelete) {
 
-            const oldPath = path.join(
+            const oldImagePath = path.join(
                 process.cwd(),
-                hotel[0].image
+                oldImage
             );
 
-            if (fs.existsSync(oldPath)) {
-                fs.unlinkSync(oldPath);
+            try {
+                await fs.promises.unlink(oldImagePath);
+            } catch (error) {
+             
             }
         }
 
         return res.status(200).json({
             success: true,
-            message: "Hotel Updated Successfully"
+            message: "Hotel updated successfully!"
         });
 
     } catch (error) {
-
-        console.log(error);
+        console.error("Hotel Update Error:", error);
 
         return res.status(500).json({
             success: false,

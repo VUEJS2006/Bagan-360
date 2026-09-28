@@ -5,7 +5,15 @@ import express from "express";
 import { isShop, checkShop } from "../middlewares/shopMiddleware.js";
 const router = express.Router()
 // Admin
-router.post('/admin/hotel/create', authenticated, upload.single("image"), hotelCreate);
+router.post(
+    '/admin/hotel/create',
+    authenticated,
+    upload.fields([
+        { name: "image", maxCount: 1 },
+        { name: "facility_images", maxCount: 10 }
+    ]),
+    hotelCreate
+);
 router.get('/admin/hotel/list', authenticated, hotelList);
 router.put('/admin/hotel/update/:id', authenticated, upload.single("image"), hotelUpdate);
 router.delete('/admin/hotel/delete/:id', authenticated, hotelDelete);

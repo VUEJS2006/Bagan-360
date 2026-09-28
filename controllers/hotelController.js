@@ -1150,17 +1150,6 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
                 LEFT JOIN hotel_facilities hf
                     ON h.id = hf.hotel_id
                 WHERE h.shop_id = ?
-                GROUP BY
-                    h.id,
-                    h.shop_id,
-                    s.shop_name,
-                    s.shop_address,
-                    s.shop_phone,
-                    h.name,
-                    h.price,
-                    h.location,
-                    h.description,
-                    h.image
                 ORDER BY h.id DESC
         `);
 

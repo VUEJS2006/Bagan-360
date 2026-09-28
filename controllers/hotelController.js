@@ -748,6 +748,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -756,6 +757,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
         }
 
         let shop_id = null;
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -791,6 +793,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
         `;
 
         let hotelParams = [id];
+
         if (req.user.role === "shop") {
             hotelQuery += ` AND shop_id = ?`;
             hotelParams.push(shop_id);
@@ -808,6 +811,16 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             });
         }
 
+        const [facilities] = await db.query(
+            `
+            SELECT image
+            FROM hotel_facilities
+            WHERE hotel_id = ?
+            `,
+            [id]
+        );
+
+
         if (hotel[0].image) {
 
             const imagePath = path.join(
@@ -820,6 +833,21 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             }
         }
 
+        for (const facility of facilities) {
+
+            if (facility.image) {
+
+                const imagePath = path.join(
+                    process.cwd(),
+                    facility.image
+                );
+
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+        }
+
         await db.query(
             `
             DELETE FROM hotels
@@ -828,9 +856,11 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             [id]
         );
 
+    
+
         return res.status(200).json({
             success: true,
-            message: "Hotel deleted successfully"
+            message: "Hotel and facilities deleted successfully"
         });
 
     } catch (error) {

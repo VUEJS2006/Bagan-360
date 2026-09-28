@@ -1,4 +1,4 @@
-import { hotelSearch, hotelFilter, hotelCreate, hotelList, hotelMobileList, hotelUpdate, hotelDelete, hotelDetails } from "../controllers/hotelController.js";
+import {hotelCreate, hotelList, hotelMobileList, hotelUpdate, hotelDelete, hotelDetails } from "../controllers/hotelController.js";
 import { upload } from "../middlewares/upload.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
@@ -25,8 +25,7 @@ router.put(
     hotelUpdate
 );
 router.delete('/admin/hotel/delete/:id', authenticated, hotelDelete);
-router.get('/admin/hotel/search', authenticated, isAdmin, hotelSearch);
-router.get('/admin/hotel/filter', authenticated, isAdmin, hotelFilter);
+
 
 // Mobile
 router.get('/mobile/hotel/list', authenticated, hotelMobileList);

@@ -1119,7 +1119,7 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
     try {
 
         const [data] = await db.query(`
-               SELECT
+            SELECT
                 h.id,
                 h.shop_id,
 
@@ -1156,8 +1156,6 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
             LEFT JOIN hotel_facilities hf
                 ON h.id = hf.hotel_id
 
-            WHERE h.shop_id = ?
-
             GROUP BY
                 h.id,
                 h.shop_id,
@@ -1172,7 +1170,6 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
 
             ORDER BY h.id DESC
         `);
-
 
         return res.status(200).json({
             success: true,

@@ -13,9 +13,9 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             shop_id: bodyShopId,
             name,
             price,
-            facilities,
             description,
-            location
+            location,
+            facilities
         } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
@@ -65,29 +65,6 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             shop_id = bodyShopId;
         }
 
-        const [shop] = await db.query(
-            `
-            SELECT id, type
-            FROM shops
-            WHERE id = ?
-            `,
-            [shop_id]
-        );
-
-        if (shop.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Shop not found!"
-            });
-        }
-
-        if (shop[0].type !== "hotel") {
-            return res.status(400).json({
-                success: false,
-                message: "This shop is not a hotel!"
-            });
-        }
-
         if (!name || !price || !location) {
             return res.status(400).json({
                 success: false,
@@ -95,22 +72,23 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        if (typeof facilities === "string") {
-            try {
-                facilities = JSON.parse(facilities);
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid facilities format!"
-                });
-            }
-        }
-
-        if (facilities && !Array.isArray(facilities)) {
+        try {
+            facilities = JSON.parse(facilities);
+        } catch (error) {
             return res.status(400).json({
                 success: false,
-                message: "Facilities must be an array!"
+                message: "Facilities must be a valid JSON array!"
             });
+        }
+
+
+        for (const facility of facilities) {
+            if (!facility.name || !facility.description) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Facility name and description are required!"
+                });
+            }
         }
 
         const uploadFolder = path.join(
@@ -127,7 +105,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         let imagePath = null;
 
-        if (req.file) {
+        if (req.files?.image?.[0]) {
 
             const fileName = `${uuid()}.webp`;
 
@@ -136,7 +114,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 fileName
             );
 
-            await sharp(req.file.buffer)
+            await sharp(req.files.image[0].buffer)
                 .resize({
                     width: 1920,
                     withoutEnlargement: true
@@ -156,28 +134,92 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 shop_id,
                 name,
                 price,
-                facilities,
                 description,
                 image,
                 location
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
                 name,
                 Number(price),
-                facilities ? JSON.stringify(facilities) : null,
                 description || null,
                 imagePath,
                 location
             ]
         );
 
+        const hotel_id = data.insertId;
+
+        const facilityFolder = path.join(
+            process.cwd(),
+            "images",
+            "hotel",
+            "facility"
+        );
+
+        if (!fs.existsSync(facilityFolder)) {
+            fs.mkdirSync(facilityFolder, {
+                recursive: true
+            });
+        }
+
+        const facilityImages = req.files?.facility_images || [];
+
+        if (facilityImages.length !== facilities.length) {
+            return res.status(400).json({
+                success: false,
+                message: "Each facility must have one image!"
+            });
+        }
+
+        for (let i = 0; i < facilities.length; i++) {
+
+            const facility = facilities[i];
+            const fileName = `${uuid()}.webp`;
+
+            const savePath = path.join(
+                facilityFolder,
+                fileName
+            );
+
+            await sharp(facilityImages[i].buffer)
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
+                .toFile(savePath);
+
+            const facilityImage = `images/hotel/facility/${fileName}`;
+
+            await db.query(
+                `
+                INSERT INTO hotel_facilities
+                (
+                    hotel_id,
+                    name,
+                    description,
+                    image
+                )
+                VALUES (?, ?, ?, ?)
+                `,
+                [
+                    hotel_id,
+                    facility.name,
+                    facility.description,
+                    facilityImage
+                ]
+            );
+        }
+
         return res.status(201).json({
             success: true,
             message: "Hotel created successfully.",
-            hotel_id: data.insertId,
+            hotel_id: hotel_id,
             shop_id: shop_id
         });
 
@@ -210,12 +252,39 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.name,
                     h.price,
                     h.location,
-                    h.facilities,
                     h.description,
-                    h.image
+                    h.image,
+                    COALESCE (
+                     JOIN_ARRAYAGG(
+                     CASE WHEN hf.id IS NOT NULL THEN 
+                     JOIN_OBJECT (
+                      'id',hf.id,
+                      'name', hf.name,
+                      'description', hf.description,
+                      'image', hf.image
+                     )
+                      END
+                     ),
+                     JSON_ARRAY()
+
+                    )AS facilites
+
                 FROM hotels h
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
+                    LEFT JOIN hotel_facilities hf
+                    ON h.id = hf.hotel_id
+                  GROUP BY
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    h.name,
+                    h.price,
+                    h.location,
+                    h.description,
+                    h.image
                 ORDER BY h.id DESC
             `;
         }
@@ -255,13 +324,39 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.name,
                     h.location,
                     h.price,
-                    h.facilities,
                     h.description,
-                    h.image
+                    h.image,
+                    COALESCE(
+                        JSON_ARRAYAGG(
+                            CASE
+                                WHEN hf.id IS NOT NULL THEN
+                                    JSON_OBJECT(
+                                        'id', hf.id,
+                                        'name', hf.name,
+                                        'description', hf.description,
+                                        'image', hf.image
+                                    )
+                            END
+                        ),
+                        JSON_ARRAY()
+                    ) AS facilities
                 FROM hotels h
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
+                LEFT JOIN hotel_facilities hf
+                    ON h.id = hf.hotel_id
                 WHERE h.shop_id = ?
+                GROUP BY
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    h.name,
+                    h.price,
+                    h.location,
+                    h.description,
+                    h.image
                 ORDER BY h.id DESC
             `;
 
@@ -277,14 +372,13 @@ export const hotelList = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(query, params);
         for (const hotel of data) {
-
             if (typeof hotel.facilities === "string") {
-                try {
-                    hotel.facilities = JSON.parse(hotel.facilities);
-                } catch (error) {
-                    hotel.facilities = [];
-                }
+                hotel.facilities = JSON.parse(hotel.facilities);
             }
+
+            hotel.facilities = hotel.facilities.filter(
+                facility => facility !== null
+            );
         }
 
         return res.status(200).json({
@@ -313,7 +407,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             name,
             price,
             description,
-            facilities,
             location
         } = req.body;
 
@@ -377,23 +470,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             });
         }
 
-        if (typeof facilities === "string") {
-            try {
-                facilities = JSON.parse(facilities);
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Invalid facilities format!"
-                });
-            }
-        }
-
-        if (facilities && !Array.isArray(facilities)) {
-            return res.status(400).json({
-                success: false,
-                message: "Facilities must be an array!"
-            });
-        }
 
         let updatedImage = hotel[0].image;
         if (req.file) {
@@ -447,7 +523,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             SET
                 name = ?,
                 price = ?,
-                facilities = ?,
                 description = ?,
                 image = ?,
                 location = ?
@@ -456,9 +531,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             [
                 name,
                 Number(price),
-                facilities
-                    ? JSON.stringify(facilities)
-                    : null,
                 description || null,
                 updatedImage,
                 location,
@@ -591,12 +663,10 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
                 h.id,
                 h.shop_id,
                 h.name,
-                h.price,
-                h.facilities,
+                h.price
                 h.location,
                 h.description,
                 h.image,
-
                s.shop_name,
                s.shop_phone,
                s.shop_address
@@ -612,15 +682,6 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
             ORDER BY h.id DESC
         `);
 
-        for (const hotel of data) {
-            if (typeof hotel.facilities === "string") {
-                try {
-                    hotel.facilities = JSON.parse(hotel.facilities);
-                } catch (error) {
-                    hotel.facilities = [];
-                }
-            }
-        }
 
         return res.status(200).json({
             success: true,
@@ -651,7 +712,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.shop_id,
                 h.name,
                 h.price,
-                h.facilities,
                 h.location,
                 h.description,
                 h.image,
@@ -678,14 +738,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             });
         }
 
-
-        if (typeof data[0].facilities === "string") {
-            try {
-                data[0].facilities = JSON.parse(data[0].facilities);
-            } catch (error) {
-                data[0].facilities = [];
-            }
-        }
 
         return res.status(200).json({
             success: true,
@@ -730,13 +782,12 @@ export const hotelSearch = asyncHandel(async (req, res) => {
             DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
             DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
             description,
-            facilities,
             image,
             location 
             FROM 
             hotels 
             WHERE 
-            name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?
+            name LIKE ? OR type LIKE ? OR location LIKE ? OR LIKE ? OR description LIKE ?
             ORDER BY id DESC
             `,
             [
@@ -776,7 +827,6 @@ export const hotelFilter = asyncHandel(async (req, res) => {
             DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
             DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
             description,
-            facilities,
             image,
             location 
             FROM 

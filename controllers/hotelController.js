@@ -18,12 +18,20 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             facilities
         } = req.body;
 
+        // =========================================
+        // 1. ROLE CHECK
+        // =========================================
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
+        // =========================================
+        // 2. SHOP ROLE
+        // =========================================
 
         if (req.user.role === "shop") {
 
@@ -53,6 +61,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             shop_id = shops[0].id;
         }
 
+        // =========================================
+        // 3. ADMIN ROLE
+        // =========================================
+
         if (req.user.role === "admin") {
 
             if (!bodyShopId) {
@@ -65,24 +77,44 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             shop_id = bodyShopId;
         }
 
-        if (!name || !price || !location) {
+        // =========================================
+        // 4. REQUIRED HOTEL FIELDS
+        // =========================================
+
+        if (
+            !name ||
+            price === undefined ||
+            price === null ||
+            !location
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Name and price are required!"
+                message: "Name, price and location are required!"
             });
         }
 
-        // Facilities JSON
+        // =========================================
+        // 5. PARSE FACILITIES
+        // =========================================
+
         try {
-            facilities = typeof facilities === "string"
-                ? JSON.parse(facilities)
-                : facilities;
+
+            facilities =
+                typeof facilities === "string"
+                    ? JSON.parse(facilities)
+                    : facilities;
+
         } catch (error) {
+
             return res.status(400).json({
                 success: false,
                 message: "Facilities must be a valid JSON array!"
             });
         }
+
+        // =========================================
+        // 6. CHECK FACILITIES ARRAY
+        // =========================================
 
         if (!Array.isArray(facilities)) {
             return res.status(400).json({
@@ -91,14 +123,71 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================================
+        // 7. VALIDATE FACILITIES
+        // =========================================
+
         for (const facility of facilities) {
+
             if (!facility.name || !facility.description) {
                 return res.status(400).json({
                     success: false,
-                    message: "Facility name and description are required!"
+                    message:
+                        "Facility name and description are required!"
+                });
+            }
+
+            // image field ရှိရင် boolean ဖြစ်ရမယ်
+            if (
+                facility.image !== undefined &&
+                typeof facility.image !== "boolean"
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Facility image must be true or false!"
                 });
             }
         }
+
+        // =========================================
+        // 8. FILES
+        // =========================================
+
+        const mainImage =
+            req.files?.image?.[0] || null;
+
+        const facilityImages =
+            req.files?.facility_images || [];
+
+        // =========================================
+        // 9. COUNT IMAGE-REQUIRED FACILITIES
+        // =========================================
+
+        const imageRequiredFacilities =
+            facilities.filter(
+                facility => facility.image === true
+            );
+
+        // =========================================
+        // 10. CHECK IMAGE COUNT
+        // =========================================
+
+        if (
+            facilityImages.length !==
+            imageRequiredFacilities.length
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    `You selected ${imageRequiredFacilities.length} facility image(s), ` +
+                    `but uploaded ${facilityImages.length} image(s)!`
+            });
+        }
+
+        // =========================================
+        // 11. HOTEL IMAGE FOLDER
+        // =========================================
 
         const uploadFolder = path.join(
             process.cwd(),
@@ -112,9 +201,13 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================================
+        // 12. MAIN HOTEL IMAGE
+        // =========================================
+
         let imagePath = null;
 
-        if (req.files?.image?.[0]) {
+        if (mainImage) {
 
             const fileName = `${uuid()}.webp`;
 
@@ -123,7 +216,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 fileName
             );
 
-            await sharp(req.files.image[0].buffer)
+            await sharp(mainImage.buffer)
                 .resize({
                     width: 1920,
                     withoutEnlargement: true
@@ -133,8 +226,13 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 })
                 .toFile(savePath);
 
-            imagePath = `images/hotel/${fileName}`;
+            imagePath =
+                `images/hotel/${fileName}`;
         }
+
+        // =========================================
+        // 13. CREATE HOTEL
+        // =========================================
 
         const [data] = await db.query(
             `
@@ -161,6 +259,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         const hotel_id = data.insertId;
 
+        // =========================================
+        // 14. FACILITY IMAGE FOLDER
+        // =========================================
+
         const facilityFolder = path.join(
             process.cwd(),
             "images",
@@ -174,39 +276,47 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        const facilityImages = req.files?.facility_images || [];
+        // =========================================
+        // 15. FACILITY IMAGE POINTER
+        // =========================================
 
-        for (let i = 0; i < facilities.length; i++) {
+        let facilityImageIndex = 0;
 
-            const facility = facilities[i];
+        // =========================================
+        // 16. CREATE FACILITIES
+        // =========================================
 
-            // ပုံမပါရင် NULL သိမ်းမယ်
+        for (const facility of facilities) {
+
             let facilityImage = null;
 
-            // image_index ပါမှ သက်ဆိုင်ရာပုံကို ယူမယ်
-            if (facility.image_index !== undefined) {
+            // =====================================
+            // IMAGE ပါတဲ့ FACILITY ဖြစ်ရင်
+            // =====================================
 
-                const imageIndex = Number(facility.image_index);
+            if (facility.image === true) {
 
-                if (
-                    !Number.isInteger(imageIndex) ||
-                    imageIndex < 0 ||
-                    !facilityImages[imageIndex]
-                ) {
+                const file =
+                    facilityImages[facilityImageIndex];
+
+                if (!file) {
                     return res.status(400).json({
                         success: false,
-                        message: `Invalid image_index for facility: ${facility.name}`
+                        message:
+                            `Image is missing for facility: ${facility.name}`
                     });
                 }
 
-                const fileName = `${uuid()}.webp`;
+                const fileName =
+                    `${uuid()}.webp`;
 
-                const savePath = path.join(
-                    facilityFolder,
-                    fileName
-                );
+                const savePath =
+                    path.join(
+                        facilityFolder,
+                        fileName
+                    );
 
-                await sharp(facilityImages[imageIndex].buffer)
+                await sharp(file.buffer)
                     .resize({
                         width: 1920,
                         withoutEnlargement: true
@@ -216,8 +326,16 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                     })
                     .toFile(savePath);
 
-                facilityImage = `images/hotel/facility/${fileName}`;
+                facilityImage =
+                    `images/hotel/facility/${fileName}`;
+
+                // နောက်ထပ် image အတွက်
+                facilityImageIndex++;
             }
+
+            // =====================================
+            // INSERT FACILITY
+            // =====================================
 
             await db.query(
                 `
@@ -238,6 +356,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 ]
             );
         }
+
+        // =========================================
+        // 17. SUCCESS
+        // =========================================
 
         return res.status(201).json({
             success: true,
@@ -856,7 +978,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             [id]
         );
 
-    
+
 
         return res.status(200).json({
             success: true,

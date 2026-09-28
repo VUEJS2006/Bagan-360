@@ -540,6 +540,11 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             facilities
         } = req.body;
 
+
+        // =========================================
+        // 1. ROLE CHECK
+        // =========================================
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -547,13 +552,21 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+
+        // =========================================
+        // 2. GET SHOP ID
+        // =========================================
+
         let shop_id = bodyShopId;
+
         if (req.user.role === "shop") {
 
             const [checkShop] = await db.query(
-                `SELECT id, type
-                 FROM shops
-                 WHERE user_id = ?`,
+                `
+                SELECT id, type
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
@@ -574,6 +587,11 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             shop_id = checkShop[0].id;
         }
 
+
+        // =========================================
+        // 3. CHECK HOTEL
+        // =========================================
+
         let checkHotelQuery = `
             SELECT *
             FROM hotels
@@ -582,15 +600,22 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
         let checkHotelValues = [id];
 
+
         if (req.user.role === "shop") {
-            checkHotelQuery += ` AND shop_id = ?`;
+
+            checkHotelQuery += `
+                AND shop_id = ?
+            `;
+
             checkHotelValues.push(shop_id);
         }
+
 
         const [checkHotel] = await db.query(
             checkHotelQuery,
             checkHotelValues
         );
+
 
         if (checkHotel.length === 0) {
             return res.status(404).json({
@@ -599,21 +624,34 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+
         const oldHotel = checkHotel[0];
+
+
+        // =========================================
+        // 4. PARSE FACILITIES
+        // =========================================
 
         let facilityList = null;
 
+
         if (facilities !== undefined) {
+
             try {
-                facilityList = typeof facilities === "string"
-                    ? JSON.parse(facilities)
-                    : facilities;
+
+                facilityList =
+                    typeof facilities === "string"
+                        ? JSON.parse(facilities)
+                        : facilities;
+
             } catch (error) {
+
                 return res.status(400).json({
                     success: false,
                     message: "Invalid facilities JSON!"
                 });
             }
+
 
             if (!Array.isArray(facilityList)) {
                 return res.status(400).json({
@@ -622,75 +660,113 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 });
             }
 
+
+            // -----------------------------
+            // Validate facilities
+            // -----------------------------
+
             for (const facility of facilityList) {
+
                 if (!facility.name) {
                     return res.status(400).json({
                         success: false,
-                        message: "Each facility must have a name!"
+                        message:
+                            "Each facility must have a name!"
                     });
                 }
 
-                if (
-                    facility.image_index !== undefined &&
-                    (
-                        !Number.isInteger(Number(facility.image_index)) ||
-                        Number(facility.image_index) < 0
-                    )
-                ) {
+                if (!facility.description) {
                     return res.status(400).json({
                         success: false,
-                        message: "Invalid facility image_index!"
+                        message:
+                            "Each facility must have a description!"
                     });
                 }
             }
         }
 
-        const hotelImage = req.files?.image?.[0];
-        const facilityImages = req.files?.facility_images || [];
 
+        // =========================================
+        // 5. GET IMAGES
+        // =========================================
+
+        const hotelImage =
+            req.files?.image?.[0];
+
+        const facilityImages =
+            req.files?.facility_images || [];
+
+
+        // =========================================
+        // 6. HOTEL IMAGE
+        // =========================================
 
         let updatedImage = oldHotel.image;
+
         const oldImagesToDelete = [];
+
 
         if (hotelImage) {
 
-            const hotelImageName = `${uuid()}.webp`;
+            const hotelImageName =
+                `${uuid()}.webp`;
 
-            const hotelImagePath = path.join(
-                process.cwd(),
-                "images",
-                "hotel",
-                hotelImageName
-            );
+
+            const hotelImagePath =
+                path.join(
+                    process.cwd(),
+                    "images",
+                    "hotel",
+                    hotelImageName
+                );
+
 
             await fs.promises.mkdir(
                 path.dirname(hotelImagePath),
-                { recursive: true }
+                {
+                    recursive: true
+                }
             );
 
+
             await sharp(hotelImage.buffer)
-                .resize({ width: 1920, withoutEnlargement: true })
-                .webp({ quality: 90 })
+                .resize({
+                    width: 1920,
+                    withoutEnlargement: true
+                })
+                .webp({
+                    quality: 90
+                })
                 .toFile(hotelImagePath);
 
-            updatedImage = `images/hotel/${hotelImageName}`;
+
+            updatedImage =
+                `images/hotel/${hotelImageName}`;
+
 
             if (oldHotel.image) {
-                oldImagesToDelete.push(oldHotel.image);
+                oldImagesToDelete.push(
+                    oldHotel.image
+                );
             }
         }
 
 
+        // =========================================
+        // 7. UPDATE HOTEL
+        // =========================================
+
         await db.query(
-            `UPDATE hotels
-             SET
+            `
+            UPDATE hotels
+            SET
                 name = ?,
                 price = ?,
-            
                 description = ?,
                 location = ?,
                 image = ?
-             WHERE id = ?`,
+            WHERE id = ?
+            `,
             [
                 name ?? oldHotel.name,
                 price ?? oldHotel.price,
@@ -702,145 +778,205 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         );
 
 
+        // =========================================
+        // 8. UPDATE FACILITIES
+        // =========================================
+
         if (facilityList !== null) {
 
+            // -----------------------------------------
+            // Get old facilities
+            // -----------------------------------------
+
             const [oldFacilities] = await db.query(
-                `SELECT id, name, description, image
-                 FROM hotel_facilities
-                 WHERE hotel_id = ?
-                 ORDER BY id ASC`,
+                `
+                SELECT
+                    id,
+                    name,
+                    description,
+                    image
+                FROM hotel_facilities
+                WHERE hotel_id = ?
+                ORDER BY id ASC
+                `,
                 [id]
             );
 
 
-            for (let i = 0; i < facilityList.length; i++) {
+            // -----------------------------------------
+            // Save old images before deleting
+            // -----------------------------------------
 
-                const facility = facilityList[i];
+            for (const oldFacility of oldFacilities) {
+
+                if (oldFacility.image) {
+
+                    oldImagesToDelete.push(
+                        oldFacility.image
+                    );
+                }
+            }
+
+
+            // -----------------------------------------
+            // DELETE ALL OLD FACILITIES
+            // -----------------------------------------
+
+            await db.query(
+                `
+                DELETE FROM hotel_facilities
+                WHERE hotel_id = ?
+                `,
+                [id]
+            );
+
+
+            // -----------------------------------------
+            // CREATE NEW FACILITIES
+            // -----------------------------------------
+
+            const facilityFolder =
+                path.join(
+                    process.cwd(),
+                    "images",
+                    "hotel",
+                    "facility"
+                );
+
+
+            await fs.promises.mkdir(
+                facilityFolder,
+                {
+                    recursive: true
+                }
+            );
+
+
+            // -----------------------------------------
+            // Insert new facilities
+            // -----------------------------------------
+
+            for (
+                let i = 0;
+                i < facilityList.length;
+                i++
+            ) {
+
+                const facility =
+                    facilityList[i];
+
 
                 let facilityImage = null;
 
-                if (facility.image_index !== undefined) {
 
-                    const imageIndex = Number(facility.image_index);
+                // -------------------------------------
+                // Image ရှိရင်
+                // -------------------------------------
 
-                    if (!facilityImages[imageIndex]) {
-                        return res.status(400).json({
-                            success: false,
-                            message: `Facility image_index ${imageIndex} has no matching uploaded image!`
-                        });
-                    }
-                }
+                if (facilityImages[i]) {
+
+                    const facilityImageName =
+                        `${uuid()}.webp`;
 
 
-                const oldFacility = oldFacilities[i];
+                    const facilityImagePath =
+                        path.join(
+                            facilityFolder,
+                            facilityImageName
+                        );
 
-                if (oldFacility) {
-                    facilityImage = oldFacility.image;
-                }
-                if (facility.image_index !== undefined) {
 
-                    const imageIndex = Number(facility.image_index);
-                    const facilityFile = facilityImages[imageIndex];
+                    await sharp(
+                        facilityImages[i].buffer
+                    )
+                        .resize({
+                            width: 1920,
+                            withoutEnlargement: true
+                        })
+                        .webp({
+                            quality: 90
+                        })
+                        .toFile(
+                            facilityImagePath
+                        );
 
-                    const facilityImageName = `${uuid()}.webp`;
-
-                    const facilityImagePath = path.join(
-                        process.cwd(),
-                        "images",
-                        "hotel",
-                        "facility",
-                        facilityImageName
-                    );
-
-                    await fs.promises.mkdir(
-                        path.dirname(facilityImagePath),
-                        { recursive: true }
-                    );
-
-                    await sharp(facilityFile.buffer)
-                        .resize({ width: 1920, withoutEnlargement: true })
-                        .webp({ quality: 90 })
-                        .toFile(facilityImagePath);
 
                     facilityImage =
                         `images/hotel/facility/${facilityImageName}`;
-
-                    if (oldFacility?.image) {
-                        oldImagesToDelete.push(oldFacility.image);
-                    }
                 }
 
-                if (oldFacility) {
-                    await db.query(
-                        `UPDATE hotel_facilities
-                         SET
-                            name = ?,
-                            description = ?,
-                            image = ?
-                         WHERE id = ? AND hotel_id = ?`,
-                        [
-                            facility.name,
-                            facility.description ?? null,
-                            facilityImage,
-                            oldFacility.id,
-                            id
-                        ]
-                    );
 
-                } else {
-                    await db.query(
-                        `INSERT INTO hotel_facilities
-                         (hotel_id, name, description, image)
-                         VALUES (?, ?, ?, ?)`,
-                        [
-                            id,
-                            facility.name,
-                            facility.description ?? null,
-                            facilityImage
-                        ]
-                    );
-                }
-            }
-
-            const facilitiesToDelete = oldFacilities.slice(
-                facilityList.length
-            );
-
-            for (const facility of facilitiesToDelete) {
+                // -------------------------------------
+                // INSERT
+                // -------------------------------------
 
                 await db.query(
-                    `DELETE FROM hotel_facilities
-                     WHERE id = ? AND hotel_id = ?`,
-                    [facility.id, id]
+                    `
+                    INSERT INTO hotel_facilities
+                    (
+                        hotel_id,
+                        name,
+                        description,
+                        image
+                    )
+                    VALUES (?, ?, ?, ?)
+                    `,
+                    [
+                        id,
+                        facility.name,
+                        facility.description,
+                        facilityImage
+                    ]
+                );
+            }
+        }
+
+
+        // =========================================
+        // 9. DELETE OLD IMAGE FILES
+        // =========================================
+
+        for (
+            const oldImage
+            of oldImagesToDelete
+        ) {
+
+            const oldImagePath =
+                path.join(
+                    process.cwd(),
+                    oldImage
                 );
 
-                if (facility.image) {
-                    oldImagesToDelete.push(facility.image);
-                }
-            }
-        }
-
-        for (const oldImage of oldImagesToDelete) {
-
-            const oldImagePath = path.join(
-                process.cwd(),
-                oldImage
-            );
 
             try {
-                await fs.promises.unlink(oldImagePath);
+
+                await fs.promises.unlink(
+                    oldImagePath
+                );
+
             } catch (error) {
 
+                // file မရှိရင် ignore
             }
         }
+
+
+        // =========================================
+        // 10. SUCCESS
+        // =========================================
 
         return res.status(200).json({
             success: true,
             message: "Hotel updated successfully!"
         });
 
+
     } catch (error) {
-        console.error("Hotel Update Error:", error);
+
+        console.error(
+            "Hotel Update Error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,

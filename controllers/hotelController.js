@@ -72,8 +72,11 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // Facilities JSON
         try {
-            facilities = JSON.parse(facilities);
+            facilities = typeof facilities === "string"
+                ? JSON.parse(facilities)
+                : facilities;
         } catch (error) {
             return res.status(400).json({
                 success: false,
@@ -81,6 +84,12 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        if (!Array.isArray(facilities)) {
+            return res.status(400).json({
+                success: false,
+                message: "Facilities must be a valid JSON array!"
+            });
+        }
 
         for (const facility of facilities) {
             if (!facility.name || !facility.description) {
@@ -167,34 +176,48 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         const facilityImages = req.files?.facility_images || [];
 
-        if (facilityImages.length !== facilities.length) {
-            return res.status(400).json({
-                success: false,
-                message: "Each facility must have one image!"
-            });
-        }
-
         for (let i = 0; i < facilities.length; i++) {
 
             const facility = facilities[i];
-            const fileName = `${uuid()}.webp`;
 
-            const savePath = path.join(
-                facilityFolder,
-                fileName
-            );
+            // ပုံမပါရင် NULL သိမ်းမယ်
+            let facilityImage = null;
 
-            await sharp(facilityImages[i].buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({
-                    quality: 90
-                })
-                .toFile(savePath);
+            // image_index ပါမှ သက်ဆိုင်ရာပုံကို ယူမယ်
+            if (facility.image_index !== undefined) {
 
-            const facilityImage = `images/hotel/facility/${fileName}`;
+                const imageIndex = Number(facility.image_index);
+
+                if (
+                    !Number.isInteger(imageIndex) ||
+                    imageIndex < 0 ||
+                    !facilityImages[imageIndex]
+                ) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Invalid image_index for facility: ${facility.name}`
+                    });
+                }
+
+                const fileName = `${uuid()}.webp`;
+
+                const savePath = path.join(
+                    facilityFolder,
+                    fileName
+                );
+
+                await sharp(facilityImages[imageIndex].buffer)
+                    .resize({
+                        width: 1920,
+                        withoutEnlargement: true
+                    })
+                    .webp({
+                        quality: 90
+                    })
+                    .toFile(savePath);
+
+                facilityImage = `images/hotel/facility/${fileName}`;
+            }
 
             await db.query(
                 `
@@ -520,7 +543,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         const hotelImage = req.files?.image?.[0];
         const facilityImages = req.files?.facility_images || [];
 
- 
+
         let updatedImage = oldHotel.image;
         const oldImagesToDelete = [];
 
@@ -603,7 +626,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     }
                 }
 
-    
+
                 const oldFacility = oldFacilities[i];
 
                 if (oldFacility) {
@@ -702,7 +725,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             try {
                 await fs.promises.unlink(oldImagePath);
             } catch (error) {
-             
+
             }
         }
 

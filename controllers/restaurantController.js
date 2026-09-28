@@ -386,6 +386,38 @@ export const restaurantList = asyncHandel(async (req, res) => {
         }
 
         const [data] = await db.query(query, params);
+        let cartShopId = null;
+        if (req.user.role === "user") {
+
+            const [cart] = await db.query(`
+                            SELECT DISTINCT
+                                m.shop_id
+                            FROM cart c
+                            INNER JOIN res_menu m
+                                ON c.menu_id = m.id
+                            WHERE c.user_id = ?
+                 `, [req.user.id]);
+
+            if (cart.length > 0) {
+                cartShopId = cart[0].shop_id;
+            }
+        }
+        if (req.user.role === "user") {
+
+            for (const restaurant of data) {
+
+                if (cartShopId === null) {
+
+                    restaurant.can_add = true;
+
+                } else if (cartShopId === restaurant.id) {
+                    restaurant.can_add = true;
+
+                } else {
+                    restaurant.can_add = false;
+                }
+            }
+        }
 
         return res.status(200).json({
             success: true,

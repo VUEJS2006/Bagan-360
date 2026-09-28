@@ -83,8 +83,8 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
             });
         }
 
-        let query = ` 
-            SELECT 
+        let query = `
+            SELECT
                 b.id AS booking_id,
                 b.user_id,
                 b.shop_id,
@@ -92,40 +92,74 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 b.customer_name,
                 b.customer_phone,
-                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-                TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
+
+                DATE_FORMAT(
+                    b.booking_date,
+                    '%d-%m-%Y'
+                ) AS booking_date,
+
+                TIME_FORMAT(
+                    b.booking_time,
+                    '%h:%i %p'
+                ) AS booking_time,
+
                 b.passenger,
                 b.status,
                 b.customer_request,
 
                 h.name AS hotel_name,
-                h.price,
-                h.image,
-                h.facilities,
-                h.description,
+                h.price AS hotel_price,
+                h.image AS hotel_image,
+                h.description AS hotel_description,
 
-                 s.shop_name,
+                s.shop_name,
                 s.shop_address,
-                s.shop_phone
+                s.shop_phone,
+
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        CASE
+                            WHEN hf.id IS NOT NULL THEN
+                                JSON_OBJECT(
+                                    'id', hf.id,
+                                    'name', hf.name,
+                                    'description', hf.description,
+                                    'image', hf.image
+                                )
+                        END
+                    ),
+                    JSON_ARRAY()
+                ) AS facilities
 
             FROM hotel_bookings b
-            JOIN hotels h 
+
+            JOIN hotels h
                 ON b.hotel_id = h.id
-            JOIN shops s 
+
+            JOIN shops s
                 ON b.shop_id = s.id
+
+            LEFT JOIN hotel_facilities hf
+                ON h.id = hf.hotel_id
+
+            WHERE s.status = 'approved'
+                AND s.type = 'hotel'
         `;
 
         let params = [];
 
-        // shop_id
+        // =================================
+        // Shop Login
+        // =================================
+
         let shop_id = null;
 
         if (req.user.role === "shop") {
 
             const [shops] = await db.query(
                 `
-                SELECT id 
-                FROM shops 
+                SELECT id
+                FROM shops
                 WHERE user_id = ?
                 `,
                 [req.user.id]
@@ -140,18 +174,48 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
             shop_id = shops[0].id;
 
-            query += ` WHERE b.shop_id = ?`;
+            query += `
+                AND b.shop_id = ?
+            `;
+
             params.push(shop_id);
         }
 
-        query += ` ORDER BY b.id DESC`;
+        query += `
+            GROUP BY
+                b.id,
+                b.user_id,
+                b.shop_id,
+                b.hotel_id,
+                b.customer_name,
+                b.customer_phone,
+                b.booking_date,
+                b.booking_time,
+                b.passenger,
+                b.status,
+                b.customer_request,
 
-        const [booking] = await db.query(query, params);
+                h.name,
+                h.price,
+                h.image,
+                h.description,
+
+                s.shop_name,
+                s.shop_address,
+                s.shop_phone
+
+            ORDER BY b.id DESC
+        `;
+
+        const [booking] = await db.query(
+            query,
+            params
+        );
 
 
-        // =========================
+        // =================================
         // Booking Status Count
-        // =========================
+        // =================================
 
         let countQuery = `
             SELECT
@@ -159,10 +223,10 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 COALESCE(
                     SUM(
-                        CASE 
-                            WHEN status = 'pending' 
-                            THEN 1 
-                            ELSE 0 
+                        CASE
+                            WHEN status = 'pending'
+                            THEN 1
+                            ELSE 0
                         END
                     ),
                     0
@@ -170,10 +234,10 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 COALESCE(
                     SUM(
-                        CASE 
-                            WHEN status = 'approved' 
-                            THEN 1 
-                            ELSE 0 
+                        CASE
+                            WHEN status = 'approved'
+                            THEN 1
+                            ELSE 0
                         END
                     ),
                     0
@@ -181,10 +245,10 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 COALESCE(
                     SUM(
-                        CASE 
-                            WHEN status = 'cancelled' 
-                            THEN 1 
-                            ELSE 0 
+                        CASE
+                            WHEN status = 'cancelled'
+                            THEN 1
+                            ELSE 0
                         END
                     ),
                     0
@@ -197,7 +261,9 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
         if (req.user.role === "shop") {
 
-            countQuery += ` WHERE shop_id = ?`;
+            countQuery += `
+                WHERE shop_id = ?
+            `;
 
             countParams.push(shop_id);
         }
@@ -208,20 +274,20 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
         );
 
 
-        // =========================
+        // =================================
         // Response
-        // =========================
+        // =================================
 
         return res.status(200).json({
             success: true,
-            message: "Booking List Success",
+            message: "Hotel Booking List Success",
 
             booking,
 
-            total_count: counts[0].total_count,
-            pending_count: counts[0].pending_count,
-            approved_count: counts[0].approved_count,
-            cancelled_count: counts[0].cancelled_count
+            total_count: Number(counts[0].total_count),
+            pending_count: Number(counts[0].pending_count),
+            approved_count: Number(counts[0].approved_count),
+            cancelled_count: Number(counts[0].cancelled_count)
         });
 
     } catch (error) {
@@ -388,7 +454,7 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
         }
 
         const [data] = await db.query(`
-            SELECT 
+            SELECT
                 b.id AS booking_id,
                 b.user_id,
                 b.shop_id,
@@ -402,9 +468,9 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                     '%d-%m-%Y'
                 ) AS booking_date,
 
-                DATE_FORMAT(
+                TIME_FORMAT(
                     b.booking_time,
-                    '%d-%m-%Y'
+                    '%h:%i %p'
                 ) AS booking_time,
 
                 b.passenger,
@@ -414,12 +480,26 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                 h.name AS hotel_name,
                 h.price,
                 h.image,
-                h.facilities,
                 h.description,
 
                 s.shop_name,
                 s.shop_address,
-                s.shop_phone
+                s.shop_phone,
+
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        CASE
+                            WHEN hf.id IS NOT NULL THEN
+                                JSON_OBJECT(
+                                    'id', hf.id,
+                                    'name', hf.name,
+                                    'description', hf.description,
+                                    'image', hf.image
+                                )
+                        END
+                    ),
+                    JSON_ARRAY()
+                ) AS facilities
 
             FROM hotel_bookings b
 
@@ -429,9 +509,36 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
             JOIN shops s
                 ON b.shop_id = s.id
 
+            LEFT JOIN hotel_facilities hf
+                ON h.id = hf.hotel_id
+
             WHERE b.user_id = ?
 
+            GROUP BY
+                b.id,
+                b.user_id,
+                b.shop_id,
+                b.hotel_id,
+
+                b.customer_name,
+                b.customer_phone,
+                b.booking_date,
+                b.booking_time,
+                b.passenger,
+                b.status,
+                b.customer_request,
+
+                h.name,
+                h.price,
+                h.image,
+                h.description,
+
+                s.shop_name,
+                s.shop_address,
+                s.shop_phone
+
             ORDER BY b.id DESC
+
         `, [req.user.id]);
 
         return res.status(200).json({

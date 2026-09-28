@@ -1120,26 +1120,48 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(`
             SELECT
-                h.id,
-                h.shop_id,
-                h.name,
-                h.price
-                h.location,
-                h.description,
-                h.image,
-               s.shop_name,
-               s.shop_phone,
-               s.shop_address
-
-            FROM hotels h
-
-            INNER JOIN shops s
-                ON h.shop_id = s.id
-
-            WHERE s.status = 'approved'
-            AND s.type = 'hotel'
-
-            ORDER BY h.id DESC
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    h.name,
+                    h.location,
+                    h.price,
+                    h.description,
+                    h.image,
+                    COALESCE(
+                        JSON_ARRAYAGG(
+                            CASE
+                                WHEN hf.id IS NOT NULL THEN
+                                    JSON_OBJECT(
+                                        'id', hf.id,
+                                        'name', hf.name,
+                                        'description', hf.description,
+                                        'image', hf.image
+                                    )
+                            END
+                        ),
+                        JSON_ARRAY()
+                    ) AS facilities
+                FROM hotels h
+                LEFT JOIN shops s
+                    ON h.shop_id = s.id
+                LEFT JOIN hotel_facilities hf
+                    ON h.id = hf.hotel_id
+                WHERE h.shop_id = ?
+                GROUP BY
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    h.name,
+                    h.price,
+                    h.location,
+                    h.description,
+                    h.image
+                ORDER BY h.id DESC
         `);
 
 
@@ -1185,7 +1207,49 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             INNER JOIN shops s
                 ON h.shop_id = s.id
 
-            WHERE h.id = ?
+            WHERE h.id = ? SELECT
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    h.name,
+                    h.location,
+                    h.price,
+                    h.description,
+                    h.image,
+                    COALESCE(
+                        JSON_ARRAYAGG(
+                            CASE
+                                WHEN hf.id IS NOT NULL THEN
+                                    JSON_OBJECT(
+                                        'id', hf.id,
+                                        'name', hf.name,
+                                        'description', hf.description,
+                                        'image', hf.image
+                                    )
+                            END
+                        ),
+                        JSON_ARRAY()
+                    ) AS facilities
+                FROM hotels h
+                LEFT JOIN shops s
+                    ON h.shop_id = s.id
+                LEFT JOIN hotel_facilities hf
+                    ON h.id = hf.hotel_id
+                WHERE h.shop_id = ?
+                GROUP BY
+                    h.id,
+                    h.shop_id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    h.name,
+                    h.price,
+                    h.location,
+                    h.description,
+                    h.image
+                ORDER BY h.id DESC
             AND s.status = 'approved'
             AND s.type = 'hotel'
 

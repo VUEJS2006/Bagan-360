@@ -407,10 +407,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             shop_id: bodyShopId,
             name,
             price,
-            discount,
-            total_amount,
-            start_date,
-            end_date,
             description,
             location,
             facilities
@@ -562,10 +558,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
              SET
                 name = ?,
                 price = ?,
-                discount = ?,
-                total_amount = ?,
-                start_date = ?,
-                end_date = ?,
+            
                 description = ?,
                 location = ?,
                 image = ?
@@ -573,10 +566,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             [
                 name ?? oldHotel.name,
                 price ?? oldHotel.price,
-                discount ?? oldHotel.discount,
-                total_amount ?? oldHotel.total_amount,
-                start_date ?? oldHotel.start_date,
-                end_date ?? oldHotel.end_date,
                 description ?? oldHotel.description,
                 location ?? oldHotel.location,
                 updatedImage,
@@ -933,114 +922,4 @@ export const hotelDetails = asyncHandel(async (req, res) => {
     }
 });
 
-export const hotelSearch = asyncHandel(async (req, res) => {
-    try {
 
-        const { search = "" } = req.query;
-        if (!search.trim()) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: []
-            });
-        }
-
-        const keyword = `%${search}%`;
-
-        const [data] = await db.query(
-            `
-            SELECT
-            id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
-            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
-            description,
-            image,
-            location 
-            FROM 
-            hotels 
-            WHERE 
-            name LIKE ? OR type LIKE ? OR location LIKE ? OR LIKE ? OR description LIKE ?
-            ORDER BY id DESC
-            `,
-            [
-                keyword,
-                keyword,
-                keyword,
-                keyword,
-                keyword
-            ]
-
-        )
-        return res.status(200).json({
-            message: "Search Success",
-            success: true,
-            data
-        })
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})
-
-export const hotelFilter = asyncHandel(async (req, res) => {
-    try {
-        const { location = "", name = "", type = "" } = req.query;
-        let sql = `
-            SELECT
-            id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
-            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
-            description,
-            image,
-            location 
-            FROM 
-            hotels 
-            WHERE
-            1=1
-            `;
-        const values = [];
-        if (location) {
-            sql += ` AND location LIKE ?`;
-            values.push(`%${location}%`)
-        }
-        if (name) {
-            sql += ` AND name LIKE ?`;
-            values.push(`%${name}%`)
-        }
-        if (type) {
-            sql += ` AND type LIKE ?`;
-            values.push(`%${type}%`)
-        }
-        sql += `
-         ORDER BY id DESC
-        `;
-        const [hotel] = await db.query(sql, values);
-
-
-        res.status(200).json({
-            success: true,
-            count: hotel.length,
-            hotel
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})

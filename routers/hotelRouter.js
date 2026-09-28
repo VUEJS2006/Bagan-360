@@ -15,7 +15,15 @@ router.post(
     hotelCreate
 );
 router.get('/admin/hotel/list', authenticated, hotelList);
-router.put('/admin/hotel/update/:id', authenticated, upload.single("image"), hotelUpdate);
+router.put(
+    '/admin/hotel/update/:id',
+    authenticated,
+    upload.fields([
+        { name: "image", maxCount: 1 },
+        { name: "facility_images", maxCount: 10 }
+    ]),
+    hotelUpdate
+);
 router.delete('/admin/hotel/delete/:id', authenticated, hotelDelete);
 router.get('/admin/hotel/search', authenticated, isAdmin, hotelSearch);
 router.get('/admin/hotel/filter', authenticated, isAdmin, hotelFilter);

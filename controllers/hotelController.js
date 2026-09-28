@@ -407,7 +407,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             name,
             price,
             description,
-            location
+            location,
+            facilities
         } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
@@ -418,6 +419,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         let shop_id = null;
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -453,6 +455,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         `;
 
         let hotelParams = [id];
+
         if (req.user.role === "shop") {
             hotelQuery += ` AND shop_id = ?`;
             hotelParams.push(shop_id);
@@ -470,20 +473,51 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+        let facilityList = null;
 
-        let updatedImage = hotel[0].image;
-        if (req.file) {
-            if (hotel[0].image) {
+        if (facilities !== undefined) {
 
-                const oldPath = path.join(
-                    process.cwd(),
-                    hotel[0].image
-                );
+            try {
+                facilityList = JSON.parse(facilities);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Facilities must be a valid JSON array!"
+                });
+            }
 
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath);
+            if (!Array.isArray(facilityList)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Facilities must be an array!"
+                });
+            }
+
+            for (const facility of facilityList) {
+                if (!facility.name || !facility.description) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Facility name and description are required!"
+                    });
                 }
             }
+        }
+
+        const facilityImages = req.files?.facility_images || [];
+        if (
+            facilityList !== null &&
+            facilityImages.length > 0 &&
+            facilityImages.length !== facilityList.length
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Each facility must have one image!"
+            });
+        }
+
+        let updatedImage = hotel[0].image;
+
+        if (req.files?.image?.[0]) {
 
             const uploadFolder = path.join(
                 process.cwd(),
@@ -504,7 +538,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 fileName
             );
 
-            await sharp(req.file.buffer)
+            await sharp(req.files.image[0].buffer)
                 .resize({
                     width: 1920,
                     withoutEnlargement: true
@@ -517,7 +551,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             updatedImage = `images/hotel/${fileName}`;
         }
 
-        const [data] = await db.query(
+        await db.query(
             `
             UPDATE hotels
             SET
@@ -538,10 +572,153 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             ]
         );
 
+        if (facilityList !== null) {
+
+            const [oldFacilities] = await db.query(
+                `
+                SELECT id, name, description, image
+                FROM hotel_facilities
+                WHERE hotel_id = ?
+                ORDER BY id ASC
+                `,
+                [id]
+            );
+
+            const facilityFolder = path.join(
+                process.cwd(),
+                "images",
+                "hotel",
+                "facility"
+            );
+
+            if (!fs.existsSync(facilityFolder)) {
+                fs.mkdirSync(facilityFolder, {
+                    recursive: true
+                });
+            }
+
+            for (let i = 0; i < facilityList.length; i++) {
+
+                const facility = facilityList[i];
+
+                let facilityImage = null;
+                if (oldFacilities[i]) {
+                    facilityImage = oldFacilities[i].image;
+                }
+                if (facilityImages[i]) {
+
+                    const fileName = `${uuid()}.webp`;
+
+                    const savePath = path.join(
+                        facilityFolder,
+                        fileName
+                    );
+
+                    await sharp(facilityImages[i].buffer)
+                        .resize({
+                            width: 1920,
+                            withoutEnlargement: true
+                        })
+                        .webp({
+                            quality: 90
+                        })
+                        .toFile(savePath);
+
+                    facilityImage = `images/hotel/facility/${fileName}`;
+                }
+
+                if (oldFacilities[i]) {
+                    await db.query(
+                        `
+                        UPDATE hotel_facilities
+                        SET
+                            name = ?,
+                            description = ?,
+                            image = ?
+                        WHERE id = ?
+                        AND hotel_id = ?
+                        `,
+                        [
+                            facility.name,
+                            facility.description,
+                            facilityImage,
+                            oldFacilities[i].id,
+                            id
+                        ]
+                    );
+
+                } else {
+                    await db.query(
+                        `
+                        INSERT INTO hotel_facilities
+                        (
+                            hotel_id,
+                            name,
+                            description,
+                            image
+                        )
+                        VALUES (?, ?, ?, ?)
+                        `,
+                        [
+                            id,
+                            facility.name,
+                            facility.description,
+                            facilityImage
+                        ]
+                    );
+                }
+            }
+
+            const deletedFacilities = oldFacilities.slice(
+                facilityList.length
+            );
+
+            for (const facility of deletedFacilities) {
+
+                await db.query(
+                    `
+                    DELETE FROM hotel_facilities
+                    WHERE id = ?
+                    AND hotel_id = ?
+                    `,
+                    [
+                        facility.id,
+                        id
+                    ]
+                );
+
+                if (facility.image) {
+
+                    const oldPath = path.join(
+                        process.cwd(),
+                        facility.image
+                    );
+
+                    if (fs.existsSync(oldPath)) {
+                        fs.unlinkSync(oldPath);
+                    }
+                }
+            }
+        }
+
+        if (
+            req.files?.image?.[0] &&
+            hotel[0].image
+        ) {
+
+            const oldPath = path.join(
+                process.cwd(),
+                hotel[0].image
+            );
+
+            if (fs.existsSync(oldPath)) {
+                fs.unlinkSync(oldPath);
+            }
+        }
+
         return res.status(200).json({
             success: true,
-            message: "Hotel Updated Successfully",
-            data
+            message: "Hotel Updated Successfully"
         });
 
     } catch (error) {

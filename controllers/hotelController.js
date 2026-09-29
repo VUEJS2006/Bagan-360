@@ -368,19 +368,27 @@ export const hotelList = asyncHandel(async (req, res) => {
         let query = "";
         let params = [];
 
+        // =========================
+        // ADMIN
+        // =========================
+
         if (req.user.role === "admin") {
 
             query = `
-                 h.id,
+                SELECT
+                    h.id,
                     h.shop_id,
+
                     s.shop_name,
                     s.shop_address,
                     s.shop_phone,
+
                     h.name,
                     h.location,
                     h.price,
                     h.description,
                     h.image,
+
                     COALESCE(
                         JSON_ARRAYAGG(
                             CASE
@@ -395,12 +403,15 @@ export const hotelList = asyncHandel(async (req, res) => {
                         ),
                         JSON_ARRAY()
                     ) AS facilities
+
                 FROM hotels h
+
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
+
                 LEFT JOIN hotel_facilities hf
                     ON h.id = hf.hotel_id
-                WHERE h.shop_id = ?
+
                 GROUP BY
                     h.id,
                     h.shop_id,
@@ -412,9 +423,14 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.location,
                     h.description,
                     h.image
+
                 ORDER BY h.id DESC
             `;
         }
+
+        // =========================
+        // SHOP
+        // =========================
 
         else if (req.user.role === "shop") {
 
@@ -445,14 +461,17 @@ export const hotelList = asyncHandel(async (req, res) => {
                 SELECT
                     h.id,
                     h.shop_id,
+
                     s.shop_name,
                     s.shop_address,
                     s.shop_phone,
+
                     h.name,
                     h.location,
                     h.price,
                     h.description,
                     h.image,
+
                     COALESCE(
                         JSON_ARRAYAGG(
                             CASE
@@ -467,12 +486,17 @@ export const hotelList = asyncHandel(async (req, res) => {
                         ),
                         JSON_ARRAY()
                     ) AS facilities
+
                 FROM hotels h
+
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
+
                 LEFT JOIN hotel_facilities hf
                     ON h.id = hf.hotel_id
+
                 WHERE h.shop_id = ?
+
                 GROUP BY
                     h.id,
                     h.shop_id,
@@ -484,11 +508,16 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.location,
                     h.description,
                     h.image
+
                 ORDER BY h.id DESC
             `;
 
             params = [shop[0].id];
         }
+
+        // =========================
+        // OTHER ROLES
+        // =========================
 
         else {
             return res.status(403).json({
@@ -497,13 +526,23 @@ export const hotelList = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================
+        // QUERY
+        // =========================
+
         const [data] = await db.query(query, params);
+
+        // =========================
+        // FACILITIES JSON PARSE
+        // =========================
+
         for (const hotel of data) {
+
             if (typeof hotel.facilities === "string") {
                 hotel.facilities = JSON.parse(hotel.facilities);
             }
 
-            hotel.facilities = hotel.facilities.filter(
+            hotel.facilities = (hotel.facilities || []).filter(
                 facility => facility !== null
             );
         }

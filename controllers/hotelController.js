@@ -371,38 +371,37 @@ export const hotelList = asyncHandel(async (req, res) => {
         if (req.user.role === "admin") {
 
             query = `
-                SELECT
-                    h.id,
+                 h.id,
                     h.shop_id,
                     s.shop_name,
                     s.shop_address,
                     s.shop_phone,
                     h.name,
-                    h.price,
                     h.location,
+                    h.price,
                     h.description,
                     h.image,
-                    COALESCE (
-                     JOIN_ARRAYAGG(
-                     CASE WHEN hf.id IS NOT NULL THEN 
-                     JOIN_OBJECT (
-                      'id',hf.id,
-                      'name', hf.name,
-                      'description', hf.description,
-                      'image', hf.image
-                     )
-                      END
-                     ),
-                     JSON_ARRAY()
-
-                    )AS facilites
-
+                    COALESCE(
+                        JSON_ARRAYAGG(
+                            CASE
+                                WHEN hf.id IS NOT NULL THEN
+                                    JSON_OBJECT(
+                                        'id', hf.id,
+                                        'name', hf.name,
+                                        'description', hf.description,
+                                        'image', hf.image
+                                    )
+                            END
+                        ),
+                        JSON_ARRAY()
+                    ) AS facilities
                 FROM hotels h
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
-                    LEFT JOIN hotel_facilities hf
+                LEFT JOIN hotel_facilities hf
                     ON h.id = hf.hotel_id
-                  GROUP BY
+                WHERE h.shop_id = ?
+                GROUP BY
                     h.id,
                     h.shop_id,
                     s.shop_name,

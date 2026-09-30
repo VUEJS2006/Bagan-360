@@ -18,12 +18,20 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             location
         } = req.body;
 
+        // =========================
+        // ROLE CHECK
+        // =========================
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
+        // =========================
+        // SHOP ROLE
+        // =========================
 
         if (req.user.role === "shop") {
 
@@ -53,6 +61,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             shop_id = shops[0].id;
         }
 
+        // =========================
+        // ADMIN ROLE
+        // =========================
+
         if (req.user.role === "admin") {
 
             if (!bodyShopId) {
@@ -64,6 +76,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
             shop_id = bodyShopId;
         }
+
+        // =========================
+        // CHECK SHOP
+        // =========================
 
         const [shop] = await db.query(
             `
@@ -88,14 +104,23 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================
+        // VALIDATION
+        // =========================
+
         if (!name || !price || !location) {
             return res.status(400).json({
                 success: false,
-                message: "Name and price are required!"
+                message: "Name, price and location are required!"
             });
         }
 
+        // =========================
+        // FACILITIES JSON
+        // =========================
+
         if (typeof facilities === "string") {
+
             try {
                 facilities = JSON.parse(facilities);
             } catch (error) {
@@ -113,6 +138,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================
+        // MAIN IMAGE FOLDER
+        // =========================
+
         const uploadFolder = path.join(
             process.cwd(),
             "images",
@@ -125,9 +154,15 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        // =========================
+        // MAIN IMAGE
+        // =========================
+
         let imagePath = null;
 
-        if (req.file) {
+        const mainImage = req.files?.image?.[0];
+
+        if (mainImage) {
 
             const fileName = `${uuid()}.webp`;
 
@@ -136,7 +171,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 fileName
             );
 
-            await sharp(req.file.buffer)
+            await sharp(mainImage.buffer)
                 .resize({
                     width: 1920,
                     withoutEnlargement: true
@@ -148,6 +183,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
             imagePath = `images/hotel/${fileName}`;
         }
+
+        // =========================
+        // CREATE HOTEL
+        // =========================
 
         const [data] = await db.query(
             `
@@ -174,6 +213,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         const hotel_id = data.insertId;
 
+        // =========================
+        // CREATE FACILITIES
+        // =========================
+
         if (facilities && facilities.length > 0) {
 
             for (const facility of facilities) {
@@ -187,14 +230,14 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
                 await db.query(
                     `
-            INSERT INTO hotel_facilities
-            (
-                hotel_id,
-                name,
-                description
-            )
-            VALUES (?, ?, ?)
-            `,
+                    INSERT INTO hotel_facilities
+                    (
+                        hotel_id,
+                        name,
+                        description
+                    )
+                    VALUES (?, ?, ?)
+                    `,
                     [
                         hotel_id,
                         facility.name,
@@ -203,22 +246,41 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 );
             }
         }
-        const hotelFolder = path.join(process.cwd(), "images", "hotel_image");
+
+        // =========================
+        // EXTRA IMAGE FOLDER
+        // =========================
+
+        const hotelFolder = path.join(
+            process.cwd(),
+            "images",
+            "hotel_image"
+        );
 
         if (!fs.existsSync(hotelFolder)) {
-            fs.mkdirSync(hotelFolder, { recursive: true });
+            fs.mkdirSync(hotelFolder, {
+                recursive: true
+            });
         }
 
-        // Image Upload
+        // =========================
+        // EXTRA HOTEL IMAGES
+        // =========================
+
         let imagePaths = [];
 
-        if (req.files && req.files.length > 0) {
+        const hotelImages = req.files?.hotel_images || [];
 
-            for (const file of req.files) {
+        if (hotelImages.length > 0) {
+
+            for (const file of hotelImages) {
 
                 const fileName = `${uuid()}.webp`;
 
-                const savePath = path.join(hotelFolder, fileName);
+                const savePath = path.join(
+                    hotelFolder,
+                    fileName
+                );
 
                 await sharp(file.buffer)
                     .resize({
@@ -230,11 +292,18 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                     })
                     .toFile(savePath);
 
-                imagePaths.push(`images/hotel_image/${fileName}`);
+                imagePaths.push(
+                    `images/hotel_image/${fileName}`
+                );
             }
-
         }
+
+        // =========================
+        // INSERT EXTRA IMAGES
+        // =========================
+
         for (const image of imagePaths) {
+
             await db.query(
                 `
                 INSERT INTO hotel_images
@@ -242,20 +311,23 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                     hotel_id,
                     image
                 )
-                VALUES (?,?)
+                VALUES (?, ?)
                 `,
                 [
                     hotel_id,
                     image
                 ]
             );
-
         }
+
+        // =========================
+        // RESPONSE
+        // =========================
 
         return res.status(201).json({
             success: true,
             message: "Hotel created successfully.",
-            hotel_id: data.insertId,
+            hotel_id: hotel_id,
             shop_id: shop_id
         });
 
@@ -708,7 +780,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
 
         let shop_id = null;
 
-      
+
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -1079,3 +1151,5 @@ export const hotelFilter = asyncHandel(async (req, res) => {
         });
     }
 })
+
+ 

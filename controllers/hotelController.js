@@ -1161,7 +1161,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
 
                 h.name,
                 h.price,
-                h.facilities,
                 h.location,
                 h.description,
                 h.image
@@ -1231,7 +1230,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             shop_id: hotel.shop_id,
             name: hotel.name,
             price: hotel.price,
-            facilities: hotel.facilities,
             location: hotel.location,
             description: hotel.description,
             image: hotel.image,

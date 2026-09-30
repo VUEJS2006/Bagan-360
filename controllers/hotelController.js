@@ -772,28 +772,68 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     `images/hotel_image/${fileName}`
                 );
             }
-        }
 
-        // =========================
-        // INSERT EXTRA IMAGES
-        // =========================
-
-        for (const image of imagePaths) {
-
-            await db.query(
+            const [oldImages] = await db.query(
                 `
-                INSERT INTO hotel_images
-                (
-                    hotel_id,
-                    image
-                )
-                VALUES (?, ?)
+                SELECT image
+                FROM hotel_images
+                WHERE hotel_id = ?
                 `,
-                [
-                    id,
-                    image
-                ]
+                [id]
             );
+
+            const connection = await db.getConnection();
+
+            try {
+                await connection.beginTransaction();
+                await connection.query(
+                    `
+                    DELETE FROM hotel_images
+                    WHERE hotel_id = ?
+                    `,
+                    [id]
+                );
+
+                for (const image of imagePaths) {
+                    await connection.query(
+                        `
+                        INSERT INTO hotel_images
+                        (
+                            hotel_id,
+                            image
+                        )
+                        VALUES (?, ?)
+                        `,
+                        [id, image]
+                    );
+                }
+
+                await connection.commit();
+            } catch (error) {
+                await connection.rollback();
+
+                for (const image of imagePaths) {
+                    const imagePath = path.join(process.cwd(), image);
+                    if (fs.existsSync(imagePath)) {
+                        fs.unlinkSync(imagePath);
+                    }
+                }
+
+                throw error;
+            } finally {
+                connection.release();
+            }
+
+            for (const image of oldImages) {
+                if (!image.image) {
+                    continue;
+                }
+
+                const oldPath = path.join(process.cwd(), image.image);
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                }
+            }
         }
 
         // =========================

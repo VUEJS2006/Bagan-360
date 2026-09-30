@@ -478,6 +478,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             location
         } = req.body;
 
+        // =========================
+        // ROLE CHECK
+        // =========================
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -486,6 +490,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         let shop_id = null;
+
+        // =========================
+        // SHOP ROLE
+        // =========================
 
         if (req.user.role === "shop") {
 
@@ -515,6 +523,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
+        // =========================
+        // CHECK HOTEL
+        // =========================
+
         let hotelQuery = `
             SELECT *
             FROM hotels
@@ -524,7 +536,11 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         let hotelParams = [id];
 
         if (req.user.role === "shop") {
-            hotelQuery += ` AND shop_id = ?`;
+
+            hotelQuery += `
+                AND shop_id = ?
+            `;
+
             hotelParams.push(shop_id);
         }
 
@@ -541,13 +557,17 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         // =========================
-        // FACILITIES
+        // FACILITIES JSON
         // =========================
 
         if (typeof facilities === "string") {
+
             try {
+
                 facilities = JSON.parse(facilities);
+
             } catch (error) {
+
                 return res.status(400).json({
                     success: false,
                     message: "Invalid facilities format!"
@@ -556,6 +576,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         if (facilities && !Array.isArray(facilities)) {
+
             return res.status(400).json({
                 success: false,
                 message: "Facilities must be an array!"
@@ -567,6 +588,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             for (const facility of facilities) {
 
                 if (!facility.name) {
+
                     return res.status(400).json({
                         success: false,
                         message: "Facility name is required!"
@@ -581,7 +603,11 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
         let updatedImage = hotel[0].image;
 
-        if (req.file) {
+        const mainImage = req.files?.image?.[0];
+
+        if (mainImage) {
+
+            // DELETE OLD MAIN IMAGE
 
             if (hotel[0].image) {
 
@@ -595,6 +621,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 }
             }
 
+            // CREATE FOLDER
+
             const uploadFolder = path.join(
                 process.cwd(),
                 "images",
@@ -602,10 +630,13 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             );
 
             if (!fs.existsSync(uploadFolder)) {
+
                 fs.mkdirSync(uploadFolder, {
                     recursive: true
                 });
             }
+
+            // CREATE NEW IMAGE
 
             const fileName = `${uuid()}.webp`;
 
@@ -614,7 +645,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 fileName
             );
 
-            await sharp(req.file.buffer)
+            await sharp(mainImage.buffer)
                 .resize({
                     width: 1920,
                     withoutEnlargement: true
@@ -658,6 +689,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
         if (facilities) {
 
+            // DELETE OLD FACILITIES
+
             await db.query(
                 `
                 DELETE FROM hotel_facilities
@@ -665,6 +698,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 `,
                 [id]
             );
+
+            // INSERT NEW FACILITIES
 
             for (const facility of facilities) {
 
@@ -688,7 +723,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         // =========================
-        // EXTRA HOTEL IMAGES
+        // EXTRA HOTEL IMAGE FOLDER
         // =========================
 
         const hotelFolder = path.join(
@@ -698,16 +733,23 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         );
 
         if (!fs.existsSync(hotelFolder)) {
+
             fs.mkdirSync(hotelFolder, {
                 recursive: true
             });
         }
 
+        // =========================
+        // EXTRA HOTEL IMAGES
+        // =========================
+
         let imagePaths = [];
 
-        if (req.files && req.files.length > 0) {
+        const hotelImages = req.files?.hotel_images || [];
 
-            for (const file of req.files) {
+        if (hotelImages.length > 0) {
+
+            for (const file of hotelImages) {
 
                 const fileName = `${uuid()}.webp`;
 
@@ -732,6 +774,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
         }
 
+        // =========================
+        // INSERT EXTRA IMAGES
+        // =========================
+
         for (const image of imagePaths) {
 
             await db.query(
@@ -750,6 +796,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             );
         }
 
+        // =========================
+        // RESPONSE
+        // =========================
+
         return res.status(200).json({
             success: true,
             message: "Hotel Updated Successfully",
@@ -766,6 +816,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         });
     }
 });
+
 export const hotelDelete = asyncHandel(async (req, res) => {
     try {
 
@@ -1152,4 +1203,3 @@ export const hotelFilter = asyncHandel(async (req, res) => {
     }
 })
 
- 

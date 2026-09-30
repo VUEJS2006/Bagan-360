@@ -1010,7 +1010,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
 });
 
 
-export const hotelMobileListList = asyncHandel(async (req, res) => {
+export const hotelMobileList = asyncHandel(async (req, res) => {
     try {
 
         let query = "";

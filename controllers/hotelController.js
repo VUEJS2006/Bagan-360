@@ -1222,6 +1222,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             shop_id: data[0].shop_id,
             shop_name: data[0].shop_name,
             shop_phone: data[0].shop_phone,
+            image: data[0].image,
             shop_address: data[0].shop_address
         };
 

@@ -1008,47 +1008,127 @@ export const hotelDelete = asyncHandel(async (req, res) => {
         });
     }
 });
-export const hotelMobileList = asyncHandel(async (req, res) => {
+
+
+export const hotelMobileListList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query(`
-            SELECT
-                h.id,
-                h.shop_id,
-                h.name,
-                h.price,
-                h.facilities,
-                h.location,
-                h.description,
-                h.image,
+        let query = "";
+        let params = [];
 
-               s.shop_name,
-               s.shop_phone,
-               s.shop_address
+        // =========================
+        // ADMIN
+        // =========================
 
-            FROM hotels h
+        if (req.user.role === "admin") {
 
-            INNER JOIN shops s
-                ON h.shop_id = s.id
-
-            WHERE s.status = 'approved'
-            AND s.type = 'hotel'
-
-            ORDER BY h.id DESC
-        `);
-
-        for (const hotel of data) {
-            if (typeof hotel.facilities === "string") {
-                try {
-                    hotel.facilities = JSON.parse(hotel.facilities);
-                } catch (error) {
-                    hotel.facilities = [];
-                }
-            }
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.location,
+                    s.shop_phone,
+                    s.status,
+                    s.type,
+                    s.user_id,
+                    u.image
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'hotel'
+                ORDER BY s.id DESC
+            `;
         }
 
+        // =========================
+        // SHOP
+        // =========================
+
+        else if (req.user.role === "shop") {
+
+            const [shop] = await db.query(
+                `
+                SELECT
+                    id,
+                    type
+                FROM shops
+                WHERE user_id = ?
+                `,
+                [req.user.id]
+            );
+
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.location,
+                    s.shop_address,
+                    s.shop_phone,
+                    s.status,
+                    s.type,
+                    u.image,
+                    s.user_id
+
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.id = ?
+                AND s.type = 'hotel'
+                ORDER BY s.id DESC
+            `;
+
+            params = [shop[0].id];
+        }
+
+        // =========================
+        // USER
+        // =========================
+
+        else if (req.user.role === "user") {
+
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    s.location,
+                    s.status,
+                    s.type,
+                    u.image,
+                    s.user_id
+
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'hotel'
+                AND s.status = 'approved'
+                ORDER BY s.id DESC
+            `;
+        }
+
+        // =========================
+        // OTHER ROLE
+        // =========================
+
+        else {
+
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+
+        const [data] = await db.query(query, params);
+    
         return res.status(200).json({
             success: true,
+            message: "Hotel Data Success",
             count: data.length,
             data
         });
@@ -1061,7 +1141,6 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
-
     }
 });
 

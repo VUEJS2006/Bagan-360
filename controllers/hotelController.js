@@ -1125,7 +1125,7 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
         }
 
         const [data] = await db.query(query, params);
-    
+
         return res.status(200).json({
             success: true,
             message: "Hotel Data Success",
@@ -1149,36 +1149,38 @@ export const hotelDetails = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
         const [data] = await db.query(`
-            SELECT
-                h.id,
-                h.shop_id,
+    SELECT
+        h.id,
+        h.shop_id,
 
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-                u.image,
-                s.user_id,
+        s.shop_name,
+        s.shop_phone,
+        s.shop_address,
+        s.user_id,
 
-                h.name,
-                h.price,
-                h.location,
-                h.description,
-                h.image
+        u.image AS user_image,
 
-            FROM hotels h
+        h.name,
+        h.price,
+        h.location,
+        h.description,
+        h.image AS hotel_image
 
-            INNER JOIN shops s
-                ON h.shop_id = s.id
+    FROM hotels h
 
-            JOIN users u ON s.user_id = u.id
+    INNER JOIN shops s
+        ON h.shop_id = s.id
 
-            WHERE h.shop_id = ?
-            AND s.status = 'approved'
-            AND s.type = 'hotel'
+    INNER JOIN users u
+        ON s.user_id = u.id
 
-            ORDER BY h.id DESC
+    WHERE h.shop_id = ?
+    AND s.status = 'approved'
+    AND s.type = 'hotel'
 
-        `, [id]);
+    ORDER BY h.id DESC
+
+`, [id]);
 
         if (data.length === 0) {
             return res.status(404).json({
@@ -1222,8 +1224,8 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             shop_id: data[0].shop_id,
             shop_name: data[0].shop_name,
             shop_phone: data[0].shop_phone,
-            image: data[0].image,
-            shop_address: data[0].shop_address
+            shop_address: data[0].shop_address,
+             image: data[0].user_image
         };
 
         const hotels = data.map(hotel => ({

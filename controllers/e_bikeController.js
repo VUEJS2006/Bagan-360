@@ -986,98 +986,103 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
 export const eBikeMobileList = asyncHandel(async (req, res) => {
     try {
 
+        let query = "";
+        let params = [];
 
-        const [data] = await db.query(
-            `
-            SELECT
-                e.id,
+        if (req.user.role === "admin") {
 
-                e.name,
-                e.code,
-                e.brand,
-                e.color,
-                e.location,
-                e.image,
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.location,
+                    s.shop_phone,
+                    s.status,
+                    s.type,
+                    s.user_id,
+                    u.image
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'restaurant'
+                ORDER BY s.id DESC
+            `;
+        }
+        else if (req.user.role === "shop") {
 
-            
+            const [shop] = await db.query(
+                `
+                SELECT
+                    id,
+                    type
+                FROM shops
+                WHERE user_id = ?
+                `,
+                [req.user.id]
+            );
 
-                e.status,
-                e.battery_percentage,
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
 
-                e.helmet,
-                e.battery_voltage,
-                e.battery_capacity,
-                e.passenger_count,
-                e.phone_holder,
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.location,
+                    s.shop_address,
+                    s.shop_phone,
+                    s.status,
+                    s.type,
+                    u.image,
+                    s.user_id
 
-                e.description,
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.id = ?
+                AND s.type = 'restaurant'
+                ORDER BY s.id DESC
+            `;
 
-                t.id AS type_id,
-                t.name AS type_name,
-                t.distance,
+            params = [shop[0].id];
+        }
+        else if (req.user.role === "user") {
 
-                s.id AS shop_id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    s.location,
+                    s.status,
+                    s.type,
+                    u.image,
+                    s.user_id
 
-            FROM e_bikes e
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'restaurant'
+                AND s.status = 'approved'
+                ORDER BY s.id DESC
+            `;
+        }
 
-            INNER JOIN e_bike_types t
-                ON e.type_id = t.id
+        else {
 
-            INNER JOIN shops s
-                ON e.shop_id = s.id
-
-            WHERE s.status = 'approved'
-
-            ORDER BY e.id DESC
-            `
-        );
-
-
-        const [prices] = await db.query(
-            `
-            SELECT
-                id,
-                e_bike_id,
-                CASE
-                    WHEN price_type = 'full_day' THEN 'Full Day'
-                    WHEN price_type = 'half_day_1' THEN 'Half Day 1'
-                    WHEN price_type = 'half_day_2' THEN 'Half Day 2'
-                    WHEN price_type = 'hourly' THEN 'Hourly'
-                    ELSE price_type
-                END AS price_type,
-                start_time,
-                end_time,
-                price
-
-            FROM e_bike_prices
-
-            ORDER BY created_at ASC
-            `
-        );
-
-
-        const result = data.map((bike) => {
-
-            return {
-                ...bike,
-
-                prices: prices.filter(
-                    (price) =>
-                        price.e_bike_id === bike.id
-                )
-            };
-
-        });
-
-
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
+        const [data] = await db.query(query, params);
         return res.status(200).json({
             success: true,
             message: "E-Bike Success!",
-            count: result.length,
-            data: result
+            data
         });
 
 

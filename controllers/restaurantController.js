@@ -277,10 +277,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
         let query = "";
         let params = [];
 
-        // =========================
-        // ADMIN
-        // =========================
-
         if (req.user.role === "admin") {
 
             query = `
@@ -301,9 +297,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
             `;
         }
 
-        // =========================
-        // SHOP
-        // =========================
 
         else if (req.user.role === "shop") {
 
@@ -347,10 +340,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
             params = [shop[0].id];
         }
 
-        // =========================
-        // USER
-        // =========================
-
         else if (req.user.role === "user") {
 
             query = `
@@ -373,10 +362,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
             `;
         }
 
-        // =========================
-        // OTHER ROLE
-        // =========================
-
+     
         else {
 
             return res.status(403).json({

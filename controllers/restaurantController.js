@@ -1116,6 +1116,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                     id: item.id,
                     shop_id: item.shop_id,
                     name: item.name,
+                    is_active:item.is_active,
                     image: item.image,
                     description: item.description,
                     created_at: item.created_at,

@@ -1101,6 +1101,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.location,
                     s.status,
+                    s.is_active,
                     s.type,
                     u.image,
                     s.user_id

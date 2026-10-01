@@ -12,14 +12,11 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             shop_id: bodyShopId,
             name,
             description,
-            prices
+            prices,
+            is_active,
         } = req.body;
 
         let shop_id;
-
-        // =========================
-        // ROLE CHECK
-        // =========================
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -57,7 +54,6 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                 });
             }
 
-            // Login ဝင်ထားတဲ့ shop ကိုပဲ သုံးမယ်
             shop_id = shop[0].id;
         }
 
@@ -209,13 +205,15 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                 shop_id,
                 name,
                 image,
+                is_active,
                 description
             )
-            VALUES (?, ?, ?, ?)
+            VALUES (?, ?, ?, ?,?)
             `,
             [
                 shop_id,
                 name,
+                is_active || true,
                 imagePath,
                 description
             ]
@@ -362,7 +360,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
             `;
         }
 
-     
+
         else {
 
             return res.status(403).json({
@@ -445,6 +443,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     s.shop_phone AS shop_phone,
                     m.name,
                     m.image,
+                    m.is_active,
                     m.description
                 FROM res_menu m
                 INNER JOIN shops s
@@ -495,6 +494,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     s.shop_phone AS shop_phone,
                     m.name,
                     m.image,
+                    m.is_active,
                     m.description
                 FROM res_menu m
                 INNER JOIN shops s
@@ -523,6 +523,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     s.shop_phone AS shop_phone,
                     m.name,
                     m.image,
+                    m.is_active,
                     m.description
                 FROM res_menu m
                 INNER JOIN shops s
@@ -602,7 +603,8 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
         let {
             name,
             description,
-            prices
+            prices,
+            is_active,
         } = req.body;
 
         let shop_id = null;
@@ -675,6 +677,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 m.shop_id,
                 m.name,
                 m.image,
+                m.is_active,
                 m.description
             FROM res_menu m
 
@@ -771,12 +774,14 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             SET
                 name = ?,
                 description = ?,
+                is_active = ?
                 image = ?
             WHERE id = ?
             `,
             [
                 name,
                 description,
+                is_active,
                 updateImage,
                 id
             ]
@@ -1077,6 +1082,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                 m.shop_id,
                 m.name,
                 m.image,
+                m.is_active,
                 m.description,
                 DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
 
@@ -1089,7 +1095,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             LEFT JOIN menu_price mp
                 ON m.id = mp.menu_id
 
-            WHERE m.shop_id = ?
+            WHERE m.shop_id = ? AND m.is_active = true
 
             ORDER BY m.id DESC, mp.id ASC
             `,
@@ -1175,6 +1181,7 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
                 m.shop_id,
                 m.name,
                 m.image,
+                m.is_active,
                 m.description,
 
                 DATE_FORMAT(
@@ -1194,7 +1201,7 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
                 ON m.id = mp.menu_id
 
             WHERE m.id = ?
-            AND s.type = 'restaurant'
+            AND s.type = 'restaurant' AND m.is_active = true
             `,
             [id]
         );

@@ -1004,7 +1004,7 @@ export const eBikeMobileList = asyncHandel(async (req, res) => {
                     u.image
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
-                WHERE s.type = 'restaurant'
+                WHERE s.type = 'e_bike'
                 ORDER BY s.id DESC
             `;
         }
@@ -1043,7 +1043,7 @@ export const eBikeMobileList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
-                AND s.type = 'restaurant'
+                AND s.type = 'e_bike'
                 ORDER BY s.id DESC
             `;
 
@@ -1065,7 +1065,7 @@ export const eBikeMobileList = asyncHandel(async (req, res) => {
 
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
-                WHERE s.type = 'restaurant'
+                WHERE s.type = 'e_bike'
                 AND s.status = 'approved'
                 ORDER BY s.id DESC
             `;

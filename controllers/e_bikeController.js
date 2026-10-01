@@ -1218,7 +1218,7 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
 
 
             WHERE
-                e.shop_id = ?
+                e.id = ?
 
             GROUP BY
                 e.id,
@@ -1258,7 +1258,7 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
             message: "E-bike Detail Success",
             data
         });
-        
+
     } catch (error) {
 
         console.log(error);

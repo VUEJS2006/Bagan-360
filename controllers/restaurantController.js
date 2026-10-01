@@ -593,6 +593,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
+        // =========================
+        // ROLE CHECK
+        // =========================
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -617,7 +621,9 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
             const [shop] = await db.query(
                 `
-                SELECT id, type
+                SELECT
+                    id,
+                    type
                 FROM shops
                 WHERE user_id = ?
                 `,
@@ -664,6 +670,20 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "Prices must be an array!"
+            });
+        }
+
+        // =========================
+        // IS ACTIVE VALIDATION
+        // =========================
+
+        if (
+            is_active !== undefined &&
+            typeof is_active !== "boolean"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "is_active must be true or false!"
             });
         }
 
@@ -720,6 +740,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         if (req.file) {
 
+            // Old image delete
             if (menu[0].image) {
 
                 const oldPath = path.join(
@@ -768,24 +789,58 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
         // MENU UPDATE
         // =========================
 
-        await db.query(
-            `
-            UPDATE res_menu
-            SET
-                name = ?,
-                description = ?,
-                is_active = ?,
-                image = ?
-            WHERE id = ?
-            `,
-            [
-                name,
-                description,
-                is_active,
-                updateImage,
-                id
-            ]
-        );
+        let updateFields = [];
+        let updateValues = [];
+
+        // Name ပို့မှ update
+        if (name !== undefined) {
+
+            if (!name.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Name cannot be empty!"
+                });
+            }
+
+            updateFields.push("name = ?");
+            updateValues.push(name);
+        }
+
+        // Description ပို့မှ update
+        if (description !== undefined) {
+
+            updateFields.push("description = ?");
+            updateValues.push(description);
+        }
+
+        // is_active ပို့မှ update
+        if (is_active !== undefined) {
+
+            updateFields.push("is_active = ?");
+            updateValues.push(is_active);
+        }
+
+        // Image ပါလာမှ update
+        if (req.file) {
+
+            updateFields.push("image = ?");
+            updateValues.push(updateImage);
+        }
+
+        // Field တစ်ခုခု update ရှိမှ SQL run
+        if (updateFields.length > 0) {
+
+            updateValues.push(id);
+
+            await db.query(
+                `
+                UPDATE res_menu
+                SET ${updateFields.join(", ")}
+                WHERE id = ?
+                `,
+                updateValues
+            );
+        }
 
         // =========================
         // PRICE UPDATE
@@ -803,6 +858,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 `,
                 [id]
             );
+
+            // =========================
+            // UPDATE / INSERT PRICE
+            // =========================
 
             for (const item of prices) {
 
@@ -834,6 +893,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                     old => old.size === item.size
                 );
 
+                // =========================
+                // EXISTING PRICE
+                // =========================
+
                 if (existingPrice) {
 
                     await db.query(
@@ -850,7 +913,13 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                         ]
                     );
 
-                } else {
+                }
+
+                // =========================
+                // NEW PRICE
+                // =========================
+
+                else {
 
                     await db.query(
                         `
@@ -871,7 +940,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 }
             }
 
-            // Request ထဲမပါတဲ့ old size တွေ delete
+            // =========================
+            // DELETE OLD PRICE
+            // =========================
+
             const requestSizes = prices.map(
                 item => item.size
             );
@@ -894,6 +966,10 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 }
             }
         }
+
+        // =========================
+        // RESPONSE
+        // =========================
 
         return res.status(200).json({
             success: true,

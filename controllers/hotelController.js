@@ -1352,7 +1352,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             message: "Hotel Detail Success",
 
             data: {
-                shop,
                 hotel: hotelData
             }
         });

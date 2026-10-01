@@ -993,7 +993,10 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "E-bike Detail Success",
-            data: data[0]
+            data:{
+                shop,
+                data
+            }
         });
 
 

@@ -1010,7 +1010,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
 });
 
 
-export const hotelMobileList = asyncHandel(async (req, res) => {
+export const hotelShopList = asyncHandel(async (req, res) => {
     try {
 
         let query = "";
@@ -1144,7 +1144,7 @@ export const hotelMobileList = asyncHandel(async (req, res) => {
     }
 });
 
-export const hotelDetails = asyncHandel(async (req, res) => {
+export const hotelShopDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
@@ -1225,7 +1225,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             shop_name: data[0].shop_name,
             shop_phone: data[0].shop_phone,
             shop_address: data[0].shop_address,
-             image: data[0].user_image
+            image: data[0].user_image
         };
 
         const hotels = data.map(hotel => ({
@@ -1245,6 +1245,115 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             data: {
                 shop,
                 hotels
+            }
+        });
+
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+export const hotelDetails = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+        const [data] = await db.query(
+            `
+            SELECT
+                h.id,
+                h.shop_id,
+
+                h.name,
+                h.price,
+                h.location,
+                h.description,
+                h.image AS hotel_image,
+
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+                s.location AS shop_location
+
+            FROM hotels h
+
+            INNER JOIN shops s
+                ON h.shop_id = s.id
+
+            WHERE h.id = ?
+            AND s.status = 'approved'
+            AND s.type = 'hotel'
+
+            `,
+            [id]
+        );
+
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Hotel Not Found!"
+            });
+        }
+
+        const hotel = data[0];
+        const [facilities] = await db.query(
+            `
+            SELECT
+                id,
+                name,
+                description
+            FROM hotel_facilities
+            WHERE hotel_id = ?
+            ORDER BY id DESC
+            `,
+            [hotel.id]
+        );
+
+        const [images] = await db.query(
+            `
+            SELECT
+                id,
+                image
+            FROM hotel_images
+            WHERE hotel_id = ?
+            ORDER BY id DESC
+            `,
+            [hotel.id]
+        );
+
+        const shop = {
+            shop_id: hotel.shop_id,
+            shop_name: hotel.shop_name,
+            shop_phone: hotel.shop_phone,
+            shop_address: hotel.shop_address,
+            location: hotel.shop_location
+        };
+
+        const hotelData = {
+            id: hotel.id,
+            shop_id: hotel.shop_id,
+            name: hotel.name,
+            price: hotel.price,
+            location: hotel.location,
+            description: hotel.description,
+            image: hotel.hotel_image,
+            facilities,
+            images
+        };
+
+
+        return res.status(200).json({
+            success: true,
+            message: "Hotel Detail Success",
+
+            data: {
+                shop,
+                hotel: hotelData
             }
         });
 

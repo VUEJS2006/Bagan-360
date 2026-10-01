@@ -829,10 +829,37 @@ export const eBikeDelete = asyncHandel(async (req, res) => {
     }
 });
 
-export const eBikeDetail = asyncHandel(async (req, res) => {
+export const eBikeShopDetail = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
+        const [shop] = await db.query(
+            `
+              SELECT 
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+                s.location,
+                s.type,
+                s.user_id,
+                u.image,
+                s.status
+            FROM shops s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.id = ?
+            AND s.type = 'e_bike'
+            AND s.status = 'approved'
+            `,
+            [id]
+        )
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "E-Bike shop not found!"
+            });
+        }
 
 
         const [data] = await db.query(
@@ -919,9 +946,7 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
 
 
             WHERE
-                e.id = ?
-                AND s.status = 'approved'
-
+                e.shop_id = ?
 
             GROUP BY
                 e.id,
@@ -983,7 +1008,7 @@ export const eBikeDetail = asyncHandel(async (req, res) => {
     }
 });
 
-export const eBikeMobileList = asyncHandel(async (req, res) => {
+export const eBikeShopList = asyncHandel(async (req, res) => {
     try {
 
         let query = "";
@@ -1086,6 +1111,154 @@ export const eBikeMobileList = asyncHandel(async (req, res) => {
         });
 
 
+    } catch (error) {
+
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+export const eBikeDetails = asyncHandel(async (req, res) => {
+    try {
+
+        const { id } = req.params;
+
+        const [e_bike] = await db.query("SELECT * FROM e_bikes WHERE id = ?", [id]);
+        if (e_bike.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "E-Bike shop not found!"
+            });
+        }
+        const [data] = await db.query(
+            `
+            SELECT
+                e.id,
+
+                e.name,
+                e.code,
+                e.brand,
+                e.color,
+                e.location,
+                e.image,
+
+            
+
+                e.status,
+                e.battery_percentage,
+
+                e.helmet,
+                e.battery_voltage,
+                e.battery_capacity,
+                e.passenger_count,
+                e.phone_holder,
+
+                e.description,
+
+                DATE_FORMAT(
+                    e.created_at,
+                    '%d-%m-%Y'
+                ) AS created_at,
+
+
+          
+                t.id AS type_id,
+                t.name AS type_name,
+                t.distance,
+
+
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+
+
+           
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        CASE
+                            WHEN p.id IS NOT NULL THEN
+                               JSON_OBJECT(
+                                'id', p.id,
+                                'price_type',
+                                CASE
+                                    WHEN p.price_type = 'full_day' THEN 'Full Day'
+                                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
+                                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
+                                    WHEN p.price_type = 'hourly' THEN 'Hourly'
+                                    ELSE p.price_type
+                                END,
+
+                                'start_time', p.start_time,
+                                'end_time', p.end_time,
+                                'price', p.price
+                            )
+                        END
+                    ),
+                    JSON_ARRAY()
+                ) AS prices
+
+            FROM e_bikes e
+
+
+            INNER JOIN e_bike_types t
+                ON e.type_id = t.id
+
+
+            INNER JOIN shops s
+                ON e.shop_id = s.id
+
+
+            LEFT JOIN e_bike_prices p
+                ON e.id = p.e_bike_id
+
+
+            WHERE
+                e.shop_id = ?
+
+            GROUP BY
+                e.id,
+                e.name,
+                e.code,
+                e.brand,
+                e.color,
+                e.location,
+                e.image,
+
+                
+                e.status,
+                e.battery_percentage,
+
+                e.helmet,
+                e.battery_voltage,
+                e.battery_capacity,
+                e.passenger_count,
+                e.phone_holder,
+
+                e.description,
+                e.created_at,
+
+                t.id,
+                t.name,
+                t.distance,
+
+                s.id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address
+            `,
+            [id]
+        );
+        return res.status(200).json({
+            success: true,
+            message: "E-bike Detail Success",
+            data
+        });
+        
     } catch (error) {
 
         console.log(error);

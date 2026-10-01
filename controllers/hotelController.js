@@ -342,7 +342,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
     }
 });
 
-export const hotelList = asyncHandel(async (req, res) => {
+export const hotelList = asyncHandel(async (req, res) => {k
     try {
 
         let query = "";
@@ -1031,6 +1031,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.status,
                     s.type,
+                    s.is_active,
                     s.user_id,
                     u.image
                 FROM shops s
@@ -1278,6 +1279,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
+                s.is_active,
                 s.location AS shop_location
 
             FROM hotels h

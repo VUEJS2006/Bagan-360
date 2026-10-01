@@ -1027,6 +1027,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     s.location,
                     s.shop_phone,
                     s.status,
+                    s.is_active,
                     s.type,
                     s.user_id,
                     u.image
@@ -1064,6 +1065,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     s.shop_address,
                     s.shop_phone,
                     s.status,
+                    s.is_active,
                     s.type,
                     u.image,
                     s.user_id
@@ -1087,6 +1089,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.location,
                     s.status,
+                    s.is_active,
                     s.type,
                     u.image,
                     s.user_id
@@ -1178,6 +1181,7 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
+                s.is_active,
 
 
            

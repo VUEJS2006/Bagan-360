@@ -285,6 +285,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.location,
                     s.shop_phone,
                     s.status,
+                    s.is_active,
                     s.type,
                     s.user_id,
                     u.image
@@ -324,6 +325,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_address,
                     s.shop_phone,
                     s.status,
+                    s.is_active,
                     s.type,
                     u.image,
                     s.user_id
@@ -348,6 +350,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.location,
                     s.status,
+                    s.is_active,
                     s.type,
                     u.image,
                     s.user_id
@@ -1131,6 +1134,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                 s.shop_phone,
                 s.shop_address,
                 s.location,
+                s.is_active,
                 s.type,
                 s.user_id,
                 u.image,
@@ -1192,7 +1196,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                     id: item.id,
                     shop_id: item.shop_id,
                     name: item.name,
-                    is_active:item.is_active,
+                    is_active: item.is_active,
                     image: item.image,
                     description: item.description,
                     created_at: item.created_at,

@@ -224,7 +224,8 @@ export const login = asyncHandel(async (req, res) => {
                 shop_address: shop.shop_address,
                 image: shop.image,
                 status: shop.status,
-                location: shop.location
+                location: shop.location,
+                is_active: shop.is_active
             }
                 :
                 null,
@@ -321,7 +322,6 @@ export const userProfile = asyncHandel(async (req, res) => {
         })
     }
 })
-
 
 
 export const userChangePassword = asyncHandel(async (req, res) => {
@@ -951,6 +951,7 @@ export const shopProfile = asyncHandel(async (req, res) => {
                 s.nrc,
                 s.type,
                 s.status,
+                s.is_active,
 
                 u.email,
                 u.township,
@@ -1046,3 +1047,79 @@ export const userDelete = asyncHandel(async (req, res) => {
         });
     }
 });
+
+export const shopActivate = asyncHandel(async (req, res) => {
+    try {
+
+        const userId = req.user.id;
+        const [users] = await db.query(
+            `
+            SELECT id, role
+            FROM users
+            WHERE id = ?
+            `,
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({
+                message: "User is not authenticated!",
+                success: false
+            });
+        }
+        const [shop] = await db.query(
+            `
+            SELECT
+                id,
+                user_id,
+                shop_name,
+                type,
+                status,
+                is_active
+            FROM shops
+            WHERE user_id = ?
+            `,
+            [userId]
+        );
+
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Shop not found!"
+            });
+        }
+
+        const { is_active } = req.body;
+
+        if (typeof is_active !== "boolean") {
+            return res.status(400).json({
+                success: false,
+                message: "is_active must be true or false!"
+            });
+        }
+
+        const [data] = await db.query(
+            `
+            UPDATE shops SET is_active = ?
+            WHERE id = ?
+            `,
+            [
+                is_active,
+                shop[0].id
+            ]
+        );
+        return res.status(200).json({
+            success: true,
+            message: is_active
+                ? "Shop activated successfully!"
+                : "Shop deactivated successfully!"
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        });
+    }
+})

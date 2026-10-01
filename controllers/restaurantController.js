@@ -774,7 +774,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             SET
                 name = ?,
                 description = ?,
-                is_active = ?
+                is_active = ?,
                 image = ?
             WHERE id = ?
             `,

@@ -1110,9 +1110,7 @@ export const shopActivate = asyncHandel(async (req, res) => {
         );
         return res.status(200).json({
             success: true,
-            message: is_active
-                ? "Shop activated successfully!"
-                : "Shop deactivated successfully!"
+            message: "shop Activate Success!"
         });
 
     } catch (error) {

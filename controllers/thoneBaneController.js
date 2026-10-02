@@ -493,7 +493,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                     ON t.category_id = c.id
                 LEFT JOIN shops s
                     ON t.shop_id = s.id
-                    WHERE id = ?
+                    WHERE t.id = ?
                 ORDER BY t.id DESC
             `,
             [id]

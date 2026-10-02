@@ -571,6 +571,7 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
         const [shop] = await db.query(
             `
             SELECT 
@@ -585,54 +586,59 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 u.image,
                 s.status
             FROM shops s
-            JOIN users u ON s.user_id = u.id
+            JOIN users u
+                ON s.user_id = u.id
             WHERE s.id = ?
             AND s.type = 'thonebane'
             AND s.status = 'approved'
             `,
             [id]
         );
+
         if (shop.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Thonebane shop not found!"
             });
         }
+
         const [data] = await db.query(
-
             `
-             SELECT
-                    t.id,
-                    t.shop_id,
-                    t.capacity,
-                    t.price_per_day,
-                    t.features,
-                    s.shop_name,
-                    t.category_id,
-                    c.name AS category_name,
-                    t.name,
-                    t.price,
-                    t.phone,
-                    t.location,
-                    t.description,
-                    t.status,
-                    t.image,
-                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
-                FROM thonebanes t
-                LEFT JOIN thonebane_categories c
-                    ON t.category_id = c.id
-                LEFT JOIN shops s
-                    ON t.shop_id = s.id
-                ORDER BY t.id DESC
-
+            SELECT
+                t.id,
+                t.shop_id,
+                t.capacity,
+                t.price_per_day,
+                t.features,
+                t.category_id,
+                c.name AS category_name,
+                t.name,
+                t.price,
+                t.phone,
+                t.location,
+                t.description,
+                t.status,
+                t.image,
+                DATE_FORMAT(
+                    t.created_at,
+                    '%d-%m-%Y'
+                ) AS created_at
+            FROM thonebanes t
+            LEFT JOIN thonebane_categories c
+                ON t.category_id = c.id
+            WHERE t.shop_id = ?
+            ORDER BY t.id DESC
             `,
             [id]
-        )
-
+        );
 
         return res.status(200).json({
             success: true,
-            data
+            message: "Thonebane Shop Detail Success",
+            data: {
+                shop: shop[0],
+                thonebanes: data
+            }
         });
 
     } catch (error) {

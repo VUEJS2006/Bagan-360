@@ -456,44 +456,99 @@ export const thonebaneDelete = asyncHandel(async (req, res) => {
     }
 })
 
-export const thonebaneMobileList = asyncHandel(async (req, res) => {
+export const thonebaneShopList = asyncHandel(async (req, res) => {
     try {
 
-        const [data] = await db.query(`
-            SELECT
-                t.id,
-                t.name,
-                t.capacity,
-                t.price_per_day,
-                t.features,
-                t.price,
-                t.phone,
-                t.location,
-                t.description,
-                t.status,
-                t.image,
+        let query = "";
+        let params = [];
 
-                c.id AS category_id,
-                c.name AS category_name,
+        if (req.user.role === "admin") {
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.location,
+                    s.shop_phone,
+                    s.status,
+                    s.is_active,
+                    s.type,
+                    s.user_id,
+                    u.image
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'thonebane'
+                ORDER BY s.id DESC
+            `
+        }
+        else if (req.user.role === "shop") {
+            const [shop] = await db.query(
+                `
+                SELECT
+                    id,
+                    type
+                FROM shops
+                WHERE user_id = ?
+                `,
+                [req.user.id]
+            );
 
-                s.id AS shop_id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address
+            if (shop.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
+            }
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.location,
+                    s.shop_phone,
+                    s.status,
+                    s.is_active,
+                    s.type,
+                    s.user_id,
+                    u.image
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'thonebane'
+                ORDER BY s.id DESC
+            `
+            params = [shop[0].id];
+        }
+        else if (req.user.role === "user") {
 
-            FROM thonebanes t
+            query = `
+                SELECT
+                    s.id,
+                    s.shop_name,
+                    s.shop_address,
+                    s.shop_phone,
+                    s.location,
+                    s.status,
+                    s.is_active,
+                    s.type,
+                    u.image,
+                    s.user_id
 
-            INNER JOIN thonebane_categories c
-                ON t.category_id = c.id
+                FROM shops s
+                JOIN users u ON s.user_id = u.id
+                WHERE s.type = 'thonebane'
+                AND s.status = 'approved'
+                ORDER BY s.id DESC
+            `;
+        }
+        else {
 
-            INNER JOIN shops s
-                ON t.shop_id = s.id
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
+        }
 
-            WHERE s.status = 'approved'
-
-            ORDER BY t.id DESC
-        `);
-
+        const [data] = await db.query(query, params)
         return res.status(200).json({
             success: true,
             count: data.length,
@@ -512,56 +567,72 @@ export const thonebaneMobileList = asyncHandel(async (req, res) => {
     }
 });
 
-export const thonebaneDetails = asyncHandel(async (req, res) => {
+export const thonebaneShopDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-
-        const [data] = await db.query(`
-            SELECT
-                t.id,
-                t.name,
-                t.price,
-                t.capacity,
-                t.price_per_day,
-                t.features,
-                t.phone,
-                t.location,
-                t.description,
-                t.status,
-                t.image,
-                DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at,
-
-                c.id AS category_id,
-                c.name AS category_name,
-
+        const [shop] = await db.query(
+            `
+            SELECT 
                 s.id AS shop_id,
                 s.shop_name,
                 s.shop_phone,
-                s.shop_address
-
-            FROM thonebanes t
-
-            INNER JOIN thonebane_categories c
-                ON t.category_id = c.id
-
-            INNER JOIN shops s
-                ON t.shop_id = s.id
-
-            WHERE t.id = ?
+                s.shop_address,
+                s.location,
+                s.is_active,
+                s.type,
+                s.user_id,
+                u.image,
+                s.status
+            FROM shops s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.id = ?
+            AND s.type = 'thonebane'
             AND s.status = 'approved'
-        `, [id]);
-
-        if (data.length === 0) {
+            `,
+            [id]
+        );
+        if (shop.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Thonebane not found!"
+                message: "Thonebane shop not found!"
             });
         }
+        const [data] = await db.query(
+
+            `
+             SELECT
+                    t.id,
+                    t.shop_id,
+                    t.capacity,
+                    t.price_per_day,
+                    t.features,
+                    s.shop_name,
+                    t.category_id,
+                    c.name AS category_name,
+                    t.name,
+                    t.price,
+                    t.phone,
+                    t.location,
+                    t.description,
+                    t.status,
+                    t.image,
+                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
+                FROM thonebanes t
+                LEFT JOIN thonebane_categories c
+                    ON t.category_id = c.id
+                LEFT JOIN shops s
+                    ON t.shop_id = s.id
+                ORDER BY t.id DESC
+
+            `,
+            [id]
+        )
+
 
         return res.status(200).json({
             success: true,
-            data: data[0]
+            data
         });
 
     } catch (error) {

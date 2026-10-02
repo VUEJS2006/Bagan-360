@@ -342,7 +342,8 @@ export const hotelCreate = asyncHandel(async (req, res) => {
     }
 });
 
-export const hotelList = asyncHandel(async (req, res) => {k
+export const hotelList = asyncHandel(async (req, res) => {
+    k
     try {
 
         let query = "";

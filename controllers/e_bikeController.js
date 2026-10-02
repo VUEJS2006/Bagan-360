@@ -471,7 +471,6 @@ export const eBikeList = asyncHandel(async (req, res) => {
     }
 });
 
-
 export const eBikeUpdate = asyncHandel(async (req, res) => {
     try {
 

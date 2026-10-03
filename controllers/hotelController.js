@@ -1105,7 +1105,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
         const [data] = await db.query(`
-    SELECT
+        SELECT
         h.id,
         h.shop_id,
 
@@ -1191,6 +1191,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             shop_id: hotel.shop_id,
             name: hotel.name,
             price: hotel.price,
+            is_active:hotel.is_active,
             location: hotel.location,
             description: hotel.description,
             image: hotel.image,

@@ -483,11 +483,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             location,
             is_active
         } = req.body;
-
-        // =========================
-        // ROLE CHECK
-        // =========================
-
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -496,11 +491,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         let shop_id = null;
-
-        // =========================
-        // SHOP ROLE
-        // =========================
-
         if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -528,10 +518,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
             shop_id = shop[0].id;
         }
-
-        // =========================
-        // CHECK HOTEL
-        // =========================
 
         let hotelQuery = `
             SELECT *
@@ -561,10 +547,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 message: "Hotel not found!"
             });
         }
-
-        // =========================
-        // FACILITIES JSON
-        // =========================
 
         if (typeof facilities === "string") {
 
@@ -603,18 +585,11 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
         }
 
-        // =========================
-        // MAIN HOTEL IMAGE
-        // =========================
-
         let updatedImage = hotel[0].image;
 
         const mainImage = req.files?.image?.[0];
 
         if (mainImage) {
-
-            // DELETE OLD MAIN IMAGE
-
             if (hotel[0].image) {
 
                 const oldPath = path.join(
@@ -627,7 +602,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 }
             }
 
-            // CREATE FOLDER
 
             const uploadFolder = path.join(
                 process.cwd(),
@@ -663,11 +637,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
             updatedImage = `images/hotel/${fileName}`;
         }
-
-        // =========================
-        // UPDATE HOTEL
-        // =========================
-
         const [data] = await db.query(
             `
             UPDATE hotels
@@ -682,23 +651,15 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             `,
             [
                 name,
-                Number(price),
+                price,
                 description || null,
                 updatedImage,
                 location,
                 is_active,
                 id
             ]
-        );
-
-        // =========================
-        // UPDATE FACILITIES
-        // =========================
-
+        )
         if (facilities) {
-
-            // DELETE OLD FACILITIES
-
             await db.query(
                 `
                 DELETE FROM hotel_facilities
@@ -706,9 +667,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 `,
                 [id]
             );
-
-            // INSERT NEW FACILITIES
-
             for (const facility of facilities) {
 
                 await db.query(
@@ -730,10 +688,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
         }
 
-        // =========================
-        // EXTRA HOTEL IMAGE FOLDER
-        // =========================
-
         const hotelFolder = path.join(
             process.cwd(),
             "images",
@@ -746,10 +700,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 recursive: true
             });
         }
-
-        // =========================
-        // EXTRA HOTEL IMAGES
-        // =========================
 
         let imagePaths = [];
 
@@ -843,10 +793,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 }
             }
         }
-
-        // =========================
-        // RESPONSE
-        // =========================
 
         return res.status(200).json({
             success: true,

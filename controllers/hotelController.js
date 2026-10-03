@@ -686,6 +686,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 description || null,
                 updatedImage,
                 location,
+                is_active,
                 id
             ]
         );

@@ -15,7 +15,8 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             price,
             facilities,
             description,
-            location
+            location,
+            is_active
         } = req.body;
 
         // =========================
@@ -197,9 +198,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 price,
                 description,
                 image,
-                location
+                location,
+                is_active
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?,?)
             `,
             [
                 shop_id,
@@ -207,7 +209,8 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 Number(price),
                 description || null,
                 imagePath,
-                location
+                location,
+                is_active || true
             ]
         );
 
@@ -361,7 +364,8 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.price,
                     h.location,
                     h.description,
-                    h.image
+                    h.image,
+                    h.is_active
                 FROM hotels h
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
@@ -405,7 +409,8 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.location,
                     h.price,
                     h.description,
-                    h.image
+                    h.image,
+                    h.is_active
                 FROM hotels h
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
@@ -475,7 +480,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             price,
             description,
             facilities,
-            location
+            location,
+            is_active
         } = req.body;
 
         // =========================
@@ -670,7 +676,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 price = ?,
                 description = ?,
                 image = ?,
-                location = ?
+                location = ?,
+                is_active = ?
             WHERE id = ?
             `,
             [
@@ -1166,6 +1173,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
         h.price,
         h.location,
         h.description,
+        h.is_active,
         h.image AS hotel_image
 
     FROM hotels h
@@ -1179,6 +1187,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
     WHERE h.shop_id = ?
     AND s.status = 'approved'
     AND s.type = 'hotel'
+    AND h.is_active = true
 
     ORDER BY h.id DESC
 
@@ -1275,6 +1284,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.price,
                 h.location,
                 h.description,
+                h.is_active,
                 h.image AS hotel_image,
 
                 s.shop_name,
@@ -1343,6 +1353,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             name: hotel.name,
             price: hotel.price,
             location: hotel.location,
+            is_active:hotel.is_active,
             description: hotel.description,
             image: hotel.hotel_image,
             facilities,

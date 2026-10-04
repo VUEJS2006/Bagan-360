@@ -680,15 +680,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
         // IS ACTIVE VALIDATION
         // =========================
 
-        if (
-            is_active !== undefined &&
-            typeof is_active !== "boolean"
-        ) {
-            return res.status(400).json({
-                success: false,
-                message: "is_active must be true or false!"
-            });
-        }
+     
 
         // =========================
         // MENU CHECK

@@ -213,8 +213,8 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             [
                 shop_id,
                 name,
-                is_active || true,
                 imagePath,
+                is_active || true,
                 description
             ]
         );

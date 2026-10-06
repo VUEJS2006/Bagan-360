@@ -327,18 +327,40 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         );
 
         if (facilities !== undefined) {
-            await connection.query("DELETE FROM hotel_facilities WHERE hotel_id = ?", [hotelId]);
-            for (const facility of facilities) {
+            const [existingFacilities] = await connection.query(
+                "SELECT id FROM hotel_facilities WHERE hotel_id = ? ORDER BY id ASC",
+                [hotelId]
+            );
+
+            for (let index = 0; index < facilities.length; index++) {
+                const facility = facilities[index];
+                const values = [
+                    facility.name.trim(),
+                    typeof facility.description === "string" && facility.description.trim()
+                        ? facility.description.trim()
+                        : null
+                ];
+
+                if (existingFacilities[index]) {
+                    await connection.query(
+                        `UPDATE hotel_facilities SET name = ?, description = ?
+                         WHERE id = ? AND hotel_id = ?`,
+                        [...values, existingFacilities[index].id, hotelId]
+                    );
+                } else {
+                    await connection.query(
+                        `INSERT INTO hotel_facilities (hotel_id, name, description)
+                         VALUES (?, ?, ?)`,
+                        [hotelId, ...values]
+                    );
+                }
+            }
+
+            const removedFacilities = existingFacilities.slice(facilities.length);
+            if (removedFacilities.length > 0) {
                 await connection.query(
-                    `INSERT INTO hotel_facilities (hotel_id, name, description)
-                     VALUES (?, ?, ?)`,
-                    [
-                        hotelId,
-                        facility.name.trim(),
-                        typeof facility.description === "string" && facility.description.trim()
-                            ? facility.description.trim()
-                            : null
-                    ]
+                    "DELETE FROM hotel_facilities WHERE hotel_id = ? AND id IN (?)",
+                    [hotelId, removedFacilities.map(({ id }) => id)]
                 );
             }
         }
@@ -346,18 +368,39 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         const hotelImages = req.files?.hotel_images || [];
         const replaceGallery = isEnabled(req.body.replace_hotel_images);
         if (hotelImages.length > 0 || replaceGallery) {
-            const [oldImages] = await connection.query(
-                "SELECT image FROM hotel_images WHERE hotel_id = ?",
+            const [existingImages] = await connection.query(
+                "SELECT id, image FROM hotel_images WHERE hotel_id = ? ORDER BY id ASC",
                 [hotelId]
             );
-            oldGalleryImages.push(...oldImages.map(({ image }) => image).filter(Boolean));
-            await connection.query("DELETE FROM hotel_images WHERE hotel_id = ?", [hotelId]);
 
-            for (const file of hotelImages) {
+            for (let index = 0; index < hotelImages.length; index++) {
+                const file = hotelImages[index];
                 const image = await storeImage(file, "hotel_image", createdFiles);
+
+                if (existingImages[index]) {
+                    await connection.query(
+                        "UPDATE hotel_images SET image = ? WHERE id = ? AND hotel_id = ?",
+                        [image, existingImages[index].id, hotelId]
+                    );
+                    if (existingImages[index].image) {
+                        oldGalleryImages.push(existingImages[index].image);
+                    }
+                } else {
+                    await connection.query(
+                        "INSERT INTO hotel_images (hotel_id, image) VALUES (?, ?)",
+                        [hotelId, image]
+                    );
+                }
+            }
+
+            const removedImages = existingImages.slice(hotelImages.length);
+            if (removedImages.length > 0) {
+                oldGalleryImages.push(
+                    ...removedImages.map(({ image }) => image).filter(Boolean)
+                );
                 await connection.query(
-                    "INSERT INTO hotel_images (hotel_id, image) VALUES (?, ?)",
-                    [hotelId, image]
+                    "DELETE FROM hotel_images WHERE hotel_id = ? AND id IN (?)",
+                    [hotelId, removedImages.map(({ id }) => id)]
                 );
             }
         }

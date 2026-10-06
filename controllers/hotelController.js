@@ -345,6 +345,120 @@ export const hotelCreate = asyncHandel(async (req, res) => {
     }
 });
 
+export const hotelSearch = asyncHandel(async (req, res) => {
+    try {
+
+        const { search = "" } = req.query;
+        if (!search.trim()) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: []
+            });
+        }
+
+        const keyword = `%${search}%`;
+
+        const [data] = await db.query(
+            `
+            SELECT
+            id,
+            name,
+            type,
+            price,
+            discount,
+            total_amount,
+            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
+            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date,
+            description,
+            facilities,
+            image,
+            location
+            FROM
+            hotels
+            WHERE
+            name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?
+            ORDER BY id DESC
+            `,
+            [
+                keyword,
+                keyword,
+                keyword,
+                keyword,
+                keyword
+            ]
+
+        )
+        return res.status(200).json({
+            message: "Search Success",
+            success: true,
+            data
+        })
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const hotelFilter = asyncHandel(async (req, res) => {
+    try {
+        const { location = "", name = "", type = "" } = req.query;
+        let sql = `
+            SELECT
+            id,
+            name,
+            type,
+            price,
+            discount,
+            total_amount,
+            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
+            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date,
+            description,
+            facilities,
+            image,
+            location
+            FROM
+            hotels
+            WHERE
+            1=1
+            `;
+        const values = [];
+        if (location) {
+            sql += ` AND location LIKE ?`;
+            values.push(`%${location}%`)
+        }
+        if (name) {
+            sql += ` AND name LIKE ?`;
+            values.push(`%${name}%`)
+        }
+        if (type) {
+            sql += ` AND type LIKE ?`;
+            values.push(`%${type}%`)
+        }
+        sql += `
+         ORDER BY id DESC
+        `;
+        const [hotel] = await db.query(sql, values);
+
+
+        res.status(200).json({
+            success: true,
+            count: hotel.length,
+            hotel
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
 export const hotelList = asyncHandel(async (req, res) => {
     try {
 
@@ -471,6 +585,8 @@ export const hotelList = asyncHandel(async (req, res) => {
 });
 
 export const hotelUpdate = asyncHandel(async (req, res) => {
+    let uploadedMainImagePath = null;
+
     try {
 
         const { id } = req.params;
@@ -494,7 +610,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
         const hotelId = Number(id);
 
-        if (!hotelId || Number.isNaN(hotelId)) {
+        if (!Number.isInteger(hotelId) || hotelId <= 0) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid hotel id!"
@@ -596,7 +712,12 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
             for (const facility of facilities) {
 
-                if (!facility.name) {
+                if (
+                    !facility ||
+                    typeof facility !== "object" ||
+                    typeof facility.name !== "string" ||
+                    !facility.name.trim()
+                ) {
 
                     return res.status(400).json({
                         success: false,
@@ -611,22 +732,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
 
         if (mainImage) {
-
-            // Delete old image
-
-            if (oldHotel.image) {
-
-                const oldPath = path.join(
-                    process.cwd(),
-                    oldHotel.image
-                );
-
-                if (fs.existsSync(oldPath)) {
-                    fs.unlinkSync(oldPath);
-                }
-            }
-
-
             // Create folder
 
             const uploadFolder = path.join(
@@ -664,6 +769,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 })
                 .toFile(savePath);
 
+            uploadedMainImagePath = savePath;
 
             updatedImage = `images/hotel/${fileName}`;
         }
@@ -747,6 +853,25 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             ]
         );
 
+        if (uploadedMainImagePath) {
+            if (oldHotel.image) {
+                const oldPath = path.join(
+                    process.cwd(),
+                    oldHotel.image
+                );
+
+                if (fs.existsSync(oldPath)) {
+                    try {
+                        fs.unlinkSync(oldPath);
+                    } catch (error) {
+                        console.error("Failed to remove previous hotel image:", error);
+                    }
+                }
+            }
+
+            uploadedMainImagePath = null;
+        }
+
         if (Array.isArray(facilities)) {
             const [oldFacilities] = await db.query(
                 `
@@ -756,7 +881,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     description
                 FROM hotel_facilities
                 WHERE hotel_id = ?
-                ORDER BY id ASC
+                    ORDER BY id DESC
                 `,
                 [hotelId]
             );
@@ -996,6 +1121,14 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
     } catch (error) {
 
         console.log(error);
+
+        if (uploadedMainImagePath && fs.existsSync(uploadedMainImagePath)) {
+            try {
+                fs.unlinkSync(uploadedMainImagePath);
+            } catch (cleanupError) {
+                console.error("Failed to remove unused hotel image:", cleanupError);
+            }
+        }
 
         return res.status(500).json({
             success: false,
@@ -1384,7 +1517,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             shop_id: hotel.shop_id,
             name: hotel.name,
             price: hotel.price,
-            is_active:hotel.is_active,
+            is_active: hotel.is_active,
             location: hotel.location,
             description: hotel.description,
             image: hotel.image,
@@ -1494,7 +1627,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             name: hotel.name,
             price: hotel.price,
             location: hotel.location,
-            is_active:hotel.is_active,
+            is_active: hotel.is_active,
             description: hotel.description,
             image: hotel.hotel_image,
             facilities,
@@ -1521,118 +1654,3 @@ export const hotelDetails = asyncHandel(async (req, res) => {
         });
     }
 });
-
-export const hotelSearch = asyncHandel(async (req, res) => {
-    try {
-
-        const { search = "" } = req.query;
-        if (!search.trim()) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: []
-            });
-        }
-
-        const keyword = `%${search}%`;
-
-        const [data] = await db.query(
-            `
-            SELECT
-            id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
-            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
-            description,
-            facilities,
-            image,
-            location 
-            FROM 
-            hotels 
-            WHERE 
-            name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?
-            ORDER BY id DESC
-            `,
-            [
-                keyword,
-                keyword,
-                keyword,
-                keyword,
-                keyword
-            ]
-
-        )
-        return res.status(200).json({
-            message: "Search Success",
-            success: true,
-            data
-        })
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})
-
-export const hotelFilter = asyncHandel(async (req, res) => {
-    try {
-        const { location = "", name = "", type = "" } = req.query;
-        let sql = `
-            SELECT
-            id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
-            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date, 
-            description,
-            facilities,
-            image,
-            location 
-            FROM 
-            hotels 
-            WHERE
-            1=1
-            `;
-        const values = [];
-        if (location) {
-            sql += ` AND location LIKE ?`;
-            values.push(`%${location}%`)
-        }
-        if (name) {
-            sql += ` AND name LIKE ?`;
-            values.push(`%${name}%`)
-        }
-        if (type) {
-            sql += ` AND type LIKE ?`;
-            values.push(`%${type}%`)
-        }
-        sql += `
-         ORDER BY id DESC
-        `;
-        const [hotel] = await db.query(sql, values);
-
-
-        res.status(200).json({
-            success: true,
-            count: hotel.length,
-            hotel
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})
-

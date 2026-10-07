@@ -23,8 +23,8 @@ router.post(
     "/admin/hotel/create",
     authenticated,
     upload.fields([
-        { name: "image", maxCount: 1 },
-        { name: "hotel_images", maxCount: 10 },
+        { name: "images", maxCount: 10 },
+        { name: "hotel_images", maxCount: 10 }
     ]),
     hotelCreate
 );
@@ -37,8 +37,8 @@ router.put(
     "/admin/hotel/update/:id",
     authenticated,
     upload.fields([
-        { name: "image", maxCount: 1 },
-        { name: "hotel_images", maxCount: 10 },
+        { name: "images", maxCount: 10 },
+        { name: "hotel_images", maxCount: 10 }
     ]),
     hotelUpdate
 );

@@ -100,8 +100,23 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 h.name AS hotel_name,
                 h.price,
-                h.image,
-                h.facilities,
+                (
+                    SELECT COALESCE(JSON_ARRAYAGG(hi.image), JSON_ARRAY())
+                    FROM hotel_image hi
+                    WHERE hi.hotel_id = h.id
+                ) AS images,
+                (
+                    SELECT COALESCE(
+                        JSON_ARRAYAGG(JSON_OBJECT(
+                            'id', hf.id,
+                            'name', hf.name,
+                            'description', hf.description
+                        )),
+                        JSON_ARRAY()
+                    )
+                    FROM hotel_facilities hf
+                    WHERE hf.hotel_id = h.id
+                ) AS facilities,
                 h.description,
 
                  s.shop_name,
@@ -413,8 +428,23 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
 
                 h.name AS hotel_name,
                 h.price,
-                h.image,
-                h.facilities,
+                (
+                    SELECT COALESCE(JSON_ARRAYAGG(hi.image), JSON_ARRAY())
+                    FROM hotel_image hi
+                    WHERE hi.hotel_id = h.id
+                ) AS images,
+                (
+                    SELECT COALESCE(
+                        JSON_ARRAYAGG(JSON_OBJECT(
+                            'id', hf.id,
+                            'name', hf.name,
+                            'description', hf.description
+                        )),
+                        JSON_ARRAY()
+                    )
+                    FROM hotel_facilities hf
+                    WHERE hf.hotel_id = h.id
+                ) AS facilities,
                 h.description,
 
                 s.shop_name,

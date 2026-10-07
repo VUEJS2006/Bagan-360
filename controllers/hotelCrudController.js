@@ -43,6 +43,19 @@ const parseBoolean = (value, fieldName) => {
 
 const isEnabled = (value) => value === true || value === 1 || value === "1" || value === "true";
 
+const parseArrayField = (value) => {
+    if (value === undefined || value === null || value === "") return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string") return [];
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+        return value.split(",").map(item => item.trim()).filter(Boolean);
+    }
+};
+
 const parsePrice = (value) => {
     const price = Number(value);
     if (!Number.isFinite(price) || price < 0) {
@@ -159,21 +172,15 @@ export const hotelCreate = asyncHandel(async (req, res) => {
         }
 
         await connection.beginTransaction();
-        const mainImage = req.files?.image?.[0];
-        const imagePath = mainImage
-            ? await storeImage(mainImage, "hotel", createdFiles)
-            : null;
-
         const [hotelResult] = await connection.query(
             `INSERT INTO hotels
-                (shop_id, name, price, description, image, location, is_active)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                (shop_id, name, price, description, location, is_active)
+             VALUES (?, ?, ?, ?, ?, ?)`,
             [
                 shopResult.shopId,
                 name.trim(),
                 parsedPrice,
                 typeof description === "string" && description.trim() ? description.trim() : null,
-                imagePath,
                 location.trim(),
                 isActive
             ]
@@ -194,11 +201,14 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             );
         }
 
-        const hotelImages = req.files?.hotel_images || [];
+        const hotelImages = [
+            ...(req.files?.images || []),
+            ...(req.files?.hotel_images || [])
+        ];
         for (const file of hotelImages) {
             const image = await storeImage(file, "hotel_image", createdFiles);
             await connection.query(
-                "INSERT INTO hotel_images (hotel_id, image) VALUES (?, ?)",
+                "INSERT INTO hotel_image (hotel_id, image) VALUES (?, ?)",
                 [hotelId, image]
             );
         }
@@ -292,14 +302,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         }
 
         const oldHotel = hotels[0];
-        const oldMainImage = oldHotel.image;
         const oldGalleryImages = [];
-        const mainImage = req.files?.image?.[0];
-        const updatedImage = mainImage
-            ? await storeImage(mainImage, "hotel", createdFiles)
-            : isEnabled(req.body.remove_image)
-                ? null
-                : oldHotel.image;
 
         const updatedName = req.body.name === undefined ? oldHotel.name : req.body.name.trim();
         const updatedLocation = req.body.location === undefined
@@ -313,13 +316,12 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
         await connection.query(
             `UPDATE hotels
-             SET name = ?, price = ?, description = ?, image = ?, location = ?, is_active = ?
+             SET name = ?, price = ?, description = ?, location = ?, is_active = ?
              WHERE id = ?`,
             [
                 updatedName,
                 updatedPrice === undefined ? oldHotel.price : updatedPrice,
                 updatedDescription,
-                updatedImage,
                 updatedLocation,
                 updatedIsActive === undefined ? oldHotel.is_active : updatedIsActive,
                 hotelId
@@ -365,11 +367,34 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
         }
 
-        const hotelImages = req.files?.hotel_images || [];
+        const hotelImages = [
+            ...(req.files?.images || []),
+            ...(req.files?.hotel_images || [])
+        ];
         const replaceGallery = isEnabled(req.body.replace_hotel_images);
+        const deletedImageIds = parseArrayField(
+            req.body.deleted_images ?? req.body.deleted_image_ids
+        )
+            .map(Number)
+            .filter(id => Number.isInteger(id) && id > 0);
+
+        if (deletedImageIds.length > 0) {
+            const [imagesToDelete] = await connection.query(
+                "SELECT id, image FROM hotel_image WHERE hotel_id = ? AND id IN (?)",
+                [hotelId, deletedImageIds]
+            );
+            oldGalleryImages.push(
+                ...imagesToDelete.map(({ image }) => image).filter(Boolean)
+            );
+            await connection.query(
+                "DELETE FROM hotel_image WHERE hotel_id = ? AND id IN (?)",
+                [hotelId, deletedImageIds]
+            );
+        }
+
         if (hotelImages.length > 0 || replaceGallery) {
             const [existingImages] = await connection.query(
-                "SELECT id, image FROM hotel_images WHERE hotel_id = ? ORDER BY id ASC",
+                "SELECT id, image FROM hotel_image WHERE hotel_id = ? ORDER BY id ASC",
                 [hotelId]
             );
 
@@ -379,7 +404,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
                 if (existingImages[index]) {
                     await connection.query(
-                        "UPDATE hotel_images SET image = ? WHERE id = ? AND hotel_id = ?",
+                        "UPDATE hotel_image SET image = ? WHERE id = ? AND hotel_id = ?",
                         [image, existingImages[index].id, hotelId]
                     );
                     if (existingImages[index].image) {
@@ -387,7 +412,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     }
                 } else {
                     await connection.query(
-                        "INSERT INTO hotel_images (hotel_id, image) VALUES (?, ?)",
+                        "INSERT INTO hotel_image (hotel_id, image) VALUES (?, ?)",
                         [hotelId, image]
                     );
                 }
@@ -399,7 +424,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     ...removedImages.map(({ image }) => image).filter(Boolean)
                 );
                 await connection.query(
-                    "DELETE FROM hotel_images WHERE hotel_id = ? AND id IN (?)",
+                    "DELETE FROM hotel_image WHERE hotel_id = ? AND id IN (?)",
                     [hotelId, removedImages.map(({ id }) => id)]
                 );
             }
@@ -411,14 +436,13 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             [hotelId]
         );
         const [updatedImages] = await connection.query(
-            `SELECT id, image FROM hotel_images
+            `SELECT id, image FROM hotel_image
              WHERE hotel_id = ? ORDER BY id ASC`,
             [hotelId]
         );
 
         await connection.commit();
         oldFilesToRemove = [
-            ...(oldMainImage && oldMainImage !== updatedImage ? [oldMainImage] : []),
             ...oldGalleryImages
         ];
         await removeFiles(oldFilesToRemove.map(toAbsoluteImagePath));
@@ -433,7 +457,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 name: updatedName,
                 price: updatedPrice === undefined ? oldHotel.price : updatedPrice,
                 description: updatedDescription,
-                image: updatedImage,
                 location: updatedLocation,
                 is_active: Boolean(updatedIsActive === undefined ? oldHotel.is_active : updatedIsActive),
                 facilities: updatedFacilities,

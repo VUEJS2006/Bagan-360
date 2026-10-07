@@ -1315,41 +1315,42 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
+
         const [data] = await db.query(`
-        SELECT
-        h.id,
-        h.shop_id,
+            SELECT
+                h.id,
+                h.shop_id,
 
-        s.shop_name,
-        s.shop_phone,
-        s.shop_address,
-        s.user_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+                s.user_id,
 
-        u.image AS user_image,
+                u.image AS user_image,
 
-        h.name,
-        h.price,
-        h.location,
-        h.description,
-        h.is_active,
-        h.image AS hotel_image
+                h.name,
+                h.price,
+                h.location,
+                h.description,
+                h.is_active,
+                h.image AS hotel_image
 
-    FROM hotels h
+            FROM hotels h
 
-    INNER JOIN shops s
-        ON h.shop_id = s.id
+            INNER JOIN shops s
+                ON h.shop_id = s.id
 
-    INNER JOIN users u
-        ON s.user_id = u.id
+            INNER JOIN users u
+                ON s.user_id = u.id
 
-    WHERE h.shop_id = ?
-    AND s.status = 'approved'
-    AND s.type = 'hotel'
-    AND h.is_active = true
+            WHERE h.shop_id = ?
+            AND s.status = 'approved'
+            AND s.type = 'hotel'
+            AND h.is_active = true
 
-    ORDER BY h.id DESC
+            ORDER BY h.id DESC
 
-`, [id]);
+        `, [id]);
 
         if (data.length === 0) {
             return res.status(404).json({
@@ -1357,8 +1358,8 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
                 message: "Hotel Not Found!"
             });
         }
-        for (const hotel of data) {
 
+        for (const hotel of data) {
 
             const [facilities] = await db.query(
                 `
@@ -1368,12 +1369,13 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
                     description
                 FROM hotel_facilities
                 WHERE hotel_id = ?
-                ORDER BY id DESC
+                ORDER BY id ASC
                 `,
                 [hotel.id]
             );
 
             hotel.facilities = facilities;
+
             const [images] = await db.query(
                 `
                 SELECT
@@ -1381,7 +1383,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
                     image
                 FROM hotel_images
                 WHERE hotel_id = ?
-                ORDER BY id DESC
+                ORDER BY id ASC
                 `,
                 [hotel.id]
             );
@@ -1405,10 +1407,10 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             is_active: hotel.is_active,
             location: hotel.location,
             description: hotel.description,
-            image: hotel.image,
-            images: hotel.images
+            image: hotel.hotel_image,
+            images: hotel.images,
+            facilities: hotel.facilities
         }));
-
 
         return res.status(200).json({
             success: true,

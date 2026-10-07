@@ -526,7 +526,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                 `
                 SELECT id,name,description
                 FROM hotel_facilities WHERE hotel_id = ?
-                ORDER BY id DESC
+                ORDER BY id ASC
                 `, [
                 hotel.id
             ]
@@ -537,7 +537,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                 `
                 SELECT id,image 
                 FROM hotel_images WHERE hotel_id = ?
-                ORDER BY id DESC
+                ORDER BY id ASC
                 `, [
                 hotel.id
             ]
@@ -760,8 +760,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 })
                 .toFile(savePath);
 
-            updatedImage =
-                `images/hotel/${fileName}`;
+            updatedImage = `images/hotel/${fileName}`;
         }
 
         const [data] = await db.query(
@@ -804,7 +803,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         );
 
         if (Array.isArray(facilities)) {
-
             const [oldFacilities] = await db.query(
                 `
                 SELECT
@@ -819,11 +817,9 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             );
 
             for (let i = 0; i < facilities.length; i++) {
-
                 const facility = facilities[i];
 
                 if (oldFacilities[i]) {
-
                     await db.query(
                         `
                         UPDATE hotel_facilities
@@ -835,19 +831,14 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                         `,
                         [
                             String(facility.name).trim(),
-
                             facility.description
                                 ? String(facility.description).trim()
                                 : null,
-
                             oldFacilities[i].id,
-
                             id
                         ]
                     );
-
                 } else {
-
                     await db.query(
                         `
                         INSERT INTO hotel_facilities
@@ -870,12 +861,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
 
             if (facilities.length < oldFacilities.length) {
-
                 const deleteFacilities =
                     oldFacilities.slice(facilities.length);
 
                 for (const facility of deleteFacilities) {
-
                     await db.query(
                         `
                         DELETE FROM hotel_facilities
@@ -894,7 +883,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         const hotelImages = req.files?.hotel_images || [];
 
         if (hotelImages.length > 0) {
-
             const hotelFolder = path.join(
                 process.cwd(),
                 "images",
@@ -920,7 +908,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             );
 
             for (let i = 0; i < hotelImages.length; i++) {
-
                 const file = hotelImages[i];
 
                 const fileName = `${uuid()}.webp`;
@@ -944,7 +931,6 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     `images/hotel_image/${fileName}`;
 
                 if (oldImages[i]) {
-
                     const oldImagePath = path.join(
                         process.cwd(),
                         oldImages[i].image
@@ -970,9 +956,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                             id
                         ]
                     );
-
                 } else {
-
                     await db.query(
                         `
                         INSERT INTO hotel_images
@@ -985,6 +969,37 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                         [
                             id,
                             newImagePath
+                        ]
+                    );
+                }
+            }
+
+            if (hotelImages.length < oldImages.length) {
+                const deleteImages =
+                    oldImages.slice(hotelImages.length);
+
+                for (const image of deleteImages) {
+                    const oldImagePath = path.join(
+                        process.cwd(),
+                        image.image
+                    );
+
+                    if (
+                        image.image &&
+                        fs.existsSync(oldImagePath)
+                    ) {
+                        fs.unlinkSync(oldImagePath);
+                    }
+
+                    await db.query(
+                        `
+                        DELETE FROM hotel_images
+                        WHERE id = ?
+                        AND hotel_id = ?
+                        `,
+                        [
+                            image.id,
+                            id
                         ]
                     );
                 }

@@ -327,7 +327,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
             message: error.message
         });
     }
-});x
+});
 
 export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
     try {

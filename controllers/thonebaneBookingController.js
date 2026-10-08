@@ -262,9 +262,8 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
                 ),
                 0
         ) AS approved_total_price
-         FROM hotel_bookings b
-         JOIN hotels h
-         ON b.hotel_id = h.id
+         FROM thonebane_bookings b
+         JOIN thonebane_id = h.id
 
         `;
         let totalParams = [];

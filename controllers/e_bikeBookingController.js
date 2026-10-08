@@ -335,9 +335,9 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
                 ),
                 0
         ) AS approved_total_price
-         FROM hotel_bookings b
-         JOIN hotels h
-         ON b.hotel_id = h.id
+         FROM e_bike_bookings b
+         JOIN e_bikes h
+         ON b.e_bike_id = h.id
 
         `;
         let totalParams = [];

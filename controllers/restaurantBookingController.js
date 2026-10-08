@@ -140,29 +140,44 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         }
 
         let query = `
-        SELECT
-           b.id AS booking_id,
-           b.user_id,
-           b.shop_id, 
-           b.customer_name, 
-           b.customer_phone,
-           DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-           TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
-           b.passenger_count, 
-           b.status, 
-           b.note, 
-           s.shop_name 
-           FROM res_bookings b 
-           INNER JOIN shops s ON b.shop_id = s.id `;
+        SELECT 
+            b.id AS booking_id,
+            b.user_id,
+            b.shop_id,
+            b.customer_name,
+            b.customer_phone,
+            DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
+            TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
+            b.passenger_count,
+            b.status,
+            b.note,
+            s.shop_name
+
+        FROM res_bookings b
+
+        INNER JOIN shops s
+            ON b.shop_id = s.id
+        `;
+
         let params = [];
         let shop_id = null;
 
         if (req.user.role === "shop") {
-            const [shops] = await db.query("SELECT id FROM shops WHERE user_id = ?", [req.user.id]);
+
+            const [shops] = await db.query(
+                `SELECT id FROM shops WHERE user_id = ?`,
+                [req.user.id]
+            );
+
             if (shops.length === 0) {
-                return res.status(404).json({ success: false, message: "Shop not found!" });
+                return res.status(404).json({
+                    success: false,
+                    message: "Shop not found!"
+                });
             }
+
             shop_id = shops[0].id;
+
             query += ` WHERE b.shop_id = ?`;
             params.push(shop_id);
         }
@@ -170,106 +185,139 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
         query += ` ORDER BY b.id DESC`;
 
         const [booking] = await db.query(query, params);
+
         for (const item of booking) {
+
             const [items] = await db.query(
-                `SELECT 
-                bi.id, 
-                bi.booking_id, 
-                bi.menu_id, 
-                m.name AS menu_name, 
-                m.image, 
-                bi.size, 
-                bi.price, 
-                bi.quantity, 
-                bi.subtotal 
-                FROM res_booking_items bi 
-                INNER JOIN res_menu m ON bi.menu_id = m.id 
-                WHERE bi.booking_id = ? 
+                `
+                SELECT
+                    bi.id,
+                    bi.booking_id,
+                    bi.menu_id,
+                    m.name AS menu_name,
+                    m.image,
+                    bi.size,
+                    bi.price,
+                    bi.quantity,
+                    bi.subtotal
+
+                FROM res_booking_items bi
+
+                INNER JOIN res_menu m
+                    ON bi.menu_id = m.id
+
+                WHERE bi.booking_id = ?
+
                 ORDER BY bi.id ASC
-                 `
-                ,
-                [item.booking_id]);
+                `,
+                [item.booking_id]
+            );
+
             item.items = items;
         }
+
         let countQuery = `
-        SELECT COUNT(*) AS total_count, 
-        COALESCE( SUM( CASE WHEN status = 'pending' THEN 1 ELSE 0 END ), 0 )
-        AS pending_count, COALESCE( SUM( CASE WHEN status = 'approved' THEN 1 ELSE 0 END ), 0 ) 
-        AS approved_count, COALESCE( SUM( CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END ), 0 )
-        AS cancelled_count FROM res_bookings `;
+        SELECT
+            COUNT(*) AS total_count,
 
-        let countParams = [];
-        if (req.user.role === "shop") {
-            countQuery += ` WHERE shop_id = ?`;
-            countParams.push(shop_id);
-        }
-        const [counts] = await db.query(countQuery, countParams);
-        let totalQuery =
-            `
-        SELECT COUNT (*) AS total_count,
-            COALESCE(
-               SUM(
-                    CASE WHEN b.status = 'pending'
-                    THEN 1 
-                    ELSE 0
-
-                END
-               ),
-               0
-             )AS pending_count,
             COALESCE(
                 SUM(
-
-                    CASE WHEN b.status = 'approved'
-                    THEN 1 
-                    ELSE 0
-
-                    END
-                ),
-                0
-            )AS approved_count,
-           COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'cancelled' 
-                        THEN 1 
-                        ELSE 0 
-                    END
-                ),
-            0
-        ) AS cancelled_count,
-        COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'approved'
-                        THEN h.price
+                    CASE
+                        WHEN status = 'pending'
+                        THEN 1
                         ELSE 0
                     END
                 ),
                 0
-        ) AS approved_total_price
-         FROM hotel_bookings b
-         JOIN hotels h
-         ON b.hotel_id = h.id
+            ) AS pending_count,
 
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN status = 'approved'
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS approved_count,
+
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN status = 'cancelled'
+                        THEN 1
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS cancelled_count
+
+        FROM res_bookings
         `;
-        let totalParams = [];
-        if (req.user.role == "shop") {
-            totalQuery += ` WHERE b.shop_id = ? `
-            totalParams.push(shop_id)
+
+        let countParams = [];
+
+        if (req.user.role === "shop") {
+
+            countQuery += ` WHERE shop_id = ?`;
+
+            countParams.push(shop_id);
         }
-        const [total_approved_count] = await db.query(
+
+        const [counts] = await db.query(
+            countQuery,
+            countParams
+        );
+
+        let totalQuery = `
+        SELECT
+
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN b.status = 'approved'
+                        THEN bi.subtotal
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS approved_total_price
+
+        FROM res_bookings b
+
+        INNER JOIN res_booking_items bi
+            ON b.id = bi.booking_id
+        `;
+
+        let totalParams = [];
+
+        if (req.user.role === "shop") {
+
+            totalQuery += ` WHERE b.shop_id = ?`;
+
+            totalParams.push(shop_id);
+        }
+
+        const [totalApproved] = await db.query(
             totalQuery,
             totalParams
         );
+
         return res.status(200).json({
-            success: true, message: "Booking List Success",
-            booking, total_count: counts[0].total_count,
+            success: true,
+            message: "Booking List Success",
+
+            booking,
+
+            total_count: counts[0].total_count,
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
-            total_approved_count: total_approved_count[0].approved_total_price
+
+            approved_total_price: totalApproved[0].approved_total_price
         });
+
     } catch (error) {
 
         console.log(error);
@@ -279,7 +327,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
             message: error.message
         });
     }
-});
+});x
 
 export const restaurant_bookingApproved = asyncHandel(async (req, res) => {
     try {

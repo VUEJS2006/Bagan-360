@@ -291,6 +291,64 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
         }
 
         const [counts] = await db.query(countQuery, countParams);
+        let totalQuery =
+            `
+        SELECT COUNT (*) AS total_count,
+            COALESCE(
+               SUM(
+                    CASE WHEN b.status = 'pending'
+                    THEN 1 
+                    ELSE 0
+
+                END
+               ),
+               0
+             )AS pending_count,
+            COALESCE(
+                SUM(
+
+                    CASE WHEN b.status = 'approved'
+                    THEN 1 
+                    ELSE 0
+
+                    END
+                ),
+                0
+            )AS approved_count,
+           COALESCE(
+                SUM(
+                    CASE 
+                        WHEN b.status = 'cancelled' 
+                        THEN 1 
+                        ELSE 0 
+                    END
+                ),
+            0
+        ) AS cancelled_count,
+        COALESCE(
+                SUM(
+                    CASE 
+                        WHEN b.status = 'approved'
+                        THEN h.price
+                        ELSE 0
+                    END
+                ),
+                0
+        ) AS approved_total_price
+         FROM hotel_bookings b
+         JOIN hotels h
+         ON b.hotel_id = h.id
+
+        `;
+        let totalParams = [];
+        if (req.user.role == "shop") {
+            totalQuery += ` WHERE b.shop_id = ? `
+            totalParams.push(shop_id)
+        }
+        const [total_approved_count] = await db.query(
+            totalQuery,
+            totalParams
+        );
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
@@ -299,6 +357,7 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
+            total_approved_count: total_approved_count[0].approved_total_price,
             booking
         });
 

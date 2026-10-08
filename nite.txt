@@ -1,1 +1,2 @@
 4 5 8 9 shop id
+is_ative status ထပ်တည့်ပေး hotel restaurant e-bike thonebane Controller.jsမှာ CRUDပိုင်းထည့်ပေး is_active ture user ပြမယ် false list data မပြ status filedပဲထည့်ပေး စစ်စရာမလို is)active စစ်ပေးရမှာ file4 ခုမှာ လိုက်တာည့် ထည့်ပြီးသားရှိတယ်  လိုနေရင်ထပ်စစ်ထည့်လိုက် is_acive abd statusကို

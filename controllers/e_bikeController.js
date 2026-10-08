@@ -18,6 +18,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
             color,
             location,
             status,
+            is_active,
             battery_percentage,
             helmet,
             battery_voltage,
@@ -85,6 +86,30 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 success: false,
                 message: "Type, name and code are required!"
             });
+        }
+
+        let active = 1;
+        if (is_active !== undefined) {
+            if (
+                is_active === true ||
+                is_active === "true" ||
+                is_active === 1 ||
+                is_active === "1"
+            ) {
+                active = 1;
+            } else if (
+                is_active === false ||
+                is_active === "false" ||
+                is_active === 0 ||
+                is_active === "0"
+            ) {
+                active = 0;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "is_active must be true/false or 1/0!"
+                });
+            }
         }
 
         const [type] = await db.query(
@@ -179,9 +204,10 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 battery_capacity,
                 passenger_count,
                 phone_holder,
-                description
+                description,
+                is_active
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
@@ -199,7 +225,8 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
                 battery_capacity || null,
                 passenger_count || 1,
                 phone_holder,
-                description || null
+                description || null,
+                active
             ]
         );
 
@@ -248,6 +275,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
                     e.image,
 
                     e.status,
+                    e.is_active,
                     e.battery_percentage,
 
                     e.helmet,
@@ -312,6 +340,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
                     e.image,
 
                     e.status,
+                    e.is_active,
                     e.battery_percentage,
 
                     e.helmet,
@@ -484,6 +513,7 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
             color,
             location,
             status,
+            is_active,
             battery_percentage,
             helmet,
             battery_voltage,
@@ -552,6 +582,30 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
                 success: false,
                 message: "E-bike not found!"
             });
+        }
+
+        let active = bike[0].is_active;
+        if (is_active !== undefined) {
+            if (
+                is_active === true ||
+                is_active === "true" ||
+                is_active === 1 ||
+                is_active === "1"
+            ) {
+                active = 1;
+            } else if (
+                is_active === false ||
+                is_active === "false" ||
+                is_active === 0 ||
+                is_active === "0"
+            ) {
+                active = 0;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "is_active must be true/false or 1/0!"
+                });
+            }
         }
 
 
@@ -675,7 +729,8 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
                 passenger_count = ?,
                 phone_holder = ?,
 
-                description = ?
+                description = ?,
+                is_active = ?
 
             WHERE id = ?
             `,
@@ -699,6 +754,7 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
                 phone_holder ?? true,
 
                 description || null,
+                active,
 
                 id
             ]
@@ -844,12 +900,14 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                 s.type,
                 s.user_id,
                 u.image,
-                s.status
+                s.status,
+                s.is_active
             FROM shops s
             JOIN users u ON s.user_id = u.id
             WHERE s.id = ?
             AND s.type = 'e_bike'
             AND s.status = 'approved'
+            AND s.is_active = true
             `,
             [id]
         )
@@ -876,6 +934,7 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
             
 
                 e.status,
+                e.is_active,
                 e.battery_percentage,
 
                 e.helmet,
@@ -946,6 +1005,8 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
 
             WHERE
                 e.shop_id = ?
+                AND e.is_active = true
+                AND s.is_active = true
 
             GROUP BY
                 e.id,
@@ -958,6 +1019,7 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
 
                 
                 e.status,
+                e.is_active,
                 e.battery_percentage,
 
                 e.helmet,
@@ -1097,6 +1159,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'e_bike'
                 AND s.status = 'approved'
+                AND s.is_active = true
                 ORDER BY s.id DESC
             `;
         }
@@ -1132,7 +1195,10 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
-        const [e_bike] = await db.query("SELECT * FROM e_bikes WHERE id = ?", [id]);
+        const [e_bike] = await db.query(
+            "SELECT * FROM e_bikes WHERE id = ? AND is_active = true",
+            [id]
+        );
         if (e_bike.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -1154,6 +1220,7 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
             
 
                 e.status,
+                e.is_active,
                 e.battery_percentage,
 
                 e.helmet,
@@ -1180,7 +1247,6 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
-                s.is_active,
 
 
            
@@ -1225,6 +1291,8 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
 
             WHERE
                 e.id = ?
+                AND e.is_active = true
+                AND s.is_active = true
 
             GROUP BY
                 e.id,
@@ -1237,6 +1305,7 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
 
                 
                 e.status,
+                e.is_active,
                 e.battery_percentage,
 
                 e.helmet,
@@ -1255,10 +1324,17 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
                 s.id,
                 s.shop_name,
                 s.shop_phone,
-                s.shop_address
+                s.shop_address,
+                s.is_active
             `,
             [id]
         );
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "E-bike not found!"
+            });
+        }
         return res.status(200).json({
             success: true,
             message: "E-bike Detail Success",

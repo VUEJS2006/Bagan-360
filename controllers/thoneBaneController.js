@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, price, phone, location, description, status } = req.body;
+        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, price, phone, location, description, status, is_active } = req.body;
         let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -59,6 +59,30 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        let active = 1;
+        if (is_active !== undefined) {
+            if (
+                is_active === true ||
+                is_active === "true" ||
+                is_active === 1 ||
+                is_active === "1"
+            ) {
+                active = 1;
+            } else if (
+                is_active === false ||
+                is_active === "false" ||
+                is_active === 0 ||
+                is_active === "0"
+            ) {
+                active = 0;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "is_active must be true/false or 1/0!"
+                });
+            }
+        }
+
 
         const uploadFolder = path.join(process.cwd(), "images", "thonebane")
         if (!fs.existsSync(uploadFolder)) {
@@ -96,9 +120,10 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 location,
                 description,
                 status,
-                image
+                image,
+                is_active
             )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
                 shop_id,
@@ -112,7 +137,8 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 location,
                 description,
                 status,
-                imagePath
+                imagePath,
+                active
             ])
         return res.status(201).json({
             success: true,
@@ -158,6 +184,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     t.location,
                     t.description,
                     t.status,
+                    t.is_active,
                     t.image,
                     DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
                 FROM thonebanes t
@@ -201,6 +228,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     t.location,
                     t.description,
                     t.status,
+                    t.is_active,
                     t.image,
                     DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
                 FROM thonebanes t
@@ -258,7 +286,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, category_id, capacity, price_per_day, features, price, phone, location, description, status } = req.body;
+        let { name, category_id, capacity, price_per_day, features, price, phone, location, description, status, is_active } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -298,6 +326,30 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 success: false,
                 message: "ThoneBane not found"
             });
+        }
+
+        let active = thonebane[0].is_active;
+        if (is_active !== undefined) {
+            if (
+                is_active === true ||
+                is_active === "true" ||
+                is_active === 1 ||
+                is_active === "1"
+            ) {
+                active = 1;
+            } else if (
+                is_active === false ||
+                is_active === "false" ||
+                is_active === 0 ||
+                is_active === "0"
+            ) {
+                active = 0;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "is_active must be true/false or 1/0!"
+                });
+            }
         }
 
         let updatedImageString = thonebane[0].image;
@@ -350,7 +402,8 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 location=?,
                 description=?,
                 status=?,
-                image=?
+                image=?,
+                is_active=?
             WHERE id=?
             `,
             [
@@ -365,6 +418,7 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 description,
                 status,
                 updatedImageString,
+                active,
                 id
             ]
         );
@@ -461,7 +515,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
 
         const { id } = req.params;
 
-        const [thonebane] = await db.query("SELECT * FROM thonebanes WHERE id = ?", [id]);
+        const [thonebane] = await db.query("SELECT * FROM thonebanes WHERE id = ? AND is_active = true", [id]);
         if (thonebane.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -486,6 +540,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                     t.location,
                     t.description,
                     t.status,
+                    t.is_active,
                     t.image,
                     DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
                 FROM thonebanes t
@@ -494,6 +549,8 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 LEFT JOIN shops s
                     ON t.shop_id = s.id
                     WHERE t.id = ?
+                    AND t.is_active = true
+                    AND s.is_active = true
                 ORDER BY t.id DESC
             `,
             [id]
@@ -596,6 +653,7 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'thonebane'
                 AND s.status = 'approved'
+                AND s.is_active = true
                 ORDER BY s.id DESC
             `;
         }
@@ -650,6 +708,7 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
             WHERE s.id = ?
             AND s.type = 'thonebane'
             AND s.status = 'approved'
+            AND s.is_active = true
             `,
             [id]
         );
@@ -677,6 +736,7 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 t.location,
                 t.description,
                 t.status,
+                t.is_active,
                 t.image,
                 DATE_FORMAT(
                     t.created_at,
@@ -686,6 +746,7 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
             LEFT JOIN thonebane_categories c
                 ON t.category_id = c.id
             WHERE t.shop_id = ?
+            AND t.is_active = true
             ORDER BY t.id DESC
             `,
             [id]

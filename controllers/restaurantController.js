@@ -13,6 +13,7 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             name,
             description,
             prices,
+            status,
             is_active,
         } = req.body;
 
@@ -129,6 +130,30 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             });
         }
 
+        let active = 1;
+        if (is_active !== undefined) {
+            if (
+                is_active === true ||
+                is_active === "true" ||
+                is_active === 1 ||
+                is_active === "1"
+            ) {
+                active = 1;
+            } else if (
+                is_active === false ||
+                is_active === "false" ||
+                is_active === 0 ||
+                is_active === "0"
+            ) {
+                active = 0;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "is_active must be true/false or 1/0!"
+                });
+            }
+        }
+
         // =========================
         // PRICE VALIDATION
         // =========================
@@ -206,15 +231,17 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
                 name,
                 image,
                 is_active,
+                status,
                 description
             )
-            VALUES (?, ?, ?, ?,?)
+            VALUES (?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
                 name,
                 imagePath,
-                is_active || true,
+                active,
+                status ?? null,
                 description
             ]
         );
@@ -249,10 +276,13 @@ export const restMenuCreate = asyncHandel(async (req, res) => {
             success: true,
             message: "Restaurant Menu Create Success",
             menu_id,
+            status: status ?? null,
+            is_active: Boolean(active),
             data: {
                 shop_id,
                 name,
                 image: imagePath,
+                status: status ?? null,
                 description,
                 prices
             }
@@ -359,6 +389,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
+                AND s.is_active = true
                 ORDER BY s.id DESC
             `;
         }
@@ -447,6 +478,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     m.name,
                     m.image,
                     m.is_active,
+                    m.status,
                     m.description
                 FROM res_menu m
                 INNER JOIN shops s
@@ -498,6 +530,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     m.name,
                     m.image,
                     m.is_active,
+                    m.status,
                     m.description
                 FROM res_menu m
                 INNER JOIN shops s
@@ -527,14 +560,17 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     m.name,
                     m.image,
                     m.is_active,
+                    m.status,
                     m.description
                 FROM res_menu m
                 INNER JOIN shops s
                     ON m.shop_id = s.id
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
+                AND s.is_active = true
+                AND m.is_active = true
                 ORDER BY m.id DESC
-            `;
+                `;
         }
 
         // =========================
@@ -611,6 +647,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             name,
             description,
             prices,
+            status,
             is_active,
         } = req.body;
 
@@ -676,11 +713,29 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             });
         }
 
-        // =========================
-        // IS ACTIVE VALIDATION
-        // =========================
-
-     
+        let active;
+        if (is_active !== undefined) {
+            if (
+                is_active === true ||
+                is_active === "true" ||
+                is_active === 1 ||
+                is_active === "1"
+            ) {
+                active = 1;
+            } else if (
+                is_active === false ||
+                is_active === "false" ||
+                is_active === 0 ||
+                is_active === "0"
+            ) {
+                active = 0;
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: "is_active must be true/false or 1/0!"
+                });
+            }
+        }
 
         // =========================
         // MENU CHECK
@@ -693,6 +748,7 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
                 m.name,
                 m.image,
                 m.is_active,
+                m.status,
                 m.description
             FROM res_menu m
 
@@ -808,11 +864,17 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
             updateValues.push(description);
         }
 
+        if (status !== undefined) {
+
+            updateFields.push("status = ?");
+            updateValues.push(status);
+        }
+
         // is_active ပို့မှ update
         if (is_active !== undefined) {
 
             updateFields.push("is_active = ?");
-            updateValues.push(is_active);
+            updateValues.push(active);
         }
 
         // Image ပါလာမှ update
@@ -968,7 +1030,13 @@ export const resMenuUpdate = asyncHandel(async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Restaurant Menu Update Success"
+            message: "Restaurant Menu Update Success",
+            status: status !== undefined
+                ? status
+                : menu[0].status,
+            is_active: is_active !== undefined
+                ? Boolean(active)
+                : Boolean(menu[0].is_active)
         });
 
     } catch (error) {
@@ -1136,6 +1204,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             WHERE s.id = ?
             AND s.type = 'restaurant'
             AND s.status = 'approved'
+            AND s.is_active = true
             `,
             [id]
         );
@@ -1155,6 +1224,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                 m.name,
                 m.image,
                 m.is_active,
+                m.status,
                 m.description,
                 DATE_FORMAT(m.created_at, '%d-%m-%Y') AS created_at,
 
@@ -1189,6 +1259,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
                     shop_id: item.shop_id,
                     name: item.name,
                     is_active: item.is_active,
+                    status: item.status,
                     image: item.image,
                     description: item.description,
                     created_at: item.created_at,
@@ -1255,6 +1326,7 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
                 m.name,
                 m.image,
                 m.is_active,
+                m.status,
                 m.description,
 
                 DATE_FORMAT(
@@ -1274,7 +1346,9 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
                 ON m.id = mp.menu_id
 
             WHERE m.id = ?
-            AND s.type = 'restaurant' AND m.is_active = true
+            AND s.type = 'restaurant'
+            AND s.is_active = true
+            AND m.is_active = true
             `,
             [id]
         );
@@ -1299,6 +1373,7 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
             shop_id: data[0].shop_id,
             name: data[0].name,
             image: data[0].image,
+            status: data[0].status,
             description: data[0].description,
             created_at: data[0].created_at,
 

@@ -1,0 +1,5 @@
+ALTER TABLE hotels
+    ADD COLUMN status VARCHAR(100) NULL;
+
+ALTER TABLE res_menu
+    ADD COLUMN status VARCHAR(100) NULL;

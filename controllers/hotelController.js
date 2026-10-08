@@ -16,6 +16,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             facilities,
             description,
             location,
+            status,
             is_active
         } = req.body;
 
@@ -213,9 +214,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 description,
                 image,
                 location,
+                status,
                 is_active
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
@@ -226,6 +228,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                     : null,
                 imagePath,
                 String(location).trim(),
+                status ?? null,
                 active
             ]
         );
@@ -310,7 +313,9 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             success: true,
             message: "Hotel created successfully.",
             hotel_id,
-            shop_id
+            shop_id,
+            status: status ?? null,
+            is_active: Boolean(active)
         });
 
     } catch (error) {
@@ -351,11 +356,14 @@ export const hotelSearch = asyncHandel(async (req, res) => {
             description,
             facilities,
             image,
-            location
+            location,
+            status,
+            is_active
             FROM
             hotels
             WHERE
-            name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?
+            is_active = true
+            AND (name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?)
             ORDER BY id DESC
             `,
             [
@@ -397,11 +405,13 @@ export const hotelFilter = asyncHandel(async (req, res) => {
             description,
             facilities,
             image,
-            location
+            location,
+            status,
+            is_active
             FROM
             hotels
             WHERE
-            1=1
+            is_active = true
             `;
         const values = [];
         if (location) {
@@ -457,6 +467,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.location,
                     h.description,
                     h.image,
+                    h.status,
                     h.is_active
                 FROM hotels h
                 LEFT JOIN shops s
@@ -502,6 +513,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.price,
                     h.description,
                     h.image,
+                    h.status,
                     h.is_active
                 FROM hotels h
                 LEFT JOIN shops s
@@ -586,6 +598,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             facilities,
             description,
             location,
+            status,
             is_active
         } = req.body;
 
@@ -772,6 +785,7 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 description = ?,
                 image = ?,
                 location = ?,
+                status = ?,
                 is_active = ?
             WHERE id = ?
             `,
@@ -795,6 +809,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 location !== undefined
                     ? String(location).trim()
                     : currentHotel.location,
+
+                status !== undefined
+                    ? status
+                    : currentHotel.status,
 
                 active,
 
@@ -1009,6 +1027,10 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Hotel updated successfully.",
+            status: status !== undefined
+                ? status
+                : currentHotel.status,
+            is_active: Boolean(active),
             data
         });
 
@@ -1275,6 +1297,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'hotel'
                 AND s.status = 'approved'
+                AND s.is_active = true
                 ORDER BY s.id DESC
             `;
         }
@@ -1332,6 +1355,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
                 h.price,
                 h.location,
                 h.description,
+                h.status,
                 h.is_active,
                 h.image AS hotel_image
 
@@ -1345,6 +1369,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
             WHERE h.shop_id = ?
             AND s.status = 'approved'
+            AND s.is_active = true
             AND s.type = 'hotel'
             AND h.is_active = true
 
@@ -1404,6 +1429,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             shop_id: hotel.shop_id,
             name: hotel.name,
             price: hotel.price,
+            status: hotel.status,
             is_active: hotel.is_active,
             location: hotel.location,
             description: hotel.description,
@@ -1445,6 +1471,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.price,
                 h.location,
                 h.description,
+                h.status,
                 h.is_active,
                 h.image AS hotel_image,
 
@@ -1461,7 +1488,9 @@ export const hotelDetails = asyncHandel(async (req, res) => {
 
             WHERE h.id = ?
             AND s.status = 'approved'
+            AND s.is_active = true
             AND s.type = 'hotel'
+            AND h.is_active = true
 
             `,
             [id]
@@ -1513,6 +1542,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             shop_id: hotel.shop_id,
             name: hotel.name,
             price: hotel.price,
+            status: hotel.status,
             location: hotel.location,
             is_active: hotel.is_active,
             description: hotel.description,

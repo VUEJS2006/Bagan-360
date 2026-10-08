@@ -102,7 +102,7 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 h.price,
                 (
                     SELECT COALESCE(JSON_ARRAYAGG(hi.image), JSON_ARRAY())
-                    FROM hotel_image hi
+                    FROM hotel_images hi
                     WHERE hi.hotel_id = h.id
                 ) AS images,
                 (
@@ -430,7 +430,7 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                 h.price,
                 (
                     SELECT COALESCE(JSON_ARRAYAGG(hi.image), JSON_ARRAY())
-                    FROM hotel_image hi
+                    FROM hotel_images hi
                     WHERE hi.hotel_id = h.id
                 ) AS images,
                 (

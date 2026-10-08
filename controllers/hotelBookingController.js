@@ -266,7 +266,7 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 0
         ) AS approved_total_price
          FROM hotel_bookings b
-         JOIN hotel h
+         JOIN hotels h
          ON b.hotel_id = h.id
 
         `;

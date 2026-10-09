@@ -5,6 +5,31 @@ import path from "path";
 import sharp from "sharp";
 import { v4 as uuid } from "uuid";
 
+
+const saveHotelImage = async (file, uploadFolder) => {
+    if (!file) return null;
+
+    if (!fs.existsSync(uploadFolder)) {
+        fs.mkdirSync(uploadFolder, {
+            recursive: true
+        });
+    }
+
+    const fileName = `${uuid()}.webp`;
+
+    await sharp(file.buffer)
+        .resize({
+            width: 1920,
+            withoutEnlargement: true
+        })
+        .webp({
+            quality: 90
+        })
+        .toFile(path.join(uploadFolder, fileName));
+
+    return `images/hotel/${fileName}`;
+};
+
 export const hotelCreate = asyncHandel(async (req, res) => {
     try {
         let shop_id = null;
@@ -97,7 +122,7 @@ export const hotelCreate = asyncHandel(async (req, res) => {
 
         const hotelPrice = Number(price);
 
-        if (Number.isNaN(hotelPrice)) {
+        if (!Number.isFinite(hotelPrice)) {
             return res.status(400).json({
                 success: false,
                 message: "Price must be a valid number!"
@@ -173,36 +198,25 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             "hotel"
         );
 
-        if (!fs.existsSync(uploadFolder)) {
-            fs.mkdirSync(uploadFolder, {
-                recursive: true
-            });
-        }
+        const image = await saveHotelImage(
+            req.files?.image?.[0],
+            uploadFolder
+        );
 
-        let imagePath = null;
+        const hotel_image1 = await saveHotelImage(
+            req.files?.hotel_image1?.[0],
+            uploadFolder
+        );
 
-        const mainImage = req.files?.image?.[0];
+        const hotel_image2 = await saveHotelImage(
+            req.files?.hotel_image2?.[0],
+            uploadFolder
+        );
 
-        if (mainImage) {
-            const fileName = `${uuid()}.webp`;
-
-            const savePath = path.join(
-                uploadFolder,
-                fileName
-            );
-
-            await sharp(mainImage.buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({
-                    quality: 90
-                })
-                .toFile(savePath);
-
-            imagePath = `images/hotel/${fileName}`;
-        }
+        const hotel_image3 = await saveHotelImage(
+            req.files?.hotel_image3?.[0],
+            uploadFolder
+        );
 
         const [data] = await db.query(
             `
@@ -213,22 +227,26 @@ export const hotelCreate = asyncHandel(async (req, res) => {
                 price,
                 description,
                 image,
+                hotel_image1,
+                hotel_image2,
+                hotel_image3,
                 location,
                 status,
                 is_active
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 shop_id,
-                String(name).trim(),
+                name,
                 hotelPrice,
-                description
-                    ? String(description).trim()
-                    : null,
-                imagePath,
-                String(location).trim(),
-                status ?? null,
+                description,
+                image,
+                hotel_image1,
+                hotel_image2,
+                hotel_image3,
+                location,
+                status ?? "available",
                 active
             ]
         );
@@ -258,64 +276,10 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             }
         }
 
-        const hotelFolder = path.join(
-            process.cwd(),
-            "images",
-            "hotel_image"
-        );
-
-        if (!fs.existsSync(hotelFolder)) {
-            fs.mkdirSync(hotelFolder, {
-                recursive: true
-            });
-        }
-
-        const hotelImages = req.files?.hotel_images || [];
-
-        for (const file of hotelImages) {
-            const fileName = `${uuid()}.webp`;
-
-            const savePath = path.join(
-                hotelFolder,
-                fileName
-            );
-
-            await sharp(file.buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({
-                    quality: 90
-                })
-                .toFile(savePath);
-
-            const imagePath =
-                `images/hotel_image/${fileName}`;
-
-            await db.query(
-                `
-                INSERT INTO hotel_images
-                (
-                    hotel_id,
-                    image
-                )
-                VALUES (?, ?)
-                `,
-                [
-                    hotel_id,
-                    imagePath
-                ]
-            );
-        }
-
         return res.status(201).json({
             success: true,
             message: "Hotel created successfully.",
-            hotel_id,
-            shop_id,
-            status: status ?? null,
-            is_active: Boolean(active)
+            data
         });
 
     } catch (error) {
@@ -326,135 +290,15 @@ export const hotelCreate = asyncHandel(async (req, res) => {
             message: error.message
         });
     }
-})
+});
 
-export const hotelSearch = asyncHandel(async (req, res) => {
-    try {
-
-        const { search = "" } = req.query;
-        if (!search.trim()) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: []
-            });
-        }
-
-        const keyword = `%${search}%`;
-
-        const [data] = await db.query(
-            `
-            SELECT
-            id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
-            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date,
-            description,
-            facilities,
-            image,
-            location,
-            status,
-            is_active
-            FROM
-            hotels
-            WHERE
-            is_active = true
-            AND (name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?)
-            ORDER BY id DESC
-            `,
-            [
-                keyword,
-                keyword,
-                keyword,
-                keyword,
-                keyword
-            ]
-
-        )
-        return res.status(200).json({
-            message: "Search Success",
-            success: true,
-            data
-        })
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})
-
-export const hotelFilter = asyncHandel(async (req, res) => {
-    try {
-        const { location = "", name = "", type = "" } = req.query;
-        let sql = `
-            SELECT
-            id,
-            name,
-            type,
-            price,
-            discount,
-            total_amount,
-            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
-            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date,
-            description,
-            facilities,
-            image,
-            location,
-            status,
-            is_active
-            FROM
-            hotels
-            WHERE
-            is_active = true
-            `;
-        const values = [];
-        if (location) {
-            sql += ` AND location LIKE ?`;
-            values.push(`%${location}%`)
-        }
-        if (name) {
-            sql += ` AND name LIKE ?`;
-            values.push(`%${name}%`)
-        }
-        if (type) {
-            sql += ` AND type LIKE ?`;
-            values.push(`%${type}%`)
-        }
-        sql += `
-         ORDER BY id DESC
-        `;
-        const [hotel] = await db.query(sql, values);
-
-
-        res.status(200).json({
-            success: true,
-            count: hotel.length,
-            hotel
-        });
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-})
 
 export const hotelList = asyncHandel(async (req, res) => {
     try {
-
         let query = "";
         let params = [];
 
         if (req.user.role === "admin") {
-
             query = `
                 SELECT
                     h.id,
@@ -467,6 +311,9 @@ export const hotelList = asyncHandel(async (req, res) => {
                     h.location,
                     h.description,
                     h.image,
+                    h.hotel_image1,
+                    h.hotel_image2,
+                    h.hotel_image3,
                     h.status,
                     h.is_active
                 FROM hotels h
@@ -474,11 +321,8 @@ export const hotelList = asyncHandel(async (req, res) => {
                     ON h.shop_id = s.id
                 ORDER BY h.id DESC
             `;
-        }
-
-        else if (req.user.role === "shop") {
-
-            const [shop] = await db.query(
+        } else if (req.user.role === "shop") {
+            const [shops] = await db.query(
                 `
                 SELECT id, type
                 FROM shops
@@ -487,14 +331,14 @@ export const hotelList = asyncHandel(async (req, res) => {
                 [req.user.id]
             );
 
-            if (shop.length === 0) {
+            if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
 
-            if (shop[0].type !== "hotel") {
+            if (shops[0].type !== "hotel") {
                 return res.status(400).json({
                     success: false,
                     message: "This shop is not a hotel!"
@@ -509,10 +353,13 @@ export const hotelList = asyncHandel(async (req, res) => {
                     s.shop_address,
                     s.shop_phone,
                     h.name,
-                    h.location,
                     h.price,
+                    h.location,
                     h.description,
                     h.image,
+                    h.hotel_image1,
+                    h.hotel_image2,
+                    h.hotel_image3,
                     h.status,
                     h.is_active
                 FROM hotels h
@@ -522,10 +369,8 @@ export const hotelList = asyncHandel(async (req, res) => {
                 ORDER BY h.id DESC
             `;
 
-            params = [shop[0].id];
-        }
-
-        else {
+            params = [shops[0].id];
+        } else {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
@@ -533,28 +378,29 @@ export const hotelList = asyncHandel(async (req, res) => {
         }
 
         const [data] = await db.query(query, params);
+
         for (const hotel of data) {
             const [facilities] = await db.query(
                 `
-                SELECT id,name,description
-                FROM hotel_facilities WHERE hotel_id = ?
+                SELECT
+                    id,
+                    name,
+                    description
+                FROM hotel_facilities
+                WHERE hotel_id = ?
                 ORDER BY id ASC
-                `, [
-                hotel.id
-            ]
-            )
+                `,
+                [hotel.id]
+            );
+
             hotel.facilities = facilities;
 
-            const [images] = await db.query(
-                `
-                SELECT id,image 
-                FROM hotel_images WHERE hotel_id = ?
-                ORDER BY id ASC
-                `, [
-                hotel.id
-            ]
-            )
-            hotel.images = images;
+            hotel.images = [
+                hotel.image,
+                hotel.hotel_image1,
+                hotel.hotel_image2,
+                hotel.hotel_image3
+            ].filter(Boolean);
         }
 
         return res.status(200).json({
@@ -564,7 +410,6 @@ export const hotelList = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({
@@ -644,13 +489,17 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 });
             }
 
-            if (currentHotel.shop_id !== shops[0].id) {
+            if (Number(currentHotel.shop_id) !== Number(shops[0].id)) {
                 return res.status(403).json({
                     success: false,
                     message: "You can only update your own hotel!"
                 });
             }
         }
+
+        // =========================
+        // FACILITIES VALIDATION
+        // =========================
 
         if (typeof facilities === "string") {
             try {
@@ -690,18 +539,26 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
         }
 
+        // =========================
+        // PRICE VALIDATION
+        // =========================
+
         let hotelPrice = currentHotel.price;
 
         if (price !== undefined && price !== null && price !== "") {
             hotelPrice = Number(price);
 
-            if (Number.isNaN(hotelPrice)) {
+            if (!Number.isFinite(hotelPrice) || hotelPrice < 0) {
                 return res.status(400).json({
                     success: false,
                     message: "Price must be a valid number!"
                 });
             }
         }
+
+        // =========================
+        // IS ACTIVE
+        // =========================
 
         let active = currentHotel.is_active;
 
@@ -728,53 +585,52 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
             }
         }
 
-        let updatedImage = currentHotel.image;
+        // =========================
+        // IMAGE UPDATE
+        // =========================
 
-        const mainImage = req.files?.image?.[0];
+        const uploadFolder = path.join(
+            process.cwd(),
+            "images",
+            "hotel"
+        );
 
-        if (mainImage) {
-            const uploadFolder = path.join(
-                process.cwd(),
-                "images",
-                "hotel"
-            );
+        const imageFields = [
+            "image",
+            "hotel_image1",
+            "hotel_image2",
+            "hotel_image3"
+        ];
 
-            if (!fs.existsSync(uploadFolder)) {
-                fs.mkdirSync(uploadFolder, {
-                    recursive: true
-                });
-            }
+        const updatedImages = {
+            image: currentHotel.image,
+            hotel_image1: currentHotel.hotel_image1,
+            hotel_image2: currentHotel.hotel_image2,
+            hotel_image3: currentHotel.hotel_image3
+        };
 
-            if (currentHotel.image) {
-                const oldImagePath = path.join(
-                    process.cwd(),
-                    currentHotel.image
+        const oldImages = [];
+
+        for (const field of imageFields) {
+            const file = req.files?.[field]?.[0];
+
+            if (file) {
+                const newImage = await saveHotelImage(
+                    file,
+                    uploadFolder
                 );
 
-                if (fs.existsSync(oldImagePath)) {
-                    fs.unlinkSync(oldImagePath);
+                if (updatedImages[field]) {
+                    oldImages.push(updatedImages[field]);
                 }
+
+                updatedImages[field] = newImage;
             }
-
-            const fileName = `${uuid()}.webp`;
-
-            const savePath = path.join(
-                uploadFolder,
-                fileName
-            );
-
-            await sharp(mainImage.buffer)
-                .resize({
-                    width: 1920,
-                    withoutEnlargement: true
-                })
-                .webp({
-                    quality: 90
-                })
-                .toFile(savePath);
-
-            updatedImage = `images/hotel/${fileName}`;
         }
+
+        // =========================
+        // UPDATE HOTEL
+        // =========================
 
         const [data] = await db.query(
             `
@@ -783,8 +639,11 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 name = ?,
                 price = ?,
                 description = ?,
-                image = ?,
                 location = ?,
+                image = ?,
+                hotel_image1 = ?,
+                hotel_image2 = ?,
+                hotel_image3 = ?,
                 status = ?,
                 is_active = ?
             WHERE id = ?
@@ -804,29 +663,32 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                     )
                     : currentHotel.description,
 
-                updatedImage,
-
                 location !== undefined
                     ? String(location).trim()
                     : currentHotel.location,
+
+                updatedImages.image,
+                updatedImages.hotel_image1,
+                updatedImages.hotel_image2,
+                updatedImages.hotel_image3,
 
                 status !== undefined
                     ? status
                     : currentHotel.status,
 
                 active,
-
                 id
             ]
         );
 
+        // =========================
+        // UPDATE FACILITIES
+        // =========================
+
         if (Array.isArray(facilities)) {
             const [oldFacilities] = await db.query(
                 `
-                SELECT
-                    id,
-                    name,
-                    description
+                SELECT id
                 FROM hotel_facilities
                 WHERE hotel_id = ?
                 ORDER BY id ASC
@@ -836,6 +698,15 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
             for (let i = 0; i < facilities.length; i++) {
                 const facility = facilities[i];
+
+                const facilityName = String(
+                    facility.name
+                ).trim();
+
+                const facilityDescription =
+                    facility.description
+                        ? String(facility.description).trim()
+                        : null;
 
                 if (oldFacilities[i]) {
                     await db.query(
@@ -848,10 +719,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                         AND hotel_id = ?
                         `,
                         [
-                            String(facility.name).trim(),
-                            facility.description
-                                ? String(facility.description).trim()
-                                : null,
+                            facilityName,
+                            facilityDescription,
                             oldFacilities[i].id,
                             id
                         ]
@@ -869,10 +738,8 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                         `,
                         [
                             id,
-                            String(facility.name).trim(),
-                            facility.description
-                                ? String(facility.description).trim()
-                                : null
+                            facilityName,
+                            facilityDescription
                         ]
                     );
                 }
@@ -889,138 +756,24 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                         WHERE id = ?
                         AND hotel_id = ?
                         `,
-                        [
-                            facility.id,
-                            id
-                        ]
+                        [facility.id, id]
                     );
                 }
             }
         }
 
-        const hotelImages = req.files?.hotel_images || [];
+        // =========================
+        // DELETE OLD IMAGES
+        // =========================
 
-        if (hotelImages.length > 0) {
-            const hotelFolder = path.join(
+        for (const oldImage of oldImages) {
+            const oldImagePath = path.join(
                 process.cwd(),
-                "images",
-                "hotel_image"
+                oldImage
             );
 
-            if (!fs.existsSync(hotelFolder)) {
-                fs.mkdirSync(hotelFolder, {
-                    recursive: true
-                });
-            }
-
-            const [oldImages] = await db.query(
-                `
-                SELECT
-                    id,
-                    image
-                FROM hotel_images
-                WHERE hotel_id = ?
-                ORDER BY id ASC
-                `,
-                [id]
-            );
-
-            for (let i = 0; i < hotelImages.length; i++) {
-                const file = hotelImages[i];
-
-                const fileName = `${uuid()}.webp`;
-
-                const savePath = path.join(
-                    hotelFolder,
-                    fileName
-                );
-
-                await sharp(file.buffer)
-                    .resize({
-                        width: 1920,
-                        withoutEnlargement: true
-                    })
-                    .webp({
-                        quality: 90
-                    })
-                    .toFile(savePath);
-
-                const newImagePath =
-                    `images/hotel_image/${fileName}`;
-
-                if (oldImages[i]) {
-                    const oldImagePath = path.join(
-                        process.cwd(),
-                        oldImages[i].image
-                    );
-
-                    if (
-                        oldImages[i].image &&
-                        fs.existsSync(oldImagePath)
-                    ) {
-                        fs.unlinkSync(oldImagePath);
-                    }
-
-                    await db.query(
-                        `
-                        UPDATE hotel_images
-                        SET image = ?
-                        WHERE id = ?
-                        AND hotel_id = ?
-                        `,
-                        [
-                            newImagePath,
-                            oldImages[i].id,
-                            id
-                        ]
-                    );
-                } else {
-                    await db.query(
-                        `
-                        INSERT INTO hotel_images
-                        (
-                            hotel_id,
-                            image
-                        )
-                        VALUES (?, ?)
-                        `,
-                        [
-                            id,
-                            newImagePath
-                        ]
-                    );
-                }
-            }
-
-            if (hotelImages.length < oldImages.length) {
-                const deleteImages =
-                    oldImages.slice(hotelImages.length);
-
-                for (const image of deleteImages) {
-                    const oldImagePath = path.join(
-                        process.cwd(),
-                        image.image
-                    );
-
-                    if (
-                        image.image &&
-                        fs.existsSync(oldImagePath)
-                    ) {
-                        fs.unlinkSync(oldImagePath);
-                    }
-
-                    await db.query(
-                        `
-                        DELETE FROM hotel_images
-                        WHERE id = ?
-                        AND hotel_id = ?
-                        `,
-                        [
-                            image.id,
-                            id
-                        ]
-                    );
-                }
+            if (fs.existsSync(oldImagePath)) {
+                fs.unlinkSync(oldImagePath);
             }
         }
 
@@ -1031,7 +784,12 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
                 ? status
                 : currentHotel.status,
             is_active: Boolean(active),
-            data
+            data: {
+                id: Number(id),
+                ...updatedImages,
+                facilities_updated: Array.isArray(facilities),
+                affectedRows: data.affectedRows
+            }
         });
 
     } catch (error) {
@@ -1046,8 +804,14 @@ export const hotelUpdate = asyncHandel(async (req, res) => {
 
 export const hotelDelete = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Hotel id is required!"
+            });
+        }
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -1058,9 +822,7 @@ export const hotelDelete = asyncHandel(async (req, res) => {
 
         let shop_id = null;
 
-
         if (req.user.role === "shop") {
-
             const [shop] = await db.query(
                 `
                 SELECT id, type
@@ -1087,24 +849,24 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             shop_id = shop[0].id;
         }
 
-
         // HOTEL CHECK
 
-
         let hotelQuery = `
-            SELECT *
+            SELECT
+                id,
+                shop_id,
+                image,
+                hotel_image1,
+                hotel_image2,
+                hotel_image3
             FROM hotels
             WHERE id = ?
         `;
 
-        let hotelParams = [id];
+        const hotelParams = [id];
 
         if (req.user.role === "shop") {
-
-            hotelQuery += `
-                AND shop_id = ?
-            `;
-
+            hotelQuery += ` AND shop_id = ?`;
             hotelParams.push(shop_id);
         }
 
@@ -1120,57 +882,9 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             });
         }
 
-
-        // DELETE MAIN HOTEL IMAGE
-
-
-        if (hotel[0].image) {
-
-            const imagePath = path.join(
-                process.cwd(),
-                hotel[0].image
-            );
-
-            if (fs.existsSync(imagePath)) {
-                fs.unlinkSync(imagePath);
-            }
-        }
-
-
-        // GET EXTRA HOTEL IMAGES
-
-
-        const [images] = await db.query(
-            `
-            SELECT image
-            FROM hotel_images
-            WHERE hotel_id = ?
-            `,
-            [id]
-        );
-
-
-        // DELETE EXTRA IMAGE FILES
-
-
-        for (const image of images) {
-
-            if (image.image) {
-
-                const imagePath = path.join(
-                    process.cwd(),
-                    image.image
-                );
-
-                if (fs.existsSync(imagePath)) {
-                    fs.unlinkSync(imagePath);
-                }
-            }
-        }
-
+        const currentHotel = hotel[0];
 
         // DELETE HOTEL
-
 
         await db.query(
             `
@@ -1180,13 +894,34 @@ export const hotelDelete = asyncHandel(async (req, res) => {
             [id]
         );
 
+        // DELETE HOTEL IMAGE FILES
+
+        const images = [
+            currentHotel.image,
+            currentHotel.hotel_image1,
+            currentHotel.hotel_image2,
+            currentHotel.hotel_image3
+        ];
+
+        for (const image of images) {
+            if (image) {
+                const imagePath = path.join(
+                    process.cwd(),
+                    image
+                );
+
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+        }
+
         return res.status(200).json({
             success: true,
             message: "Hotel deleted successfully"
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({
@@ -1336,10 +1071,17 @@ export const hotelShopList = asyncHandel(async (req, res) => {
 
 export const hotelShopDetails = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
 
-        const [data] = await db.query(`
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Shop id is required!"
+            });
+        }
+
+        const [data] = await db.query(
+            `
             SELECT
                 h.id,
                 h.shop_id,
@@ -1357,7 +1099,11 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
                 h.description,
                 h.status,
                 h.is_active,
-                h.image AS hotel_image
+
+                h.image AS hotel_image,
+                h.hotel_image1,
+                h.hotel_image2,
+                h.hotel_image3
 
             FROM hotels h
 
@@ -1369,13 +1115,14 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
             WHERE h.shop_id = ?
             AND s.status = 'approved'
-            AND s.is_active = true
+            AND s.is_active = 1
             AND s.type = 'hotel'
-            AND h.is_active = true
+            AND h.is_active = 1
 
             ORDER BY h.id DESC
-
-        `, [id]);
+            `,
+            [id]
+        );
 
         if (data.length === 0) {
             return res.status(404).json({
@@ -1385,7 +1132,6 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
         }
 
         for (const hotel of data) {
-
             const [facilities] = await db.query(
                 `
                 SELECT
@@ -1401,19 +1147,12 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
             hotel.facilities = facilities;
 
-            const [images] = await db.query(
-                `
-                SELECT
-                    id,
-                    image
-                FROM hotel_images
-                WHERE hotel_id = ?
-                ORDER BY id ASC
-                `,
-                [hotel.id]
-            );
-
-            hotel.images = images;
+            hotel.images = [
+                hotel.hotel_image,
+                hotel.hotel_image1,
+                hotel.hotel_image2,
+                hotel.hotel_image3
+            ].filter(Boolean);
         }
 
         const shop = {
@@ -1430,10 +1169,16 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             name: hotel.name,
             price: hotel.price,
             status: hotel.status,
-            is_active: hotel.is_active,
+            is_active: Boolean(hotel.is_active),
             location: hotel.location,
             description: hotel.description,
+
             image: hotel.hotel_image,
+
+            hotel_image1: hotel.hotel_image1,
+            hotel_image2: hotel.hotel_image2,
+            hotel_image3: hotel.hotel_image3,
+
             images: hotel.images,
             facilities: hotel.facilities
         }));
@@ -1447,7 +1192,6 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({
@@ -1459,8 +1203,15 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
 export const hotelDetails = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "Hotel id is required!"
+            });
+        }
+
         const [data] = await db.query(
             `
             SELECT
@@ -1473,12 +1224,15 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 h.description,
                 h.status,
                 h.is_active,
+
                 h.image AS hotel_image,
+                h.hotel_image1,
+                h.hotel_image2,
+                h.hotel_image3,
 
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
-                s.is_active,
                 s.location AS shop_location
 
             FROM hotels h
@@ -1488,10 +1242,9 @@ export const hotelDetails = asyncHandel(async (req, res) => {
 
             WHERE h.id = ?
             AND s.status = 'approved'
-            AND s.is_active = true
+            AND s.is_active = 1
             AND s.type = 'hotel'
-            AND h.is_active = true
-
+            AND h.is_active = 1
             `,
             [id]
         );
@@ -1504,6 +1257,11 @@ export const hotelDetails = asyncHandel(async (req, res) => {
         }
 
         const hotel = data[0];
+
+        // =========================
+        // HOTEL FACILITIES
+        // =========================
+
         const [facilities] = await db.query(
             `
             SELECT
@@ -1512,22 +1270,25 @@ export const hotelDetails = asyncHandel(async (req, res) => {
                 description
             FROM hotel_facilities
             WHERE hotel_id = ?
-            ORDER BY id DESC
+            ORDER BY id ASC
             `,
             [hotel.id]
         );
 
-        const [images] = await db.query(
-            `
-            SELECT
-                id,
-                image
-            FROM hotel_images
-            WHERE hotel_id = ?
-            ORDER BY id DESC
-            `,
-            [hotel.id]
-        );
+        // =========================
+        // HOTEL IMAGES
+        // =========================
+
+        const images = [
+            hotel.hotel_image,
+            hotel.hotel_image1,
+            hotel.hotel_image2,
+            hotel.hotel_image3
+        ].filter(Boolean);
+
+        // =========================
+        // SHOP DATA
+        // =========================
 
         const shop = {
             shop_id: hotel.shop_id,
@@ -1537,6 +1298,10 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             location: hotel.shop_location
         };
 
+        // =========================
+        // HOTEL DATA
+        // =========================
+
         const hotelData = {
             id: hotel.id,
             shop_id: hotel.shop_id,
@@ -1544,25 +1309,28 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             price: hotel.price,
             status: hotel.status,
             location: hotel.location,
-            is_active: hotel.is_active,
+            is_active: Boolean(hotel.is_active),
             description: hotel.description,
-            image: hotel.hotel_image,
-            facilities,
-            images
-        };
 
+            image: hotel.hotel_image,
+            hotel_image1: hotel.hotel_image1,
+            hotel_image2: hotel.hotel_image2,
+            hotel_image3: hotel.hotel_image3,
+
+            images,
+            facilities
+        };
 
         return res.status(200).json({
             success: true,
             message: "Hotel Detail Success",
-
             data: {
+                shop,
                 hotel: hotelData
             }
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({
@@ -1571,3 +1339,122 @@ export const hotelDetails = asyncHandel(async (req, res) => {
         });
     }
 });
+
+export const hotelSearch = asyncHandel(async (req, res) => {
+    try {
+
+        const { search = "" } = req.query;
+        if (!search.trim()) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: []
+            });
+        }
+
+        const keyword = `%${search}%`;
+
+        const [data] = await db.query(
+            `
+            SELECT
+            id,
+            name,
+            type,
+            price,
+            discount,
+            total_amount,
+            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
+            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date,
+            description,
+            facilities,
+            image,
+            location,
+            status,
+            is_active
+            FROM
+            hotels
+            WHERE
+            is_active = true
+            AND (name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?)
+            ORDER BY id DESC
+            `,
+            [
+                keyword,
+                keyword,
+                keyword,
+                keyword,
+                keyword
+            ]
+
+        )
+        return res.status(200).json({
+            message: "Search Success",
+            success: true,
+            data
+        })
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})
+
+export const hotelFilter = asyncHandel(async (req, res) => {
+    try {
+        const { location = "", name = "", type = "" } = req.query;
+        let sql = `
+            SELECT
+            id,
+            name,
+            type,
+            price,
+            discount,
+            total_amount,
+            DATE_FORMAT(start_date, '%d-%m-%Y') as start_date,
+            DATE_FORMAT(end_date, '%d-%m-%Y') as end_date,
+            description,
+            facilities,
+            image,
+            location,
+            status,
+            is_active
+            FROM
+            hotels
+            WHERE
+            is_active = true
+            `;
+        const values = [];
+        if (location) {
+            sql += ` AND location LIKE ?`;
+            values.push(`%${location}%`)
+        }
+        if (name) {
+            sql += ` AND name LIKE ?`;
+            values.push(`%${name}%`)
+        }
+        if (type) {
+            sql += ` AND type LIKE ?`;
+            values.push(`%${type}%`)
+        }
+        sql += `
+         ORDER BY id DESC
+        `;
+        const [hotel] = await db.query(sql, values);
+
+
+        res.status(200).json({
+            success: true,
+            count: hotel.length,
+            hotel
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+})

@@ -394,14 +394,7 @@ export const hotelList = asyncHandel(async (req, res) => {
             );
 
             hotel.facilities = facilities;
-
-            hotel.images = [
-                hotel.image,
-                hotel.hotel_image1,
-                hotel.hotel_image2,
-                hotel.hotel_image3
-            ].filter(Boolean);
-        }
+                }
 
         return res.status(200).json({
             success: true,

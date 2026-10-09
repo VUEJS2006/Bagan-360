@@ -1263,21 +1263,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             [hotel.id]
         );
 
-        // =========================
-        // HOTEL IMAGES
-        // =========================
-
-        const images = [
-            hotel.hotel_image,
-            hotel.hotel_image1,
-            hotel.hotel_image2,
-            hotel.hotel_image3
-        ].filter(Boolean);
-
-        // =========================
-        // SHOP DATA
-        // =========================
-
+       
         const shop = {
             shop_id: hotel.shop_id,
             shop_name: hotel.shop_name,

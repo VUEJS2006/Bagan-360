@@ -1290,8 +1290,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             hotel_image1: hotel.hotel_image1,
             hotel_image2: hotel.hotel_image2,
             hotel_image3: hotel.hotel_image3,
-
-            images,
             facilities
         };
 

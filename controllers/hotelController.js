@@ -1140,12 +1140,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
             hotel.facilities = facilities;
 
-            hotel.images = [
-                hotel.hotel_image,
-                hotel.hotel_image1,
-                hotel.hotel_image2,
-                hotel.hotel_image3
-            ].filter(Boolean);
+          
         }
 
         const shop = {

@@ -73,9 +73,9 @@ export const hotelBookingCreate = asyncHandel(async (req, res) => {
     }
 })
 
+
 export const hotelBookingList = asyncHandel(async (req, res) => {
     try {
-
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -83,8 +83,8 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
             });
         }
 
-        let query = ` 
-            SELECT 
+        let query = `
+            SELECT
                 b.id AS booking_id,
                 b.user_id,
                 b.shop_id,
@@ -92,55 +92,67 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 b.customer_name,
                 b.customer_phone,
-                DATE_FORMAT(b.booking_date, '%d-%m-%Y') AS booking_date,
-                TIME_FORMAT(b.booking_time, '%h:%i %p') AS booking_time,
+                DATE_FORMAT(
+                    b.booking_date,
+                    '%d-%m-%Y'
+                ) AS booking_date,
+                TIME_FORMAT(
+                    b.booking_time,
+                    '%h:%i %p'
+                ) AS booking_time,
+
                 b.passenger,
                 b.status,
                 b.customer_request,
 
                 h.name AS hotel_name,
                 h.price,
-                (
-                    SELECT COALESCE(JSON_ARRAYAGG(hi.image), JSON_ARRAY())
-                    FROM hotel_images hi
-                    WHERE hi.hotel_id = h.id
-                ) AS images,
+                h.image,
+                h.hotel_image1,
+                h.hotel_image2,
+                h.hotel_image3,
+                h.description AS hotel_description,
+
                 (
                     SELECT COALESCE(
-                        JSON_ARRAYAGG(JSON_OBJECT(
-                            'id', hf.id,
-                            'name', hf.name,
-                            'description', hf.description
-                        )),
+                        JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', hf.id,
+                                'name', hf.name,
+                                'description', hf.description
+                            )
+                        ),
                         JSON_ARRAY()
                     )
                     FROM hotel_facilities hf
                     WHERE hf.hotel_id = h.id
                 ) AS facilities,
-                h.description,
 
-                 s.shop_name,
+                s.shop_name,
                 s.shop_address,
                 s.shop_phone
 
             FROM hotel_bookings b
-            JOIN hotels h 
+
+            JOIN hotels h
                 ON b.hotel_id = h.id
-            JOIN shops s 
+
+            JOIN shops s
                 ON b.shop_id = s.id
         `;
 
         let params = [];
-
-        // shop_id
         let shop_id = null;
 
-        if (req.user.role === "shop") {
+        // =========================
+        // SHOP ROLE
+        // =========================
 
+        if (req.user.role === "shop") {
             const [shops] = await db.query(
                 `
-                SELECT id 
-                FROM shops 
+                SELECT id, type
+                FROM shops
                 WHERE user_id = ?
                 `,
                 [req.user.id]
@@ -150,6 +162,13 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
+                });
+            }
+
+            if (shops[0].type !== "hotel") {
+                return res.status(400).json({
+                    success: false,
+                    message: "This shop is not a hotel!"
                 });
             }
 
@@ -163,9 +182,8 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
         const [booking] = await db.query(query, params);
 
-
         // =========================
-        // Booking Status Count
+        // BOOKING STATUS COUNT
         // =========================
 
         let countQuery = `
@@ -174,35 +192,29 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
 
                 COALESCE(
                     SUM(
-                        CASE 
-                            WHEN status = 'pending' 
-                            THEN 1 
-                            ELSE 0 
+                        CASE
+                            WHEN status = 'pending'
+                            THEN 1 ELSE 0
                         END
-                    ),
-                    0
+                    ), 0
                 ) AS pending_count,
 
                 COALESCE(
                     SUM(
-                        CASE 
-                            WHEN status = 'approved' 
-                            THEN 1 
-                            ELSE 0 
+                        CASE
+                            WHEN status = 'approved'
+                            THEN 1 ELSE 0
                         END
-                    ),
-                    0
+                    ), 0
                 ) AS approved_count,
 
                 COALESCE(
                     SUM(
-                        CASE 
-                            WHEN status = 'cancelled' 
-                            THEN 1 
-                            ELSE 0 
+                        CASE
+                            WHEN status = 'cancelled'
+                            THEN 1 ELSE 0
                         END
-                    ),
-                    0
+                    ), 0
                 ) AS cancelled_count
 
             FROM hotel_bookings
@@ -211,9 +223,7 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
         let countParams = [];
 
         if (req.user.role === "shop") {
-
             countQuery += ` WHERE shop_id = ?`;
-
             countParams.push(shop_id);
         }
 
@@ -221,61 +231,37 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
             countQuery,
             countParams
         );
-        let totalQuery =
-            `
-        SELECT COUNT (*) AS total_count,
-            COALESCE(
-               SUM(
-                    CASE WHEN b.status = 'pending'
-                    THEN 1 
-                    ELSE 0
 
-                END
-               ),
-               0
-             )AS pending_count,
-            COALESCE(
-                SUM(
+        // =========================
+        // APPROVED TOTAL PRICE
+        // =========================
 
-                    CASE WHEN b.status = 'approved'
-                    THEN 1 
-                    ELSE 0
+        let totalQuery = `
+            SELECT
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN b.status = 'approved'
+                            THEN h.price
+                            ELSE 0
+                        END
+                    ), 0
+                ) AS approved_total_price
 
-                    END
-                ),
-                0
-            )AS approved_count,
-           COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'cancelled' 
-                        THEN 1 
-                        ELSE 0 
-                    END
-                ),
-            0
-        ) AS cancelled_count,
-        COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'approved'
-                        THEN h.price
-                        ELSE 0
-                    END
-                ),
-                0
-        ) AS approved_total_price
-         FROM hotel_bookings b
-         JOIN hotels h
-         ON b.hotel_id = h.id
+            FROM hotel_bookings b
 
+            JOIN hotels h
+                ON b.hotel_id = h.id
         `;
+
         let totalParams = [];
-        if (req.user.role == "shop") {
-            totalQuery += ` WHERE b.shop_id = ? `
-            totalParams.push(shop_id)
+
+        if (req.user.role === "shop") {
+            totalQuery += ` WHERE b.shop_id = ?`;
+            totalParams.push(shop_id);
         }
-        const [total_approved_count] = await db.query(
+
+        const [totalApproved] = await db.query(
             totalQuery,
             totalParams
         );
@@ -283,18 +269,16 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Booking List Success",
-
             booking,
-
             total_count: counts[0].total_count,
             pending_count: counts[0].pending_count,
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
-            total_approved_count: total_approved_count[0].approved_total_price
+            total_approved_count:
+                totalApproved[0].approved_total_price
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({
@@ -303,6 +287,8 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
         });
     }
 });
+
+
 
 export const hotel_bookingApproved = asyncHandel(async (req, res) => {
     try {
@@ -446,9 +432,9 @@ export const hotel_bookingCancelled = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const hotelMobileBooking = asyncHandel(async (req, res) => {
     try {
-
         if (req.user.role !== "user") {
             return res.status(403).json({
                 success: false,
@@ -456,8 +442,9 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
             });
         }
 
-        const [data] = await db.query(`
-            SELECT 
+        const [data] = await db.query(
+            `
+            SELECT
                 b.id AS booking_id,
                 b.user_id,
                 b.shop_id,
@@ -471,9 +458,9 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
                     '%d-%m-%Y'
                 ) AS booking_date,
 
-                DATE_FORMAT(
+                TIME_FORMAT(
                     b.booking_time,
-                    '%d-%m-%Y'
+                    '%h:%i %p'
                 ) AS booking_time,
 
                 b.passenger,
@@ -482,24 +469,26 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
 
                 h.name AS hotel_name,
                 h.price,
-                (
-                    SELECT COALESCE(JSON_ARRAYAGG(hi.image), JSON_ARRAY())
-                    FROM hotel_images hi
-                    WHERE hi.hotel_id = h.id
-                ) AS images,
+                h.image,
+                h.hotel_image1,
+                h.hotel_image2,
+                h.hotel_image3,
+                h.description AS hotel_description,
+
                 (
                     SELECT COALESCE(
-                        JSON_ARRAYAGG(JSON_OBJECT(
-                            'id', hf.id,
-                            'name', hf.name,
-                            'description', hf.description
-                        )),
+                        JSON_ARRAYAGG(
+                            JSON_OBJECT(
+                                'id', hf.id,
+                                'name', hf.name,
+                                'description', hf.description
+                            )
+                        ),
                         JSON_ARRAY()
                     )
                     FROM hotel_facilities hf
                     WHERE hf.hotel_id = h.id
                 ) AS facilities,
-                h.description,
 
                 s.shop_name,
                 s.shop_address,
@@ -516,7 +505,9 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
             WHERE b.user_id = ?
 
             ORDER BY b.id DESC
-        `, [req.user.id]);
+            `,
+            [req.user.id]
+        );
 
         return res.status(200).json({
             success: true,
@@ -526,7 +517,6 @@ export const hotelMobileBooking = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({

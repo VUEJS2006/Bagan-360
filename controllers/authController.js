@@ -445,13 +445,13 @@ export const shopRegister = asyncHandel(async (req, res) => {
             shop_phone,
             location,
             nrc,
-            type
+            type,
+            tax
         } = req.body
 
 
         if (
-            !username || !location || !email || !password || !shop_name || !shop_address || !shop_phone || !type
-        ) {
+            !username || !location || !email || !password || !shop_name || !shop_address || !shop_phone || !type || !tax) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required!"
@@ -494,7 +494,8 @@ export const shopRegister = asyncHandel(async (req, res) => {
             shop_phone,
             nrc,
             type,
-            role: "shop"
+            role: "shop",
+            tax
         }, process.env.JWT_SECRET, { expiresIn: "15m" })
 
         return res.status(200).json({
@@ -568,9 +569,10 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
         shop_address,
         shop_phone,
         nrc,
-        type
+        type,
+        tax
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?,?)
 `, [
             userId,
             user.shop_name,
@@ -578,7 +580,8 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             user.shop_address,
             user.shop_phone,
             user.nrc,
-            user.type
+            user.type,
+            user.tax
         ]);
 
         await db.query(
@@ -951,6 +954,7 @@ export const shopProfile = asyncHandel(async (req, res) => {
                 s.nrc,
                 s.type,
                 s.status,
+                s.tax,
                 s.is_active,
 
                 u.email,

@@ -5,8 +5,83 @@ import path from "path";
 import sharp from "sharp";
 import { v4 as uuid } from "uuid";
 
+export const hotelPercentage = async ({ shopId, percent, billingMonth }) => {
+
+    const [bookingData] = await db.query(
+        `
+        SELECT
+            COUNT(hb.id) AS total_bookings,
+            COALESCE(SUM(h.price), 0) AS total_booking
+
+        FROM hotel_bookings hb
+
+        INNER JOIN hotels h
+            ON hb.hotel_id = h.id
+            AND hb.shop_id = h.shop_id
+
+        WHERE hb.shop_id = ?
+        AND hb.status = 'approved'
+
+        AND hb.created_at >= CONCAT(?, '-01')
+
+        AND hb.created_at < DATE_ADD(
+            CONCAT(?, '-01'),
+            INTERVAL 1 MONTH
+        )
+        `,
+        [shopId, billingMonth, billingMonth]
+    );
+
+    const totalBookings =
+        Number(bookingData[0].total_bookings);
+
+    const totalBooking =
+        Number(bookingData[0].total_booking);
+
+    const amount = Number(
+        ((totalBooking * percent) / 100).toFixed(2)
+    );
+
+    return {
+        total_bookings: totalBookings,
+        total_booking: totalBooking,
+        amount
+    };
+};
+
+export const restaurantPercentage = async ({ shopId, percent, billingMonth }) => {
+    const [bookingData] = await db.query(
+        `
+        SELECT COUNT (DISTINCT rb.id ) AS total_bookings,
+            COALESCE(SUM(rbi.subtotal), 0) AS total_booking
+
+        FROM res_bookings rb
+        INNER JOIN res_booking_items rbi
+        ON rb.id = rbi.booking_id
+
+        WHERE rb.shop_id = ? AND rb.status = 'approved' AND rb.created_at >= CONCAT(?, '-01')
+        AND rb.created_at < DATE_ADD(
+            CONCAT(?, '-01'),
+            INTERVAL 1 MONTH
+        )
+        `,
+        [
+            shopId, billingMonth, billingMonth
+        ]
+    )
+    const totalBookings = Number(bookingData[0].total_bookings);
+    const totalBooking = Number(bookingData[0].total_booking);
+    const amount = Number(((totalBooking * percent) / 100).toFixed(2));
+    return {
+        total_bookings: totalBookings,
+        total_booking: totalBooking,
+        amount
+    };
+}
+
 export const percentageCreate = asyncHandel(async (req, res) => {
     try {
+
         if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
@@ -14,7 +89,11 @@ export const percentageCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        const { shop_id, percentage, billing_month } = req.body;
+        const {
+            shop_id,
+            percentage,
+            billing_month
+        } = req.body;
 
         if (
             !shop_id ||
@@ -25,7 +104,8 @@ export const percentageCreate = asyncHandel(async (req, res) => {
         ) {
             return res.status(400).json({
                 success: false,
-                message: "shop_id, percentage and billing_month are required!"
+                message:
+                    "shop_id, percentage and billing_month are required!"
             });
         }
 
@@ -54,10 +134,14 @@ export const percentageCreate = asyncHandel(async (req, res) => {
 
         const [shops] = await db.query(
             `
-            SELECT id, type, tax, status
-             FROM shops
-             WHERE id = ?`
-            ,
+            SELECT
+                id,
+                type,
+                tax,
+                status
+            FROM shops
+            WHERE id = ?
+            `,
             [shopId]
         );
 
@@ -69,13 +153,6 @@ export const percentageCreate = asyncHandel(async (req, res) => {
         }
 
         const shop = shops[0];
-
-        if (shop.type !== "hotel") {
-            return res.status(400).json({
-                success: false,
-                message: "This API is only for hotel shops!"
-            });
-        }
 
         if (shop.tax !== "percentage") {
             return res.status(400).json({
@@ -94,85 +171,113 @@ export const percentageCreate = asyncHandel(async (req, res) => {
         const [existing] = await db.query(
             `
             SELECT id
-             FROM shop_percentage
-             WHERE shop_id = ?
+            FROM shop_percentage
+            WHERE shop_id = ?
             AND billing_month = ?
-            `
-            ,
+            `,
             [shopId, billing_month]
         );
 
         if (existing.length > 0) {
             return res.status(409).json({
                 success: false,
-                message: "Percentage for this shop and month already exists!"
+                message:
+                    "Percentage for this shop and month already exists!"
             });
         }
 
-        const [bookingData] = await db.query(
-            `
-            SELECT
-                COUNT(hb.id) AS total_bookings,
-            COALESCE(SUM(h.price), 0) AS total_booking
-            FROM hotel_bookings hb
-            INNER JOIN hotels h
-                ON hb.hotel_id = h.id
-                AND hb.shop_id = h.shop_id
-            WHERE hb.shop_id = ?
-            AND hb.status = 'approved'
-                AND hb.created_at >= CONCAT(?, '-01')
-                AND hb.created_at < DATE_ADD(
-                CONCAT(?, '-01'),
-                INTERVAL 1 MONTH
-            )
-            `
-            ,
-            [shopId, billing_month, billing_month]
-        );
 
-        const totalBookings = Number(bookingData[0].total_bookings);
-        const totalBooking = Number(bookingData[0].total_booking);
+        let calculation;
 
-        const amount = Number(
-            ((totalBooking * percent) / 100).toFixed(2)
-        );
+        switch (shop.type) {
+
+            case "hotel":
+
+                calculation = await hotelPercentage({
+                    shopId,
+                    percent,
+                    billingMonth: billing_month
+                });
+
+                break;
+
+
+            case "restaurant":
+
+                calculation = await restaurantPercentage({
+                    shopId,
+                    percent,
+                    billingMonth: billing_month
+                });
+
+                break;
+
+
+            // case "e_bike":
+
+            //     return res.status(400).json({
+            //         success: false,
+            //         message:
+            //             "E-bike percentage calculation is not implemented yet!"
+            //     });
+
+
+            // case "thonebane":
+
+            //     return res.status(400).json({
+            //         success: false,
+            //         message:
+            //             "Thonebane percentage calculation is not implemented yet!"
+            //     });
+
+
+            default:
+
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Percentage calculation is not supported for this shop type!"
+                });
+        }
 
         const [result] = await db.query(
             `
             INSERT INTO shop_percentage
-                (
-                    shop_id,
-                    percentage,
-                    total_booking,
-                    amount,
-                    billing_month
-                )
+            (
+                shop_id,
+                percentage,
+                total_booking,
+                amount,
+                billing_month
+            )
             VALUES (?, ?, ?, ?, ?)
             `,
             [
                 shopId,
                 percent,
-                totalBooking,
-                amount,
+                calculation.total_booking,
+                calculation.amount,
                 billing_month
             ]
         );
 
         return res.status(201).json({
             success: true,
-            message: "Hotel percentage created successfully!",
+            message: `${shop.type} percentage created successfully!`,
             data: {
                 id: result.insertId,
                 shop_id: shopId,
+                shop_type: shop.type,
                 percentage: percent,
-                total_bookings: totalBookings,
-                total_booking: totalBooking,
-                amount,
+                total_bookings: calculation.total_bookings,
+                total_booking: calculation.total_booking,
+                amount: calculation.amount,
                 billing_month
             }
         });
 
     } catch (error) {
+
         console.log(error);
 
         return res.status(500).json({
@@ -184,30 +289,37 @@ export const percentageCreate = asyncHandel(async (req, res) => {
 
 export const percentageList = asyncHandel(async (req, res) => {
     try {
+
         if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
             });
         }
+
         const [data] = await db.query(
             `
             SELECT 
-            sp.id,
-            sp.shop_id,
-            s.shop_name,
-            sp.percentage,
-            sp.total_booking,
-            sp.amount,
-            sp.billing_month,
-            sp.created_at
+                sp.id,
+                sp.shop_id,
+                s.shop_name,
+                s.type AS shop_type,
+                s.tax,
+                sp.percentage,
+                sp.total_booking,
+                sp.amount,
+                sp.billing_month,
+                sp.created_at
+
             FROM shop_percentage sp
-            INNER JOIN shops s 
-            ON sp.shop_id = s.id
-            WHERE s.type = 'hotel'
+
+            INNER JOIN shops s
+                ON sp.shop_id = s.id
+
             ORDER BY sp.id DESC
             `
         );
+
         return res.status(200).json({
             success: true,
             message: "Percentage List Success",
@@ -215,12 +327,13 @@ export const percentageList = asyncHandel(async (req, res) => {
             total: data.length
         });
 
-
     } catch (error) {
+
         console.log(error);
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});

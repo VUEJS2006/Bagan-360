@@ -427,7 +427,6 @@ export const AccountDelete = asyncHandel(async (req, res) => {
 })
 
 
-
 // Shop
 export const shopRegister = asyncHandel(async (req, res) => {
     try {

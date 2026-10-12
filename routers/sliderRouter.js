@@ -1,4 +1,4 @@
-import { sliderCreate, sliderUpdate, sliderDelete, sliderList, sliderMobileList, sliderActivate } from "../controllers/sliderCotroller.js";
+import { sliderCreate, sliderUpdate, sliderDelete, sliderList, sliderMobileList, sliderActivate } from "../controllers/sliderController.js";
 import { upload } from "../middlewares/upload.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";

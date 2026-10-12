@@ -184,7 +184,7 @@ export const percentageCreate = asyncHandel(async (req, res) => {
 
 export const percentageList = asyncHandel(async (req, res) => {
     try {
-        if (req.user.role === "admin") {
+        if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"

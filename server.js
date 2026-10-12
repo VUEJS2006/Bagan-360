@@ -24,7 +24,7 @@ import packageBookingRouter from "./routers/packageBookingRouter.js"
 import resMenuPriceRouter from "./routers/resMenuPriceRouter.js"
 import cartRouter from "./routers/cartRouter.js"
 import sliderRouter from "./routers/sliderRouter.js"
-
+import percentageRouter from "./routers/percentageRouter.js"
 
 import cors from "cors"
 import path from "path";
@@ -73,6 +73,7 @@ app.use('/api', packageBookingRouter);
 app.use('/api', resMenuPriceRouter);
 app.use('/api', cartRouter);
 app.use('/api', sliderRouter);
+app.use('/api', percentageRouter);
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

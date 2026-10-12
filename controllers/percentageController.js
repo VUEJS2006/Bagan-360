@@ -1,9 +1,6 @@
 import db from "../config/db.js";
 import { asyncHandel } from "../middlewares/asyncMiddleware.js";
-import fs from "fs";
-import path from "path";
-import sharp from "sharp";
-import { v4 as uuid } from "uuid";
+
 
 export const hotelPercentage = async ({ shopId, percent, billingMonth }) => {
 
@@ -309,7 +306,7 @@ export const percentageList = asyncHandel(async (req, res) => {
                 sp.total_booking,
                 sp.amount,
                 sp.billing_month,
-                sp.created_at
+                DATE_FORMAT(sp.created_at, '%Y-%m-%d %H:%i:%s') AS created_at
 
             FROM shop_percentage sp
 

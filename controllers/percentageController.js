@@ -306,7 +306,10 @@ export const percentageList = asyncHandel(async (req, res) => {
                 sp.total_booking,
                 sp.amount,
                 sp.billing_month,
-                DATE_FORMAT(sp.created_at, '%Y-%m-%d %H:%i:%s') AS created_at
+                DATE_FORMAT(
+                    sp.created_at,
+                    '%Y-%m-%d %H:%i:%s'
+                ) AS created_at
 
             FROM shop_percentage sp
 
@@ -317,11 +320,18 @@ export const percentageList = asyncHandel(async (req, res) => {
             `
         );
 
+        const formattedData = data.map(item => ({
+            ...item,
+            percentage: Number(item.percentage),
+            total_booking: Number(item.total_booking),
+            amount: Number(item.amount)
+        }));
+
         return res.status(200).json({
             success: true,
             message: "Percentage List Success",
-            data,
-            total: data.length
+            data: formattedData,
+            total: formattedData.length
         });
 
     } catch (error) {

@@ -157,20 +157,20 @@ export const percentageCreate = asyncHandel(async (req, res) => {
                 billing_month
             ]
         );
-        const formattedData = data.map((item) => ({
-            ...item,
-            percentage: Number(item.percentage),
-            total_booking: Number(item.total_booking),
-            amount: Number(item.amount)
-        }));
 
-        return res.status(200).json({
+        return res.status(201).json({
             success: true,
-            message: "Percentage List Success",
-            total: formattedData.length,
-            data: formattedData
+            message: "Hotel percentage created successfully!",
+            data: {
+                id: result.insertId,
+                shop_id: shopId,
+                percentage: percent,
+                total_bookings: totalBookings,
+                total_booking: totalBooking,
+                amount,
+                billing_month
+            }
         });
-
 
     } catch (error) {
         console.log(error);

@@ -35,7 +35,7 @@ export const percentageCreate = asyncHandel(async (req, res) => {
             });
         }
         const shop = shops[0];
-        if (shop.type === "hotel") {
+        if (shop.type !== "hotel") {
             return res.status(400).json({
                 success: false,
                 message: "This API is only for hotel shops!"
@@ -116,6 +116,7 @@ export const percentageCreate = asyncHandel(async (req, res) => {
         });
     }
 })
+
 export const percentageList = asyncHandel(async (req, res) => {
     try {
         if (req.user.role === "admin") {

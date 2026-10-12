@@ -9,7 +9,7 @@ export const percentageCreate = asyncHandel(async (req, res) => {
     try {
         const { shop_id, percentage, billing_month } = req.body;
 
-        if (req.user.role === "admin") {
+        if (req.user.role !== "admin") {
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
@@ -146,7 +146,7 @@ export const percentageList = asyncHandel(async (req, res) => {
             success: true,
             message: "Percentage List Success",
             data,
-            total:data.length
+            total: data.length
         });
 
 

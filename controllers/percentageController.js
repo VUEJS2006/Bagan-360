@@ -200,7 +200,7 @@ export const percentageList = asyncHandel(async (req, res) => {
             sp.total_booking,
             sp.amount,
             sp.billing_month,
-            sp.create_at,
+            sp.create_at
             FROM shop_percentage sp
             INNER JOIN shops s 
             ON sp.shop_id = s.id

@@ -87,7 +87,7 @@ export const percentageCreate = asyncHandel(async (req, res) => {
         const [result] = await db.query(
             `
             INSERT INTO shop_percentage (shop_id,percentage,total_booking,amount,billing_month) VALUES 
-            (?,?,?,?,?,?)
+            (?,?,?,?,?)
 
             `,
             [

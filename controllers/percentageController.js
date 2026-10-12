@@ -76,6 +76,136 @@ export const restaurantPercentage = async ({ shopId, percent, billingMonth }) =>
     };
 }
 
+export const eBikePercentage = async ({
+    shopId,
+    percent,
+    billingMonth
+}) => {
+
+    const [bookingData] = await db.query(
+        `
+        SELECT
+            COUNT(eb.id) AS total_bookings,
+            COALESCE(SUM(ep.price), 0) AS total_booking
+
+        FROM e_bike_bookings eb
+
+        INNER JOIN e_bike_prices ep
+            ON eb.price_id = ep.id
+            AND eb.shop_id = ep.shop_id
+
+        WHERE eb.shop_id = ?
+        AND eb.status = 'approved'
+
+        AND eb.created_at >= CONCAT(?, '-01')
+
+        AND eb.created_at < DATE_ADD(
+            CONCAT(?, '-01'),
+            INTERVAL 1 MONTH
+        )
+        `,
+        [
+            shopId,
+            billingMonth,
+            billingMonth
+        ]
+    );
+
+    const totalBookings =
+        Number(bookingData[0].total_bookings);
+
+    const totalBooking =
+        Number(bookingData[0].total_booking);
+
+    const amount = Number(
+        ((totalBooking * percent) / 100).toFixed(2)
+    );
+
+    return {
+        total_bookings: totalBookings,
+        total_booking: totalBooking,
+        amount
+    };
+};
+
+export const thonebanePercentage = async ({
+    shopId,
+    percent,
+    billingMonth
+}) => {
+
+    const [bookingData] = await db.query(
+        `
+        SELECT
+            COUNT(tb.id) AS total_bookings,
+            COALESCE(SUM(tb.price), 0) AS total_booking
+
+        FROM thonebane_bookings tb
+
+        WHERE tb.shop_id = ?
+        AND tb.status = 'approved'
+
+        AND tb.created_at >= CONCAT(?, '-01')
+
+        AND tb.created_at < DATE_ADD(
+            CONCAT(?, '-01'),
+            INTERVAL 1 MONTH
+        )
+        `,
+        [
+            shopId,
+            billingMonth,
+            billingMonth
+        ]
+    );
+
+    const totalBookings =
+        Number(bookingData[0].total_bookings);
+
+    const totalBooking =
+        Number(bookingData[0].total_booking);
+
+    const amount = Number(
+        ((totalBooking * percent) / 100).toFixed(2)
+    );
+
+    return {
+        total_bookings: totalBookings,
+        total_booking: totalBooking,
+        amount
+    };
+};
+
+export const e_bikePercentage = async ({ shopId, percent, billingMonth }) => {
+    const [bookingData] = await db.query(
+        `
+        SELECT COUNT (DISTINCT rb.id ) AS total_bookings,
+            COALESCE(SUM(rbi.subtotal), 0) AS total_booking
+
+        FROM res_bookings rb
+        INNER JOIN res_booking_items rbi
+        ON rb.id = rbi.booking_id
+
+        WHERE rb.shop_id = ? AND rb.status = 'approved' AND rb.created_at >= CONCAT(?, '-01')
+        AND rb.created_at < DATE_ADD(
+            CONCAT(?, '-01'),
+            INTERVAL 1 MONTH
+        )
+        `,
+        [
+            shopId, billingMonth, billingMonth
+        ]
+    )
+    const totalBookings = Number(bookingData[0].total_bookings);
+    const totalBooking = Number(bookingData[0].total_booking);
+    const amount = Number(((totalBooking * percent) / 100).toFixed(2));
+    return {
+        total_bookings: totalBookings,
+        total_booking: totalBooking,
+        amount
+    };
+}
+
 export const percentageCreate = asyncHandel(async (req, res) => {
     try {
 
@@ -208,24 +338,24 @@ export const percentageCreate = asyncHandel(async (req, res) => {
                 });
 
                 break;
+            case "e_bike":
 
+                calculation = await eBikePercentage({
+                    shopId,
+                    percent,
+                    billingMonth: billing_month
+                });
 
-            // case "e_bike":
+                break;
+            case "thonebane":
 
-            //     return res.status(400).json({
-            //         success: false,
-            //         message:
-            //             "E-bike percentage calculation is not implemented yet!"
-            //     });
+                calculation = await thonebanePercentage({
+                    shopId,
+                    percent,
+                    billingMonth: billing_month
+                });
 
-
-            // case "thonebane":
-
-            //     return res.status(400).json({
-            //         success: false,
-            //         message:
-            //             "Thonebane percentage calculation is not implemented yet!"
-            //     });
+                break;
 
 
             default:

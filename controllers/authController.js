@@ -128,6 +128,11 @@ export const verifyOTP = asyncHandel(async (req, res) => {
     }
 })
 
+import db from "../config/db.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { asyncHandel } from "../middlewares/asyncMiddleware.js";
+
 export const login = asyncHandel(async (req, res) => {
     try {
 
@@ -137,9 +142,10 @@ export const login = asyncHandel(async (req, res) => {
             login_type
         } = req.body;
 
-        // =========================
-        // Required
-        // =========================
+
+        // =========================================
+        // Required Fields
+        // =========================================
 
         if (!email || !password || !login_type) {
             return res.status(400).json({
@@ -148,20 +154,22 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
-        // =========================
-        // Only user / shop
-        // =========================
 
-        if (!["user", "shop"].includes(login_type)) {
+        // =========================================
+        // Check Login Type
+        // =========================================
+
+        if (!["user", "shop", "admin"].includes(login_type)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid login type!"
             });
         }
 
-        // =========================
-        // Find user
-        // =========================
+
+        // =========================================
+        // Find User
+        // =========================================
 
         const [userdata] = await db.query(
             `
@@ -174,6 +182,11 @@ export const login = asyncHandel(async (req, res) => {
 
         const user = userdata[0];
 
+
+        // =========================================
+        // User Not Found
+        // =========================================
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -181,9 +194,10 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
-        // =========================
-        // Check password
-        // =========================
+
+        // =========================================
+        // Password Check
+        // =========================================
 
         if (!user.password) {
             return res.status(401).json({
@@ -192,10 +206,12 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
+
         const MatchPassword = await bcrypt.compare(
             password,
             user.password
         );
+
 
         if (!MatchPassword) {
             return res.status(401).json({
@@ -204,32 +220,105 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
-        // =========================
-        // Check login type
-        // =========================
+
+        // =========================================
+        // LOGIN TYPE vs USER ROLE
+        // =========================================
 
         if (user.role !== login_type) {
 
-            if (login_type === "shop") {
+            // User account trying Shop Login
+            if (
+                user.role === "user" &&
+                login_type === "shop"
+            ) {
                 return res.status(403).json({
                     success: false,
-                    message: "This account is not a shop account. Please use User Login."
+                    message:
+                        "This account is a user account. Please use User Login."
                 });
             }
 
-            if (login_type === "user") {
+
+            // Shop account trying User Login
+            if (
+                user.role === "shop" &&
+                login_type === "user"
+            ) {
                 return res.status(403).json({
                     success: false,
-                    message: "This account is a shop account. Please use Shop Login."
+                    message:
+                        "This account is a shop account. Please use Shop Login."
                 });
             }
+
+
+            // User account trying Admin Login
+            if (
+                user.role === "user" &&
+                login_type === "admin"
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message:
+                        "This account is not an admin account."
+                });
+            }
+
+
+            // Shop account trying Admin Login
+            if (
+                user.role === "shop" &&
+                login_type === "admin"
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message:
+                        "This account is not an admin account."
+                });
+            }
+
+
+            // Admin account trying User Login
+            if (
+                user.role === "admin" &&
+                login_type === "user"
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message:
+                        "This account is an admin account. Please use Admin Login."
+                });
+            }
+
+
+            // Admin account trying Shop Login
+            if (
+                user.role === "admin" &&
+                login_type === "shop"
+            ) {
+                return res.status(403).json({
+                    success: false,
+                    message:
+                        "This account is an admin account. Please use Admin Login."
+                });
+            }
+
+
+            // Fallback
+            return res.status(403).json({
+                success: false,
+                message: "Invalid account type!"
+            });
         }
 
-        // =========================
-        // Shop
-        // =========================
+
+        // =========================================
+        // SHOP DATA
+        // =========================================
 
         let shop = null;
+
 
         if (user.role === "shop") {
 
@@ -242,6 +331,8 @@ export const login = asyncHandel(async (req, res) => {
                 [user.id]
             );
 
+
+            // Shop not found
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -249,33 +340,53 @@ export const login = asyncHandel(async (req, res) => {
                 });
             }
 
+
             shop = shops[0];
+
+
+            // =====================================
+            // Shop Pending
+            // =====================================
 
             if (shop.status === "pending") {
                 return res.status(403).json({
                     success: false,
-                    message: "Your shop is waiting for admin approval."
+                    message:
+                        "Your shop is waiting for admin approval."
                 });
             }
+
+
+            // =====================================
+            // Shop Cancelled
+            // =====================================
 
             if (shop.status === "cancelled") {
                 return res.status(403).json({
                     success: false,
-                    message: "Your shop account has been cancelled."
+                    message:
+                        "Your shop account has been cancelled."
                 });
             }
+
+
+            // =====================================
+            // Shop Inactive
+            // =====================================
 
             if (!shop.is_active) {
                 return res.status(403).json({
                     success: false,
-                    message: "Your shop account is inactive."
+                    message:
+                        "Your shop account is inactive."
                 });
             }
         }
 
-        // =========================
-        // JWT
-        // =========================
+
+        // =========================================
+        // JWT TOKEN
+        // =========================================
 
         const token = jwt.sign(
             {
@@ -289,21 +400,38 @@ export const login = asyncHandel(async (req, res) => {
             }
         );
 
-        res.cookie("access_token", token, {
-            httpOnly: true,
-            sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        });
 
-        // =========================
-        // Response
-        // =========================
+        // =========================================
+        // Cookie
+        // =========================================
+
+        res.cookie(
+            "access_token",
+            token,
+            {
+                httpOnly: true,
+                sameSite: "lax",
+                maxAge: 7 * 24 * 60 * 60 * 1000
+            }
+        );
+
+
+        // =========================================
+        // SUCCESS RESPONSE
+        // =========================================
 
         return res.status(200).json({
+
             success: true,
+
             message: "Login successful!",
 
             token,
+
+
+            // =====================================
+            // USER
+            // =====================================
 
             user: {
                 id: user.id,
@@ -316,6 +444,11 @@ export const login = asyncHandel(async (req, res) => {
                 address: user.address,
                 image: user.image
             },
+
+
+            // =====================================
+            // SHOP
+            // =====================================
 
             shop: shop
                 ? {
@@ -331,6 +464,7 @@ export const login = asyncHandel(async (req, res) => {
                 }
                 : null
         });
+
 
     } catch (error) {
 

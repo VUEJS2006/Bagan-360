@@ -130,44 +130,118 @@ export const verifyOTP = asyncHandel(async (req, res) => {
 
 export const login = asyncHandel(async (req, res) => {
     try {
-        const { email, password } = req.body;
 
-        if (!email || !password) {
-            return res.status(401).json({
-                message: 'All field are required!',
-                success: false
-            })
-        }
-        const [userdata] = await db.query("SELECT * FROM users WHERE email=?", [email]);
-        const user = userdata[0]
-        if (!user) {
-            return res.status(401).json({
-                message: 'user not found!',
-                success: false
-            })
-        }
-        if (!user.password) {
-            return res.status(401).json({
-                message: 'password not found!',
-                success: false
-            })
-        }
-        if (!user.email) {
-            return res.status(500).json({
-                message: "Email not found!",
-                success: false
+        const {
+            email,
+            password,
+            login_type
+        } = req.body;
+
+        // =========================
+        // Required
+        // =========================
+
+        if (!email || !password || !login_type) {
+            return res.status(400).json({
+                success: false,
+                message: "Email, password and login type are required!"
             });
         }
-        const MatchPassword = await bcrypt.compare(password, user.password);
-        if (!MatchPassword) {
-            return res.status(401).json({ message: "Password does not match" });
+
+        // =========================
+        // Only user / shop
+        // =========================
+
+        if (!["user", "shop"].includes(login_type)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid login type!"
+            });
         }
+
+        // =========================
+        // Find user
+        // =========================
+
+        const [userdata] = await db.query(
+            `
+            SELECT *
+            FROM users
+            WHERE email = ?
+            `,
+            [email]
+        );
+
+        const user = userdata[0];
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: "Email or password is incorrect!"
+            });
+        }
+
+        // =========================
+        // Check password
+        // =========================
+
+        if (!user.password) {
+            return res.status(401).json({
+                success: false,
+                message: "Email or password is incorrect!"
+            });
+        }
+
+        const MatchPassword = await bcrypt.compare(
+            password,
+            user.password
+        );
+
+        if (!MatchPassword) {
+            return res.status(401).json({
+                success: false,
+                message: "Email or password is incorrect!"
+            });
+        }
+
+        // =========================
+        // Check login type
+        // =========================
+
+        if (user.role !== login_type) {
+
+            if (login_type === "shop") {
+                return res.status(403).json({
+                    success: false,
+                    message: "This account is not a shop account. Please use User Login."
+                });
+            }
+
+            if (login_type === "user") {
+                return res.status(403).json({
+                    success: false,
+                    message: "This account is a shop account. Please use Shop Login."
+                });
+            }
+        }
+
+        // =========================
+        // Shop
+        // =========================
 
         let shop = null;
 
-
         if (user.role === "shop") {
-            const [shops] = await db.query("SELECT * FROM shops WHERE user_id = ?", [user.id])
+
+            const [shops] = await db.query(
+                `
+                SELECT *
+                FROM shops
+                WHERE user_id = ?
+                `,
+                [user.id]
+            );
+
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -176,7 +250,6 @@ export const login = asyncHandel(async (req, res) => {
             }
 
             shop = shops[0];
-
 
             if (shop.status === "pending") {
                 return res.status(403).json({
@@ -191,20 +264,47 @@ export const login = asyncHandel(async (req, res) => {
                     message: "Your shop account has been cancelled."
                 });
             }
+
+            if (!shop.is_active) {
+                return res.status(403).json({
+                    success: false,
+                    message: "Your shop account is inactive."
+                });
+            }
         }
 
+        // =========================
+        // JWT
+        // =========================
 
-        const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" })
+        const token = jwt.sign(
+            {
+                id: user.id,
+                email: user.email,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        );
+
         res.cookie("access_token", token, {
             httpOnly: true,
             sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
-        })
+        });
+
+        // =========================
+        // Response
+        // =========================
 
         return res.status(200).json({
-            message: 'success',
             success: true,
+            message: "Login successful!",
+
             token,
+
             user: {
                 id: user.id,
                 name: user.username,
@@ -216,28 +316,32 @@ export const login = asyncHandel(async (req, res) => {
                 address: user.address,
                 image: user.image
             },
-            shop: shop ? {
-                id: shop.id,
-                type: shop.type,
-                shop_name: shop.shop_name,
-                shop_phone: shop.shop_phone,
-                shop_address: shop.shop_address,
-                image: shop.image,
-                status: shop.status,
-                location: shop.location,
-                is_active: shop.is_active
-            }
-                :
-                null,
-        })
+
+            shop: shop
+                ? {
+                    id: shop.id,
+                    type: shop.type,
+                    shop_name: shop.shop_name,
+                    shop_phone: shop.shop_phone,
+                    shop_address: shop.shop_address,
+                    image: shop.image,
+                    status: shop.status,
+                    location: shop.location,
+                    is_active: shop.is_active
+                }
+                : null
+        });
+
     } catch (error) {
-        console.log(error)
+
+        console.log(error);
+
         return res.status(500).json({
-            message: error.message,
-            success: false
-        })
+            success: false,
+            message: error.message
+        });
     }
-})
+});
 
 export const logout = asyncHandel(async (req, res) => {
     try {

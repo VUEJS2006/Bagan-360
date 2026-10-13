@@ -128,10 +128,7 @@ export const verifyOTP = asyncHandel(async (req, res) => {
     }
 })
 
-import db from "../config/db.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { asyncHandel } from "../middlewares/asyncMiddleware.js";
+
 
 export const login = asyncHandel(async (req, res) => {
     try {

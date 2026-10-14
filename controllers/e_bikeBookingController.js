@@ -291,55 +291,49 @@ export const e_bikeBookingList = asyncHandel(async (req, res) => {
         }
 
         const [counts] = await db.query(countQuery, countParams);
-        let totalQuery =
-            `
-        SELECT COUNT (*) AS total_count,
-            COALESCE(
-               SUM(
-                    CASE WHEN b.status = 'pending'
-                    THEN 1 
-                    ELSE 0
+        let totalQuery = `
+    SELECT
+        COUNT(*) AS total_count,
 
-                END
-               ),
-               0
-             )AS pending_count,
-            COALESCE(
-                SUM(
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'pending' THEN 1
+                ELSE 0
+            END),
+            0
+        ) AS pending_count,
 
-                    CASE WHEN b.status = 'approved'
-                    THEN 1 
-                    ELSE 0
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'approved' THEN 1
+                ELSE 0
+            END),
+            0
+        ) AS approved_count,
 
-                    END
-                ),
-                0
-            )AS approved_count,
-           COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'cancelled' 
-                        THEN 1 
-                        ELSE 0 
-                    END
-                ),
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'cancelled' THEN 1
+                ELSE 0
+            END),
             0
         ) AS cancelled_count,
-        COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'approved'
-                        THEN h.price
-                        ELSE 0
-                    END
-                ),
-                0
-        ) AS approved_total_price
-         FROM e_bike_bookings b
-         JOIN e_bikes h
-         ON b.e_bike_id = h.id
 
-        `;
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'approved' THEN p.price
+                ELSE 0
+            END),
+            0
+        ) AS approved_total_price
+
+    FROM e_bike_bookings b
+
+    INNER JOIN e_bike_prices p
+        ON b.price_id = p.id
+        AND b.e_bike_id = p.e_bike_id
+        AND b.shop_id = p.shop_id
+`;
         let totalParams = [];
         if (req.user.role == "shop") {
             totalQuery += ` WHERE b.shop_id = ? `

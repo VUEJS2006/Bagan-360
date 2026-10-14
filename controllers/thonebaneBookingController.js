@@ -218,54 +218,44 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
             countQuery,
             countParam
         );
-        let totalQuery =
-            `
-        SELECT COUNT (*) AS total_count,
-            COALESCE(
-               SUM(
-                    CASE WHEN b.status = 'pending'
-                    THEN 1 
-                    ELSE 0
+        let totalQuery = `
+    SELECT
+        COUNT(*) AS total_count,
 
-                END
-               ),
-               0
-             )AS pending_count,
-            COALESCE(
-                SUM(
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'pending' THEN 1
+                ELSE 0
+            END),
+            0
+        ) AS pending_count,
 
-                    CASE WHEN b.status = 'approved'
-                    THEN 1 
-                    ELSE 0
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'approved' THEN 1
+                ELSE 0
+            END),
+            0
+        ) AS approved_count,
 
-                    END
-                ),
-                0
-            )AS approved_count,
-           COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'cancelled' 
-                        THEN 1 
-                        ELSE 0 
-                    END
-                ),
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'cancelled' THEN 1
+                ELSE 0
+            END),
             0
         ) AS cancelled_count,
-        COALESCE(
-                SUM(
-                    CASE 
-                        WHEN b.status = 'approved'
-                        THEN h.price
-                        ELSE 0
-                    END
-                ),
-                0
-        ) AS approved_total_price
-         FROM thonebane_bookings b
-         JOIN thonebane_id = h.id
 
-        `;
+        COALESCE(
+            SUM(CASE
+                WHEN b.status = 'approved' THEN b.price
+                ELSE 0
+            END),
+            0
+        ) AS approved_total_price
+
+    FROM thonebane_bookings b
+`;
         let totalParams = [];
         if (req.user.role == "shop") {
             totalQuery += ` WHERE b.shop_id = ? `

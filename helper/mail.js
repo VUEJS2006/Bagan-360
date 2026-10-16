@@ -9,7 +9,6 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sentOTP = async (email, otp) => {
-    
 
     await transporter.sendMail({
         from: `"Bagan 360" <${process.env.HOST_EMAIL}>`,

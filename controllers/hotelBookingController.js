@@ -81,7 +81,7 @@ export const hotelBookingList = asyncHandel(async (req, res) => {
                 success: false,
                 message: "Access denied!"
             });
-        }
+        }   
 
         let query = `
             SELECT

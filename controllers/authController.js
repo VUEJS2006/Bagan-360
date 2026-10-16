@@ -829,7 +829,7 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
                 <h3>Shop Registration Successfully</h3>
 
                 <p>
-                   သင့်ဆိုင်အား အကောက်ဖွ့င်ခြင်း အောင်မြင်ပါသည်။
+                   သင့်ဆိုင်အား အကောင့်ဖွ့င်ခြင်း အောင်မြင်ပါသည်။
                 </p>
 
                 <p>

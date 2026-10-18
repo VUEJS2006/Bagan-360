@@ -241,6 +241,51 @@ export const thonebaneList = asyncHandel(async (req, res) => {
             params.push(shop_id);
         }
         const [data] = await db.query(query, params);
+
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                thonebane_id,
+
+                CASE
+                    WHEN price_type = 'full_day'
+                        THEN 'Full Day'
+
+                    WHEN price_type = 'half_day_1'
+                        THEN 'Half Day 1'
+
+                    WHEN price_type = 'half_day_2'
+                        THEN 'Half Day 2'
+
+                    WHEN price_type = 'hourly'
+                        THEN 'Hourly'
+
+                    ELSE price_type
+                END AS price_type,
+
+                start_time,
+                end_time,
+                price
+
+            FROM thonebane_prices
+
+            ORDER BY created_at ASC
+            `
+        );
+
+        const result = data.map((thonebane) => {
+
+            return {
+                ...thonebane,
+
+                prices: prices.filter(
+                    (price) =>
+                        price.thonebane_id === thonebane.id
+                )
+            };
+        });
+
         let categoryQuery = `
             SELECT COUNT(*) AS category_count
             FROM thonebane_categories
@@ -262,13 +307,33 @@ export const thonebaneList = asyncHandel(async (req, res) => {
             categoryParams
         );
 
+        let priceCountQuery = `
+            SELECT COUNT(*) AS price_count
+            FROM thonebane_prices
+        `;
+
+        let priceCountParams = [];
+
+        if (req.user.role === "shop") {
+            priceCountQuery += `
+            WHERE shop_id = ?
+        `;
+
+            priceCountParams.push(shop_id);
+        }
+
+        const [priceCount] = await db.query(
+            priceCountQuery,
+            priceCountParams
+        );
+
         return res.status(200).json({
             success: true,
             message: "Thone Bane List Success!",
-            count: data.length,
             category_count: categoryCount[0].category_count,
-
-            data: data
+            price_count: priceCount[0].price_count,
+            count: result.length,
+            data: result
         });
 
     } catch (error) {
@@ -525,7 +590,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
 
         const [data] = await db.query(
             `
-                    SELECT
+                SELECT
                     t.id,
                     t.shop_id,
                     t.capacity,
@@ -542,23 +607,84 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                     t.status,
                     t.is_active,
                     t.image,
-                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
+                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at,
+
+                    s.shop_phone,
+                    s.shop_address,
+
+                    COALESCE(
+                        JSON_ARRAYAGG(
+                            CASE
+                                WHEN p.id IS NOT NULL THEN
+                                   JSON_OBJECT(
+                                    'id', p.id,
+                                    'price_type',
+                                    CASE
+                                        WHEN p.price_type = 'full_day' THEN 'Full Day'
+                                        WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
+                                        WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
+                                        WHEN p.price_type = 'hourly' THEN 'Hourly'
+                                        ELSE p.price_type
+                                    END,
+
+                                    'start_time', p.start_time,
+                                    'end_time', p.end_time,
+                                    'price', p.price
+                                )
+                            END
+                        ),
+                        JSON_ARRAY()
+                    ) AS prices
+
                 FROM thonebanes t
+
                 LEFT JOIN thonebane_categories c
                     ON t.category_id = c.id
+
                 LEFT JOIN shops s
                     ON t.shop_id = s.id
-                    WHERE t.id = ?
+
+                LEFT JOIN thonebane_prices p
+                    ON t.id = p.thonebane_id
+
+                WHERE t.id = ?
                     AND t.is_active = true
                     AND s.is_active = true
+
+                GROUP BY
+                    t.id,
+                    t.shop_id,
+                    t.capacity,
+                    t.price_per_day,
+                    t.features,
+                    s.shop_name,
+                    t.category_id,
+                    c.name,
+                    t.name,
+                    t.price,
+                    t.phone,
+                    t.location,
+                    t.description,
+                    t.status,
+                    t.is_active,
+                    t.image,
+                    t.created_at,
+                    s.shop_phone,
+                    s.shop_address
+
                 ORDER BY t.id DESC
             `,
             [id]
         );
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Thonebane not found!"
+            });
+        }
         return res.status(200).json({
             success: true,
             message: "ThoneBane Details Success!",
-            count: data.length,
             data
         });
 
@@ -741,12 +867,75 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 DATE_FORMAT(
                     t.created_at,
                     '%d-%m-%Y'
-                ) AS created_at
+                ) AS created_at,
+
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+
+                COALESCE(
+                    JSON_ARRAYAGG(
+                        CASE
+                            WHEN p.id IS NOT NULL THEN
+                               JSON_OBJECT(
+                                'id', p.id,
+                                'price_type',
+                                CASE
+                                    WHEN p.price_type = 'full_day' THEN 'Full Day'
+                                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
+                                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
+                                    WHEN p.price_type = 'hourly' THEN 'Hourly'
+                                    ELSE p.price_type
+                                END,
+
+                                'start_time', p.start_time,
+                                'end_time', p.end_time,
+                                'price', p.price
+                            )
+                        END
+                    ),
+                    JSON_ARRAY()
+                ) AS prices
+
             FROM thonebanes t
+
             LEFT JOIN thonebane_categories c
                 ON t.category_id = c.id
-            WHERE t.shop_id = ?
-            AND t.is_active = true
+
+            INNER JOIN shops s
+                ON t.shop_id = s.id
+
+            LEFT JOIN thonebane_prices p
+                ON t.id = p.thonebane_id
+
+            WHERE
+                t.shop_id = ?
+                AND t.is_active = true
+                AND s.is_active = true
+
+            GROUP BY
+                t.id,
+                t.shop_id,
+                t.capacity,
+                t.price_per_day,
+                t.features,
+                t.category_id,
+                c.name,
+                t.name,
+                t.price,
+                t.phone,
+                t.location,
+                t.description,
+                t.status,
+                t.is_active,
+                t.image,
+                t.created_at,
+                s.id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address
+
             ORDER BY t.id DESC
             `,
             [id]

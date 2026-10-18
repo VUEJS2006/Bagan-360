@@ -12,6 +12,7 @@ import e_bikeRouter from "./routers/e_bikeRouter.js"
 import e_bikePriceRouter from "./routers/e_bike_priceRouter.js"
 import thonbaneCategoryRouter from "./routers/thonebane_categoryRouter.js"
 import thonbaneRouter from "./routers/thonebaneRouter.js"
+import thonebanePriceRouter from "./routers/thonebane_priceRouter.js"
 import thonebaneBookingRouter from "./routers/thoneBaneBookingRouter.js"
 import restaurantBookingRouter from "./routers/restaurantBookingRouter.js"
 import e_bikeBookingRouter from "./routers/e_bikeBookingRouter.js"
@@ -62,6 +63,7 @@ app.use('/api', e_bikeRouter);
 app.use('/api', e_bikePriceRouter);
 app.use('/api', thonbaneCategoryRouter);
 app.use('/api', thonbaneRouter);
+app.use('/api', thonebanePriceRouter);
 app.use('/api', thonebaneBookingRouter);
 app.use('/api', restaurantBookingRouter);
 app.use('/api', e_bikeBookingRouter);

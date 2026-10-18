@@ -475,4 +475,41 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
                 t.name AS thonebane_name,
                 t.location,
                 t.image,
-                s.shop
+                s.shop_name
+
+            FROM thonebane_bookings b
+
+            JOIN thonebanes t
+                ON b.thonebane_id = t.id
+
+            JOIN shops s
+                ON b.shop_id = s.id
+
+            LEFT JOIN thonebane_prices tp
+                ON b.price_id = tp.id
+                AND tp.thonebane_id = b.thonebane_id
+                AND tp.shop_id = b.shop_id
+
+            WHERE b.user_id = ?
+
+            ORDER BY b.id DESC
+            `,
+            [req.user.id]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Booking Success",
+            count: data.length,
+            data
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});

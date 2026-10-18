@@ -1,5 +1,5 @@
-import db from "../config/db.js";
-import { asyncHandel } from "../middlewares/asyncMiddleware.js";
+import db from "./config/db.js";
+import { asyncHandel } from "./middlewares/asyncMiddleware.js";
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";

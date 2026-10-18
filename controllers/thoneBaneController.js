@@ -9,7 +9,7 @@ import { v4 as uuid } from "uuid";
 export const thonebaneCreate = asyncHandel(async (req, res) => {
     try {
 
-        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, price, phone, location, description, status, is_active } = req.body;
+        const { shop_id: bodyShopId, capacity, price_per_day, features, category_id, name, phone, location, description, status, is_active } = req.body;
         let shop_id;
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -52,7 +52,7 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        if (!name || !price || !phone || !location || !status) {
+        if (!name || !phone || !location || !status) {
             return res.status(400).json({
                 success: false,
                 message: "All field are required!"
@@ -115,7 +115,6 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 price_per_day,
                 features,
                 name,
-                price,
                 phone,
                 location,
                 description,
@@ -123,7 +122,7 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 image,
                 is_active
             )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             `,
             [
                 shop_id,
@@ -132,7 +131,6 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
                 price_per_day,
                 features,
                 name,
-                price,
                 phone,
                 location,
                 description,
@@ -160,33 +158,35 @@ export const thonebaneCreate = asyncHandel(async (req, res) => {
     }
 })
 
+
 export const thonebaneList = asyncHandel(async (req, res) => {
     try {
-
         let query = "";
         let params = [];
         let shop_id = null;
-        if (req.user.role === "admin") {
 
+        if (req.user.role === "admin") {
             query = `
                 SELECT
                     t.id,
                     t.shop_id,
+                    s.shop_name,
                     t.capacity,
                     t.price_per_day,
                     t.features,
-                    s.shop_name,
                     t.category_id,
                     c.name AS category_name,
                     t.name,
-                    t.price,
                     t.phone,
                     t.location,
                     t.description,
                     t.status,
                     t.is_active,
                     t.image,
-                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
+                    DATE_FORMAT(
+                        t.created_at,
+                        '%d-%m-%Y'
+                    ) AS created_at
                 FROM thonebanes t
                 LEFT JOIN thonebane_categories c
                     ON t.category_id = c.id
@@ -194,73 +194,78 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     ON t.shop_id = s.id
                 ORDER BY t.id DESC
             `;
-        }
-
-        else if (req.user.role === "shop") {
-
-            const [shop] = await db.query(
+        } else if (req.user.role === "shop") {
+            const [shops] = await db.query(
                 "SELECT id FROM shops WHERE user_id = ?",
                 [req.user.id]
             );
 
-            if (shop.length === 0) {
+            if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
                 });
             }
 
-            // ⭐ IMPORTANT
-            shop_id = shop[0].id;
+            shop_id = shops[0].id;
 
             query = `
                 SELECT
                     t.id,
                     t.shop_id,
+                    s.shop_name,
                     t.capacity,
                     t.price_per_day,
                     t.features,
                     t.category_id,
                     c.name AS category_name,
                     t.name,
-                    t.price,
                     t.phone,
                     t.location,
                     t.description,
                     t.status,
                     t.is_active,
                     t.image,
-                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at
+                    DATE_FORMAT(
+                        t.created_at,
+                        '%d-%m-%Y'
+                    ) AS created_at
                 FROM thonebanes t
                 LEFT JOIN thonebane_categories c
                     ON t.category_id = c.id
+                LEFT JOIN shops s
+                    ON t.shop_id = s.id
                 WHERE t.shop_id = ?
                 ORDER BY t.id DESC
             `;
 
             params.push(shop_id);
+        } else {
+            return res.status(403).json({
+                success: false,
+                message: "Access denied!"
+            });
         }
+
+        // 2. Thone Bane list ယူခြင်း
         const [data] = await db.query(query, params);
 
-        const [prices] = await db.query(
-            `
+        // 3. Price list ယူခြင်း
+        let priceQuery = `
             SELECT
                 id,
+                shop_id,
                 thonebane_id,
 
                 CASE
                     WHEN price_type = 'full_day'
                         THEN 'Full Day'
-
                     WHEN price_type = 'half_day_1'
                         THEN 'Half Day 1'
-
                     WHEN price_type = 'half_day_2'
                         THEN 'Half Day 2'
-
                     WHEN price_type = 'hourly'
                         THEN 'Hourly'
-
                     ELSE price_type
                 END AS price_type,
 
@@ -269,23 +274,38 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                 price
 
             FROM thonebane_prices
+        `;
 
-            ORDER BY created_at ASC
-            `
+        let priceParams = [];
+
+        if (req.user.role === "shop") {
+            priceQuery += `
+                WHERE shop_id = ?
+            `;
+            priceParams.push(shop_id);
+        }
+
+        priceQuery += ` ORDER BY created_at ASC`;
+
+        const [prices] = await db.query(
+            priceQuery,
+            priceParams
         );
 
-        const result = data.map((thonebane) => {
+        // 4. Thone Bane တစ်ခုချင်းစီမှာ သူ့ price တွေထည့်ခြင်း
+        const result = data.map((thonebane) => ({
+            ...thonebane,
 
-            return {
-                ...thonebane,
+            prices: prices.filter(
+                (price) =>
+                    Number(price.thonebane_id) ===
+                    Number(thonebane.id) &&
+                    Number(price.shop_id) ===
+                    Number(thonebane.shop_id)
+            )
+        }));
 
-                prices: prices.filter(
-                    (price) =>
-                        price.thonebane_id === thonebane.id
-                )
-            };
-        });
-
+        // 5. Category count
         let categoryQuery = `
             SELECT COUNT(*) AS category_count
             FROM thonebane_categories
@@ -294,11 +314,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         let categoryParams = [];
 
         if (req.user.role === "shop") {
-
-            categoryQuery += `
-                WHERE shop_id = ?
-            `;
-
+            categoryQuery += ` WHERE shop_id = ?`;
             categoryParams.push(shop_id);
         }
 
@@ -307,6 +323,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
             categoryParams
         );
 
+        // 6. Price count
         let priceCountQuery = `
             SELECT COUNT(*) AS price_count
             FROM thonebane_prices
@@ -315,10 +332,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
         let priceCountParams = [];
 
         if (req.user.role === "shop") {
-            priceCountQuery += `
-            WHERE shop_id = ?
-        `;
-
+            priceCountQuery += ` WHERE shop_id = ?`;
             priceCountParams.push(shop_id);
         }
 
@@ -327,31 +341,32 @@ export const thonebaneList = asyncHandel(async (req, res) => {
             priceCountParams
         );
 
+        // 7. Response
         return res.status(200).json({
             success: true,
             message: "Thone Bane List Success!",
+            count: result.length,
             category_count: categoryCount[0].category_count,
             price_count: priceCount[0].price_count,
-            count: result.length,
             data: result
         });
 
     } catch (error) {
-
         console.log(error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
 });
 
+
 export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
-        let { name, category_id, capacity, price_per_day, features, price, phone, location, description, status, is_active } = req.body;
+        let { name, category_id, capacity, price_per_day, features, phone, location, description, status, is_active } = req.body;
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -462,7 +477,6 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 price_per_day = ?,
                 features = ?,
                 name=?,
-                price=?,
                 phone=?,
                 location=?,
                 description=?,
@@ -477,7 +491,6 @@ export const thonebaneUpdate = asyncHandel(async (req, res) => {
                 price_per_day,
                 features,
                 name,
-                price,
                 phone,
                 location,
                 description,
@@ -575,128 +588,100 @@ export const thonebaneDelete = asyncHandel(async (req, res) => {
     }
 })
 
+
 export const thonebaneDetails = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
-
-        const [thonebane] = await db.query("SELECT * FROM thonebanes WHERE id = ? AND is_active = true", [id]);
-        if (thonebane.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Thonebane not found!"
-            });
-        }
 
         const [data] = await db.query(
             `
-                SELECT
-                    t.id,
-                    t.shop_id,
-                    t.capacity,
-                    t.price_per_day,
-                    t.features,
-                    s.shop_name,
-                    t.category_id,
-                    c.name AS category_name,
-                    t.name,
-                    t.price,
-                    t.phone,
-                    t.location,
-                    t.description,
-                    t.status,
-                    t.is_active,
-                    t.image,
-                    DATE_FORMAT(t.created_at,'%d-%m-%Y') AS created_at,
-
-                    s.shop_phone,
-                    s.shop_address,
-
-                    COALESCE(
-                        JSON_ARRAYAGG(
-                            CASE
-                                WHEN p.id IS NOT NULL THEN
-                                   JSON_OBJECT(
-                                    'id', p.id,
-                                    'price_type',
-                                    CASE
-                                        WHEN p.price_type = 'full_day' THEN 'Full Day'
-                                        WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
-                                        WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
-                                        WHEN p.price_type = 'hourly' THEN 'Hourly'
-                                        ELSE p.price_type
-                                    END,
-
-                                    'start_time', p.start_time,
-                                    'end_time', p.end_time,
-                                    'price', p.price
-                                )
-                            END
-                        ),
-                        JSON_ARRAY()
-                    ) AS prices
-
-                FROM thonebanes t
-
-                LEFT JOIN thonebane_categories c
-                    ON t.category_id = c.id
-
-                LEFT JOIN shops s
-                    ON t.shop_id = s.id
-
-                LEFT JOIN thonebane_prices p
-                    ON t.id = p.thonebane_id
-
-                WHERE t.id = ?
-                    AND t.is_active = true
-                    AND s.is_active = true
-
-                GROUP BY
-                    t.id,
-                    t.shop_id,
-                    t.capacity,
-                    t.price_per_day,
-                    t.features,
-                    s.shop_name,
-                    t.category_id,
-                    c.name,
-                    t.name,
-                    t.price,
-                    t.phone,
-                    t.location,
-                    t.description,
-                    t.status,
-                    t.is_active,
-                    t.image,
-                    t.created_at,
-                    s.shop_phone,
-                    s.shop_address
-
-                ORDER BY t.id DESC
+            SELECT
+                t.id,
+                t.shop_id,
+                s.shop_name,
+                t.capacity,
+                t.price_per_day,
+                t.features,
+                t.category_id,
+                c.name AS category_name,
+                t.name,
+                t.phone,
+                t.location,
+                t.description,
+                t.status,
+                t.is_active,
+                t.image,
+                DATE_FORMAT(t.created_at, '%d-%m-%Y') AS created_at
+            FROM thonebanes t
+            LEFT JOIN thonebane_categories c
+                ON t.category_id = c.id
+            INNER JOIN shops s
+                ON t.shop_id = s.id
+            WHERE t.id = ?
+                AND t.is_active = 1
+                AND s.is_active = 1
+                AND s.status = 'approved'
+                AND s.type = 'thonebane'
             `,
             [id]
         );
+
         if (data.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: "Thonebane not found!"
             });
         }
+
+        // သက်ဆိုင်ရာ Thone Bane ရဲ့ price တွေယူမယ်
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                shop_id,
+                thonebane_id,
+                CASE
+                    WHEN price_type = 'full_day'
+                        THEN 'Full Day'
+                    WHEN price_type = 'half_day_1'
+                        THEN 'Half Day 1'
+                    WHEN price_type = 'half_day_2'
+                        THEN 'Half Day 2'
+                    WHEN price_type = 'hourly'
+                        THEN 'Hourly'
+                    ELSE price_type
+                END AS price_type,
+                start_time,
+                end_time,
+                price
+            FROM thonebane_prices
+            WHERE thonebane_id = ?
+                AND shop_id = ?
+            ORDER BY created_at ASC
+            `,
+            [data[0].id, data[0].shop_id]
+        );
+
+        const result = {
+            ...data[0],
+            prices
+        };
+
         return res.status(200).json({
             success: true,
             message: "ThoneBane Details Success!",
-            data
+            data: result
         });
 
     } catch (error) {
         console.log(error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
-})
+});
 
 export const thonebaneShopList = asyncHandel(async (req, res) => {
     try {
@@ -810,14 +795,14 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const thonebaneShopDetails = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
 
         const [shop] = await db.query(
             `
-            SELECT 
+            SELECT
                 s.id AS shop_id,
                 s.shop_name,
                 s.shop_phone,
@@ -829,12 +814,12 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 u.image,
                 s.status
             FROM shops s
-            JOIN users u
+            INNER JOIN users u
                 ON s.user_id = u.id
             WHERE s.id = ?
-            AND s.type = 'thonebane'
-            AND s.status = 'approved'
-            AND s.is_active = true
+                AND s.type = 'thonebane'
+                AND s.status = 'approved'
+                AND s.is_active = 1
             `,
             [id]
         );
@@ -857,7 +842,6 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 t.category_id,
                 c.name AS category_name,
                 t.name,
-                t.price,
                 t.phone,
                 t.location,
                 t.description,
@@ -867,91 +851,65 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 DATE_FORMAT(
                     t.created_at,
                     '%d-%m-%Y'
-                ) AS created_at,
-
-                s.id AS shop_id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-
-                COALESCE(
-                    JSON_ARRAYAGG(
-                        CASE
-                            WHEN p.id IS NOT NULL THEN
-                               JSON_OBJECT(
-                                'id', p.id,
-                                'price_type',
-                                CASE
-                                    WHEN p.price_type = 'full_day' THEN 'Full Day'
-                                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
-                                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
-                                    WHEN p.price_type = 'hourly' THEN 'Hourly'
-                                    ELSE p.price_type
-                                END,
-
-                                'start_time', p.start_time,
-                                'end_time', p.end_time,
-                                'price', p.price
-                            )
-                        END
-                    ),
-                    JSON_ARRAY()
-                ) AS prices
-
+                ) AS created_at
             FROM thonebanes t
-
             LEFT JOIN thonebane_categories c
                 ON t.category_id = c.id
-
-            INNER JOIN shops s
-                ON t.shop_id = s.id
-
-            LEFT JOIN thonebane_prices p
-                ON t.id = p.thonebane_id
-
-            WHERE
-                t.shop_id = ?
-                AND t.is_active = true
-                AND s.is_active = true
-
-            GROUP BY
-                t.id,
-                t.shop_id,
-                t.capacity,
-                t.price_per_day,
-                t.features,
-                t.category_id,
-                c.name,
-                t.name,
-                t.price,
-                t.phone,
-                t.location,
-                t.description,
-                t.status,
-                t.is_active,
-                t.image,
-                t.created_at,
-                s.id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address
-
+            WHERE t.shop_id = ?
+                AND t.is_active = 1
             ORDER BY t.id DESC
             `,
             [id]
         );
+
+        // ဆိုင်ရဲ့ Thone Bane အားလုံးအတွက် price တွေယူမယ်
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                shop_id,
+                thonebane_id,
+                CASE
+                    WHEN price_type = 'full_day'
+                        THEN 'Full Day'
+                    WHEN price_type = 'half_day_1'
+                        THEN 'Half Day 1'
+                    WHEN price_type = 'half_day_2'
+                        THEN 'Half Day 2'
+                    WHEN price_type = 'hourly'
+                        THEN 'Hourly'
+                    ELSE price_type
+                END AS price_type,
+                start_time,
+                end_time,
+                price
+            FROM thonebane_prices
+            WHERE shop_id = ?
+            ORDER BY created_at ASC
+            `,
+            [id]
+        );
+
+        // Thone Bane တစ်ခုချင်းစီမှာ သူ့ price တွေကိုသာ ထည့်မယ်
+        const result = data.map((thonebane) => ({
+            ...thonebane,
+            prices: prices.filter(
+                (price) =>
+                    Number(price.thonebane_id) === Number(thonebane.id) &&
+                    Number(price.shop_id) === Number(thonebane.shop_id)
+            )
+        }));
 
         return res.status(200).json({
             success: true,
             message: "Thonebane Shop Detail Success",
             data: {
                 shop: shop[0],
-                thonebanes: data
+                thonebanes: result
             }
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({

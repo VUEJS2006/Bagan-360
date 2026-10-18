@@ -161,47 +161,6 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
             });
         }
 
-        let query = `
-            SELECT
-                b.id AS booking_id,
-                b.user_id,
-                b.shop_id,
-                b.thonebane_id,
-                b.customer_name,
-                b.customer_phone,
-
-                DATE_FORMAT(
-                    b.booking_date,
-                    '%d-%m-%Y'
-                ) AS booking_date,
-
-                b.passenger_count,
-                b.price_type,
-                b.status,
-                b.note,
-
-                COALESCE(tp.price, b.price) AS price,
-
-                t.name AS thonebane_name,
-                t.location,
-                t.image,
-                s.shop_name
-
-            FROM thonebane_bookings b
-
-            JOIN thonebanes t
-                ON b.thonebane_id = t.id
-
-            JOIN shops s
-                ON b.shop_id = s.id
-
-            LEFT JOIN thonebane_prices tp
-                ON tp.thonebane_id = b.thonebane_id
-                AND tp.shop_id = b.shop_id
-                AND tp.price_type = b.price_type
-        `;
-
-        let params = [];
         let shop_id = null;
 
         if (req.user.role === "shop") {
@@ -223,7 +182,53 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
             }
 
             shop_id = shops[0].id;
+        }
 
+        let query = `
+            SELECT
+                b.id AS booking_id,
+                b.user_id,
+                b.shop_id,
+                b.thonebane_id,
+                b.price_id,
+                b.customer_name,
+                b.customer_phone,
+
+                DATE_FORMAT(
+                    b.booking_date,
+                    '%d-%m-%Y'
+                ) AS booking_date,
+
+                b.passenger_count,
+                tp.price_type,
+                tp.start_time,
+                tp.end_time,
+                b.status,
+                b.note,
+                tp.price,
+
+                t.name AS thonebane_name,
+                t.location,
+                t.image,
+                s.shop_name
+
+            FROM thonebane_bookings b
+
+            JOIN thonebanes t
+                ON b.thonebane_id = t.id
+
+            JOIN shops s
+                ON b.shop_id = s.id
+
+            LEFT JOIN thonebane_prices tp
+                ON b.price_id = tp.id
+                AND tp.thonebane_id = b.thonebane_id
+                AND tp.shop_id = b.shop_id
+        `;
+
+        const params = [];
+
+        if (req.user.role === "shop") {
             query += ` WHERE b.shop_id = ? `;
             params.push(shop_id);
         }
@@ -235,22 +240,9 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         let countQuery = `
             SELECT
                 COUNT(*) AS total_count,
-
-                COALESCE(SUM(
-                    CASE WHEN status = 'pending'
-                    THEN 1 ELSE 0 END
-                ), 0) AS pending_count,
-
-                COALESCE(SUM(
-                    CASE WHEN status = 'approved'
-                    THEN 1 ELSE 0 END
-                ), 0) AS approved_count,
-
-                COALESCE(SUM(
-                    CASE WHEN status = 'cancelled'
-                    THEN 1 ELSE 0 END
-                ), 0) AS cancelled_count
-
+                COALESCE(SUM(status = 'pending'), 0) AS pending_count,
+                COALESCE(SUM(status = 'approved'), 0) AS approved_count,
+                COALESCE(SUM(status = 'cancelled'), 0) AS cancelled_count
             FROM thonebane_bookings
         `;
 
@@ -269,24 +261,15 @@ export const thonebaneBookingList = asyncHandel(async (req, res) => {
         const [totalApproved] = await db.query(
             `
             SELECT
-                COALESCE(
-                    SUM(
-                        CASE
-                            WHEN b.status = 'approved'
-                            THEN COALESCE(tp.price, b.price)
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS approved_total_price
+                COALESCE(SUM(tp.price), 0) AS approved_total_price
             FROM thonebane_bookings b
 
             LEFT JOIN thonebane_prices tp
-                ON tp.thonebane_id = b.thonebane_id
+                ON b.price_id = tp.id
+                AND tp.thonebane_id = b.thonebane_id
                 AND tp.shop_id = b.shop_id
-                AND tp.price_type = b.price_type
 
-            ${req.user.role === "shop" ? "WHERE b.shop_id = ?" : ""}
+            ${req.user.role === "shop" ? "WHERE b.shop_id = ? AND b.status = 'approved'" : "WHERE b.status = 'approved'"}
             `,
             req.user.role === "shop" ? [shop_id] : []
         );
@@ -472,6 +455,7 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
                 b.user_id,
                 b.shop_id,
                 b.thonebane_id,
+                b.price_id,
                 b.customer_name,
                 b.customer_phone,
 
@@ -481,50 +465,14 @@ export const thonebaneMobileBooking = asyncHandel(async (req, res) => {
                 ) AS booking_date,
 
                 b.passenger_count,
-                b.price_type,
+                tp.price_type,
+                tp.start_time,
+                tp.end_time,
                 b.status,
                 b.note,
-
-                COALESCE(tp.price, b.price) AS price,
+                tp.price,
 
                 t.name AS thonebane_name,
                 t.location,
                 t.image,
-                s.shop_name
-
-            FROM thonebane_bookings b
-
-            JOIN thonebanes t
-                ON b.thonebane_id = t.id
-
-            JOIN shops s
-                ON b.shop_id = s.id
-
-            LEFT JOIN thonebane_prices tp
-                ON tp.thonebane_id = b.thonebane_id
-                AND tp.shop_id = b.shop_id
-                AND tp.price_type = b.price_type
-
-            WHERE b.user_id = ?
-
-            ORDER BY b.id DESC
-            `,
-            [req.user.id]
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: "Booking Success",
-            count: data.length,
-            data
-        });
-
-    } catch (error) {
-        console.log(error);
-
-        return res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-});
+                s.shop

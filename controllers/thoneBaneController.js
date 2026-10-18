@@ -365,8 +365,6 @@ export const thonebaneList = asyncHandel(async (req, res) => {
 });
 
 
-
-
 export const thonebaneUpdate = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;

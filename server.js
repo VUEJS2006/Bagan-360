@@ -27,6 +27,8 @@ import cartRouter from "./routers/cartRouter.js"
 import sliderRouter from "./routers/sliderRouter.js"
 import percentageRouter from "./routers/percentageRouter.js"
 import taxRouter from "./routers/taxRouter.js"
+import airballonRouter from "./routers/airballonRouter.js"
+
 
 import cors from "cors"
 import path from "path";
@@ -78,6 +80,7 @@ app.use('/api', cartRouter);
 app.use('/api', sliderRouter);
 app.use('/api', percentageRouter);
 app.use('/api', taxRouter);
+app.use('/api', airballonRouter);
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

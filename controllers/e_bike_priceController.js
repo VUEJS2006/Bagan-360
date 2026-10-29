@@ -230,7 +230,7 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
         }
 
 
-        // E-bike price ရှိ/မရှိစစ်မယ်
+    
         let priceQuery = `
             SELECT *
             FROM e_bike_prices
@@ -240,7 +240,7 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
         let priceParams = [id];
 
 
-        // Shop ဖြစ်ရင် ကိုယ့် shop ရဲ့ price ပဲ update လုပ်ခွင့်ရှိမယ်
+      
         if (req.user.role === "shop") {
 
             priceQuery += `
@@ -251,8 +251,7 @@ export const eBikePriceUpdate = asyncHandel(async (req, res) => {
         }
 
 
-        // price မသုံးဘဲ priceData လို့သုံးမယ်
-        // req.body က price နဲ့ variable name မတူအောင်
+      
         const [priceData] = await db.query(
             priceQuery,
             priceParams

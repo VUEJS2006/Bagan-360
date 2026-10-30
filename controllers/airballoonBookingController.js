@@ -171,7 +171,7 @@ export const airballoonBookingList = asyncHandel(async (req, res) => {
                 s.shop_address,
                 s.location AS shop_location
 
-            FROM airballon_bookings b
+            FROM airballoon_bookings b
 
             JOIN airballons a
                 ON b.airballoon_id = a.id
@@ -197,7 +197,7 @@ export const airballoonBookingList = asyncHandel(async (req, res) => {
                 COALESCE(SUM(status = 'pending'), 0) AS pending_count,
                 COALESCE(SUM(status = 'approved'), 0) AS approved_count,
                 COALESCE(SUM(status = 'cancelled'), 0) AS cancelled_count
-            FROM airballon_bookings
+            FROM airballoon_bookings
         `;
 
         const countParams = [];
@@ -216,7 +216,7 @@ export const airballoonBookingList = asyncHandel(async (req, res) => {
             `
             SELECT
                 COUNT(*) AS total_approved_count
-            FROM airballon_bookings
+            FROM airballoon_bookings
             WHERE status = 'approved'
             ${req.user.role === "shop" ? "AND shop_id = ?" : ""}
             `,
@@ -434,7 +434,7 @@ export const airballoonMobileBooking = asyncHandel(async (req, res) => {
                 s.shop_address,
                 s.location AS shop_location
 
-            FROM airballon_bookings b
+            FROM airballoon_bookings b
 
             JOIN airballons a
                 ON b.airballoon_id = a.id

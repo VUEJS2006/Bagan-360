@@ -765,7 +765,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
                     u.image
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
-                WHERE s.type = 'air_ballon'
+                WHERE s.type = 'air_balloon'
                 ORDER BY s.id DESC
             `;
         }
@@ -809,7 +809,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
-                AND s.type = 'air_ballon'
+                AND s.type = 'air_balloon'
                 ORDER BY s.id DESC
             `;
 
@@ -837,7 +837,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
 
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
-                WHERE s.type = 'air_ballon'
+                WHERE s.type = 'air_balloon'
                 AND s.status = 'approved'
                 AND s.is_active = true
                 ORDER BY s.id DESC

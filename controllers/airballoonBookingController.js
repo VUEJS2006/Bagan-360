@@ -55,12 +55,7 @@ export const airballoonBookingCreate = asyncHandel(async (req, res) => {
 
         const item = airballoon[0];
 
-        if (item.status !== "available" || item.is_active !== 1) {
-            return res.status(400).json({
-                success: false,
-                message: "Air Balloon is unavailable!"
-            });
-        }
+      
 
 
         const [booking] = await db.query(

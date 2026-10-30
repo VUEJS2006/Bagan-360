@@ -18,7 +18,7 @@ import express from "express";
 const router = express.Router();
 
 router.post(
-    "/admin/airballon/create",
+    "/admin/air_balloon/create",
     authenticated,
     upload.fields([
         { name: "airballon_image1", maxCount: 1 },
@@ -29,13 +29,13 @@ router.post(
 );
 
 router.get(
-    "/admin/airballon/list",
+    "/admin/air_balloon/list",
     authenticated,
     airballonList
 );
 
 router.put(
-    "/admin/airballon/update/:id",
+    "/admin/air_balloon/update/:id",
     authenticated,
     upload.fields([
         { name: "airballon_image1", maxCount: 1 },
@@ -46,25 +46,25 @@ router.put(
 );
 
 router.delete(
-    "/admin/airballon/delete/:id",
+    "/admin/air_balloon/delete/:id",
     authenticated,
     airballonDelete
 );
 
 router.get(
-    "/airballon/shop/list",
+    "/air_balloon/shop/list",
     authenticated,
     airballonShopList
 );
 
 router.get(
-    "/airballon/shop/details/:id",
+    "/air_balloon/shop/details/:id",
     authenticated,
     airballonShopDetails
 );
 
 router.get(
-    "/mobile/airballon/details/:id",
+    "/mobile/air_balloon/details/:id",
     authenticated,
     airballonDetails
 );

@@ -18,6 +18,7 @@ export const upload = multer({
             "image/png",
             "image/webp",
             "image/avif",
+             "image/svg",
         ];
 
         const ext = path.extname(file.originalname).toLowerCase();
@@ -27,7 +28,8 @@ export const upload = multer({
             ".jpeg",
             ".png",
             ".webp",
-            ".avif"
+            ".avif",
+            ".svg"
         ];
 
         if (

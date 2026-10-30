@@ -971,7 +971,7 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
             airballon_image1: airballon.airballon_image1,
             airballon_image2: airballon.airballon_image2,
             airballon_image3: airballon.airballon_image3,
-          
+
         }));
 
         return res.status(200).json({
@@ -1069,8 +1069,12 @@ export const airballonDetails = asyncHandel(async (req, res) => {
             name: airballon.name,
             price_from: airballon.price_from,
             price_to: airballon.price_to,
-            dollor_from: airballon.dollor_from,
-            dollor_to: airballon.dollor_to,
+            dollor_from: airballon.dollor_from !== null
+                ? Number(airballon.dollor_from)
+                : null,
+            dollor_to: airballon.dollor_to !== null
+                ? Number(airballon.dollor_to)
+                : null,
             guest: airballon.guest,
             rule: airballon.rule,
             description: airballon.description,
@@ -1079,10 +1083,9 @@ export const airballonDetails = asyncHandel(async (req, res) => {
             location: airballon.location,
             status: airballon.status,
             is_active: Boolean(airballon.is_active),
-
             airballon_image1: airballon.airballon_image1,
             airballon_image2: airballon.airballon_image2,
-            airballon_image3: airballon.airballon_image3,
+            airballon_image3: airballon.airballon_image3
         };
 
         return res.status(200).json({

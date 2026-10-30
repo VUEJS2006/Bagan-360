@@ -971,11 +971,7 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
             airballon_image1: airballon.airballon_image1,
             airballon_image2: airballon.airballon_image2,
             airballon_image3: airballon.airballon_image3,
-            images: [
-                airballon.airballon_image1,
-                airballon.airballon_image2,
-                airballon.airballon_image3
-            ].filter(Boolean)
+          
         }));
 
         return res.status(200).json({

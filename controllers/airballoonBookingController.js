@@ -40,7 +40,7 @@ export const airballoonBookingCreate = asyncHandel(async (req, res) => {
                 id,
                 shop_id,
                 is_active
-            FROM airballoons
+            FROM airballons
             WHERE id = ?
             `,
             [airballoon_id]

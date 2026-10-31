@@ -29,7 +29,7 @@ import percentageRouter from "./routers/percentageRouter.js"
 import taxRouter from "./routers/taxRouter.js"
 import airballonRouter from "./routers/airballonRouter.js"
 import airballonBookingRouter from "./routers/airballoonBookingRouter.js"
-
+import otherRouter from "./routers/otherRouter.js"
 
 import cors from "cors"
 import path from "path";
@@ -83,6 +83,7 @@ app.use('/api', percentageRouter);
 app.use('/api', taxRouter);
 app.use('/api', airballonRouter);
 app.use('/api', airballonBookingRouter);
+app.use('/api', otherRouter);
 
 app.listen(PORT, () => {
     console.log(`Server is Connection on ${PORT}`);

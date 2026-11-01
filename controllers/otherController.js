@@ -794,6 +794,7 @@ export const otherShopList = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const otherShopDetails = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
@@ -810,15 +811,12 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
             SELECT
                 o.id,
                 o.shop_id,
-
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
                 s.location AS shop_location,
                 s.user_id,
-
                 u.image AS user_image,
-
                 o.price_from,
                 o.price_to,
                 o.description,
@@ -856,11 +854,38 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
             });
         }
 
+        const shop = {
+            shop_id: data[0].shop_id,
+            shop_name: data[0].shop_name,
+            shop_phone: data[0].shop_phone,
+            shop_address: data[0].shop_address,
+            shop_location: data[0].shop_location,
+            user_id: data[0].user_id,
+            user_image: data[0].user_image
+        };
+
+        const others = data.map(item => ({
+            id: item.id,
+            name: item.name,
+            price_from: item.price_from,
+            price_to: item.price_to,
+            description: item.description,
+            other_image1: item.other_image1,
+            other_image2: item.other_image2,
+            other_image3: item.other_image3,
+            status: item.status,
+            is_active: item.is_active,
+            location: item.location
+        }));
+
         return res.status(200).json({
             success: true,
             message: "Other Shop Details Success",
-            count: data.length,
-            data
+            count: others.length,
+            data: {
+                shop,
+                others
+            }
         });
 
     } catch (error) {
@@ -872,6 +897,7 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
         });
     }
 });
+
 
 export const otherDetails = asyncHandel(async (req, res) => {
     try {

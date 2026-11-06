@@ -457,7 +457,8 @@ export const login = asyncHandel(async (req, res) => {
                     image: shop.image,
                     status: shop.status,
                     location: shop.location,
-                    is_active: shop.is_active
+                    is_active: shop.is_active,
+                    is_paid: shop.is_paid
                 }
                 : null
         });

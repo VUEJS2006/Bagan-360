@@ -729,6 +729,7 @@ export const shopRegister = asyncHandel(async (req, res) => {
             nrc,
             type,
             role: "shop",
+
             tax
         }, process.env.JWT_SECRET, { expiresIn: "15m" })
 
@@ -804,9 +805,10 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
         shop_phone,
         nrc,
         type,
-        tax
+        tax,
+        is_paid
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?,?)
+    VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
 `, [
             userId,
             user.shop_name,
@@ -815,7 +817,8 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             user.shop_phone,
             user.nrc,
             user.type,
-            user.tax
+            user.tax,
+            user.is_paid
         ]);
 
         await db.query(
@@ -1189,6 +1192,7 @@ export const shopProfile = asyncHandel(async (req, res) => {
                 s.type,
                 s.status,
                 s.tax,
+                s.is_paid,
                 s.is_active,
 
                 u.email,

@@ -66,33 +66,68 @@ export const register = asyncHandel(async (req, res) => {
 })
 
 export const verifyOTP = asyncHandel(async (req, res) => {
+    let connection;
+
     try {
         const { email, otp, token } = req.body;
         if (!email || !otp || !token) {
-            return res.status(401).json({
+            return res.status(400).json({
                 message: 'All field are required!',
                 success: false
             })
         }
-        const [CheckOTP] = await db.query("SELECT *  FROM otp_codes WHERE email = ? AND otp = ? AND expires_at > NOW()", [email, otp]);
-        if (CheckOTP.length === 0) {
+
+        let user;
+        try {
+            user = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            return res.status(400).json({
+                message: "Token expired or invalid",
+                success: false
+            });
+        }
+
+        if (user.email !== email || user.role !== "user") {
+            return res.status(400).json({
+                message: "Invalid registration token",
+                success: false
+            });
+        }
+
+        const hashPassword = await bcrypt.hash(user.password, 12);
+
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        const [checkOTP] = await connection.query(
+            `SELECT email
+             FROM otp_codes
+             WHERE email = ? AND otp = ? AND expires_at > NOW()
+             FOR UPDATE`,
+            [email, otp]
+        );
+
+        if (checkOTP.length === 0) {
+            await connection.rollback();
             return res.status(400).json({
                 message: "Invalid or expired OTP",
                 success: false
             });
         }
-        let user;
-        try {
-            user = jwt.verify(token, process.env.JWT_SECRET);
 
-        } catch (error) {
+        const [existingUser] = await connection.query(
+            "SELECT id FROM users WHERE email = ?",
+            [email]
+        );
+        if (existingUser.length > 0) {
+            await connection.rollback();
             return res.status(400).json({
-                message: "Token expired"
+                message: "Email Already Exists!",
+                success: false
             });
         }
 
-        const hashPassword = await bcrypt.hash(user.password, 12);
-        const [data] = await db.query("INSERT INTO users (username,email,password,gender,phone,address,region,township,role) VALUES (?,?,?,?,?,?,?,?,?)",
+        await connection.query("INSERT INTO users (username,email,password,gender,phone,address,region,township,role) VALUES (?,?,?,?,?,?,?,?,?)",
             [
                 user.username,
                 user.email,
@@ -107,24 +142,37 @@ export const verifyOTP = asyncHandel(async (req, res) => {
             ]
         );
 
-        await db.query("DELETE FROM otp_codes WHERE email = ?", [email]);
-        await sendMail(
-            email,
-            "Account Registration Successfully",
-            `<h3>please sign in to my Bagan 360 App</h3>`
+        await connection.query("DELETE FROM otp_codes WHERE email = ?", [email]);
+        await connection.commit();
 
-        );
+        try {
+            await sendMail(
+                email,
+                "Account Registration Successfully",
+                `<h3>please sign in to my Bagan 360 App</h3>`
+            );
+        } catch (mailError) {
+            console.log("Registration email failed:", mailError);
+        }
+
         res.status(201).json({
             message: "Register Success",
             success: true,
         });
 
     } catch (error) {
+        if (connection) {
+            await connection.rollback();
+        }
         console.log(error)
         return res.status(500).json({
             message: error.message,
             success: false
         })
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
 })
 
@@ -1427,6 +1475,5 @@ export const shopActivate = asyncHandel(async (req, res) => {
         });
     }
 })
-
 
 

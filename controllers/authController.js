@@ -749,10 +749,13 @@ export const shopRegister = asyncHandel(async (req, res) => {
     }
 })
 
-export const shopVerifyOTP = asyncHandel(async (req, res) => {
-    try {
 
+export const shopVerifyOTP = asyncHandel(async (req, res) => {
+    let connection;
+
+    try {
         const { email, otp, token } = req.body;
+
         if (!email || !otp || !token) {
             return res.status(400).json({
                 success: false,
@@ -760,103 +763,163 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
             });
         }
 
-        const [CheckOTP] = await db.query("SELECT * FROM otp_codes WHERE email = ? AND otp = ? AND expires_at > NOW()", [email, otp]);
-
-        if (CheckOTP.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid or expired OTP"
-            });
-        }
         let user;
+
         try {
             user = jwt.verify(token, process.env.JWT_SECRET);
         } catch (error) {
             return res.status(400).json({
                 success: false,
-                message: "Token expired"
+                message: "Token expired or invalid!"
             });
         }
 
-        const hashPassword = await bcrypt.hashSync(user.password, 12);
+        if (user.email !== email || user.role !== "shop") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid registration token!"
+            });
+        }
 
-        const [userResult] = await db.query(`
+        const hashPassword = await bcrypt.hash(user.password, 12);
+
+        connection = await db.getConnection();
+
+        await connection.beginTransaction();
+
+        const [CheckOTP] = await connection.query(
+            `
+            SELECT *
+            FROM otp_codes
+            WHERE email = ?
+            AND otp = ?
+            AND expires_at > NOW()
+            FOR UPDATE
+            `,
+            [email, otp]
+        );
+
+        if (CheckOTP.length === 0) {
+            await connection.rollback();
+
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired OTP"
+            });
+        }
+
+        const [checkEmail] = await connection.query(
+            "SELECT id FROM users WHERE email = ?",
+            [email]
+        );
+
+        if (checkEmail.length > 0) {
+            await connection.rollback();
+
+            return res.status(400).json({
+                success: false,
+                message: "Email is Already Exists!"
+            });
+        }
+
+        const [userResult] = await connection.query(
+            `
             INSERT INTO users
             (
-            username,
-            email,
-            password,
-            address,
-            region,
-            township,
-            role
+                username,
+                email,
+                password,
+                address,
+                region,
+                township,
+                role
             )
-            VALUES (?,?,?,?,?,?,?)
-            `, [user.username, user.email, hashPassword, user.address, user.region, user.township, "shop"]);
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+                user.username,
+                user.email,
+                hashPassword,
+                user.address,
+                user.region,
+                user.township,
+                "shop"
+            ]
+        );
 
         const userId = userResult.insertId;
 
-        await db.query(`
-    INSERT INTO shops
-    (
-        user_id,
-        shop_name,
-        location,
-        shop_address,
-        shop_phone,
-        nrc,
-        type,
-        tax,
-        is_paid
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
-`, [
-            userId,
-            user.shop_name,
-            user.location,
-            user.shop_address,
-            user.shop_phone,
-            user.nrc,
-            user.type,
-            user.tax,
-            user.is_paid
-        ]);
+        await connection.query(
+            `
+            INSERT INTO shops
+            (
+                user_id,
+                shop_name,
+                location,
+                shop_address,
+                shop_phone,
+                nrc,
+                type,
+                tax
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+                userId,
+                user.shop_name,
+                user.location,
+                user.shop_address,
+                user.shop_phone,
+                user.nrc,
+                user.type,
+                user.tax
+            ]
+        );
 
-        await db.query(
+        await connection.query(
             "DELETE FROM otp_codes WHERE email = ?",
             [email]
         );
 
-        await sendMail(
-            email,
-            `
-                <h3>Shop Registration Successfully</h3>
+        await connection.commit();
 
-                <p>
-                   သင့်ဆိုင်အား အကောင့်ဖွ့င်ခြင်း အောင်မြင်ပါသည်။
-                </p>
-
-                <p>
-                   ကျေးဇူးပြု၍ စောင့်ပေးပါ သင့်အကောက်အား အက်စ်မင်မှ စစ်ဆေးနေပါသည်။
-                </p>
-            `
-        );
+        try {
+            await sendMail(
+                email,
+                `
+                    <h3>Shop Registration Successfully</h3>
+                    <p>သင့်ဆိုင်အား အကောင့်ဖွင့်ခြင်း အောင်မြင်ပါသည်။</p>
+                    <p>ကျေးဇူးပြု၍ စောင့်ပေးပါ။ သင့်အကောင့်အား Admin မှ စစ်ဆေးနေပါသည်။</p>
+                `
+            );
+        } catch (mailError) {
+            console.log("Registration email failed:", mailError);
+        }
 
         return res.status(201).json({
             success: true,
             message: "Shop register successfully wait for admin approved!"
         });
 
-
-
     } catch (error) {
-        console.log(error)
+        if (connection) {
+            await connection.rollback();
+        }
+
+        console.log(error);
+
         return res.status(500).json({
-            message: error.message,
-            success: false
-        })
+            success: false,
+            message: error.message
+        });
+
+    } finally {
+        if (connection) {
+            connection.release();
+        }
     }
-})
+});
+
 
 export const shopApproved = asyncHandel(async (req, res) => {
     try {
@@ -1364,3 +1427,6 @@ export const shopActivate = asyncHandel(async (req, res) => {
         });
     }
 })
+
+
+

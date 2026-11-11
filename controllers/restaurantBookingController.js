@@ -315,7 +315,7 @@ export const restaurantBookingList = asyncHandel(async (req, res) => {
             approved_count: counts[0].approved_count,
             cancelled_count: counts[0].cancelled_count,
 
-            approved_total_price: totalApproved[0].approved_total_price
+            total_approved_count: totalApproved[0].approved_total_price
         });
 
     } catch (error) {

@@ -941,7 +941,7 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 ON t.category_id = c.id
             WHERE t.shop_id = ?
                 AND t.is_active = 1
-                AND t.status = 'available'
+
             ORDER BY t.id DESC
             `,
             [id]

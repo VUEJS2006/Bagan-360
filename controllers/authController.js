@@ -608,31 +608,57 @@ export const userProfile = asyncHandel(async (req, res) => {
 })
 
 
+
 export const userChangePassword = asyncHandel(async (req, res) => {
     try {
+        if (req.user.role !== "user") {
+            return res.status(403).json({
+                success: false,
+                message: "Only user account can change password!"
+            });
+        }
 
         const userId = req.user.id;
         const { CurrentPassword, NewPassword, ConfirmPassword } = req.body || {};
-        const [checkUser] = await db.query("SELECT * FROM users WHERE id = ?", [userId]);
+
+        if (!CurrentPassword || !NewPassword || !ConfirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required!"
+            });
+        }
+
+        const [checkUser] = await db.query(
+            "SELECT * FROM users WHERE id = ? AND role = 'user'",
+            [userId]
+        );
+
         if (checkUser.length === 0) {
             return res.status(401).json({
                 message: "User is not found!",
                 success: false
-            })
+            });
         }
-        const isMatch = await bcrypt.compare(CurrentPassword, checkUser[0].password);
+
+        const isMatch = await bcrypt.compare(
+            CurrentPassword,
+            checkUser[0].password
+        );
+
         if (!isMatch) {
             return res.status(401).json({
                 message: "Current password is incorrect!",
                 success: false
-            })
+            });
         }
+
         if (NewPassword !== ConfirmPassword) {
             return res.status(400).json({
                 message: "New password and confirm password do not match!",
                 success: false
             });
         }
+
         if (CurrentPassword === NewPassword) {
             return res.status(400).json({
                 message: "New password cannot be same as old password!",
@@ -642,20 +668,25 @@ export const userChangePassword = asyncHandel(async (req, res) => {
 
         const hashPassword = await bcrypt.hash(NewPassword, 12);
 
-        const [data] = await db.query("UPDATE users SET password = ? WHERE id = ?", [hashPassword, userId]);
+        await db.query(
+            "UPDATE users SET password = ? WHERE id = ? AND role = 'user'",
+            [hashPassword, userId]
+        );
+
         return res.status(200).json({
-            message: "Change Password successfully",
-            success: true,
+            message: "User Password Changed Successfully",
+            success: true
         });
 
     } catch (error) {
-        console.log(error)
+        console.log(error);
+
         return res.status(500).json({
             message: error.message,
             success: false
-        })
+        });
     }
-})
+});
 
 export const AccountDelete = asyncHandel(async (req, res) => {
     try {
@@ -1476,4 +1507,82 @@ export const shopActivate = asyncHandel(async (req, res) => {
     }
 })
 
+export const shopChangePassword = asyncHandel(async (req, res) => {
+    try {
+        if (req.user.role !== "shop") {
+            return res.status(403).json({
+                success: false,
+                message: "Only shop account can change password!"
+            });
+        }
+
+        const userId = req.user.id;
+        const { CurrentPassword, NewPassword, ConfirmPassword } = req.body || {};
+
+        if (!CurrentPassword || !NewPassword || !ConfirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required!"
+            });
+        }
+
+        const [checkUser] = await db.query(
+            "SELECT * FROM users WHERE id = ? AND role = 'shop'",
+            [userId]
+        );
+
+        if (checkUser.length === 0) {
+            return res.status(401).json({
+                message: "Shop is not found!",
+                success: false
+            });
+        }
+
+        const isMatch = await bcrypt.compare(
+            CurrentPassword,
+            checkUser[0].password
+        );
+
+        if (!isMatch) {
+            return res.status(401).json({
+                message: "Current password is incorrect!",
+                success: false
+            });
+        }
+
+        if (NewPassword !== ConfirmPassword) {
+            return res.status(400).json({
+                message: "New password and confirm password do not match!",
+                success: false
+            });
+        }
+
+        if (CurrentPassword === NewPassword) {
+            return res.status(400).json({
+                message: "New password cannot be same as old password!",
+                success: false
+            });
+        }
+
+        const hashPassword = await bcrypt.hash(NewPassword, 12);
+
+        await db.query(
+            "UPDATE users SET password = ? WHERE id = ? AND role = 'shop'",
+            [hashPassword, userId]
+        );
+
+        return res.status(200).json({
+            message: "Shop Password Changed Successfully",
+            success: true
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            message: error.message,
+            success: false
+        });
+    }
+});
 

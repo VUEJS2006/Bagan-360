@@ -1,4 +1,4 @@
-import { shopActivate, userDelete, shopProfile, shopList, AccountDelete, register, verifyOTP, login, userList, roleUpdate, logout, userProfile, userProfileEdit, userChangePassword, shopRegister, shopVerifyOTP, shopApproved, shopCancel, shopProfileUpdate } from "../controllers/authController.js";
+import { shopChangePassword, shopActivate, userDelete, shopProfile, shopList, AccountDelete, register, verifyOTP, login, userList, roleUpdate, logout, userProfile, userProfileEdit, userChangePassword, shopRegister, shopVerifyOTP, shopApproved, shopCancel, shopProfileUpdate } from "../controllers/authController.js";
 import { validateRegister } from "../middlewares/authMiddleware.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";
@@ -24,7 +24,7 @@ router.get('/shop/list', authenticated, isAdmin, shopList)
 router.put('/shop/profile/update', authenticated, upload.single("image"), shopProfileUpdate)
 router.get('/shop/profile', authenticated, shopProfile);
 router.put('/shop/activate/', authenticated, shopActivate)
-
+router.put('/shop/change/password', authenticated, shopChangePassword)
 
 // Mobile + Admin
 router.post('/login', validateRegister, login)

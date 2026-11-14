@@ -137,61 +137,98 @@ export const pagodaCreate = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const pagodaList = asyncHandel(async (req, res) => {
     try {
-        const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 10;
+        const page = Math.max(Number(req.query.page) || 1, 1);
+        const limit = Math.max(Number(req.query.limit) || 12, 1);
 
-        const offset = (page - 1) * limit
+        const offset = (page - 1) * limit;
+
+        const { location } = req.query;
+
+        const allowedLocations = [
+            "Old Bagan",
+            "Nyaung Oo",
+            "New Bagan"
+        ];
+
+        if (location && !allowedLocations.includes(location)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid location!",
+                allowedLocations
+            });
+        }
+
+        let whereCondition = "";
+        let queryParams = [];
+
+        if (location) {
+            whereCondition = "WHERE p.location = ?";
+            queryParams.push(location);
+        }
 
         const [data] = await db.query(
-            ` SELECT 
-            p.id,
-            p.name,
-            p.location,
-            p.tags,
-            p.visit_date,
-            p.description,
-            p.history,
-            DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-           COALESCE(
-                    JSON_ARRAYAGG(pi.image),
-                    JSON_ARRAY()
-                ) AS images
-            FROM pagodas p 
+            `SELECT
+                p.id,
+                p.name,
+                p.location,
+                p.tags,
+                p.visit_date,
+                p.description,
+                p.history,
+                DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+                CASE
+                    WHEN COUNT(pi.id) = 0 THEN JSON_ARRAY()
+                    ELSE JSON_ARRAYAGG(pi.image)
+                END AS images
+            FROM pagodas p
             LEFT JOIN pagoda_images pi
-            ON p.id = pi.pagoda_id
-            GROUP BY p.id 
+                ON p.id = pi.pagoda_id
+            ${whereCondition}
+            GROUP BY p.id
             ORDER BY p.id DESC
-            LIMIT ? OFFSET ? 
-            `, [
-            limit, offset
-        ]
+            LIMIT ? OFFSET ?`,
+            [...queryParams, limit, offset]
         );
-        const [totalData] = await db.query("SELECT COUNT(*) As total FROM pagodas")
-        const totalPages = Math.ceil(
-            totalData[0].total / limit
+
+        const [totalData] = await db.query(
+            `SELECT COUNT(*) AS total
+             FROM pagodas p
+             ${whereCondition}`,
+            queryParams
         );
+
+        const total = totalData[0].total;
+
+        const totalPages = Math.ceil(total / limit);
+
         return res.status(200).json({
             success: true,
             count: data.length,
             pagination: {
-                total: totalData[0].total,
+                total,
                 page,
                 limit,
-                totalPages: totalPages
+                totalPages
+            },
+            filter: {
+                location: location || "All"
             },
             data
-        })
+        });
 
     } catch (error) {
-        console.log(error)
+        console.log(error);
+
         return res.status(500).json({
             message: error.message,
             success: false
-        })
+        });
     }
-})
+});
+
 
 export const pagodaUpdate = asyncHandel(async (req, res) => {
     try {
@@ -437,190 +474,190 @@ export const pagodaDetails = asyncHandel(async (req, res) => {
     }
 })
 
-export const pagodaSearch = asyncHandel(async (req, res) => {
+// export const pagodaSearch = asyncHandel(async (req, res) => {
 
-    try {
+//     try {
 
-        const { search = "" } = req.query;
-
-
-        if (!search.trim()) {
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: []
-            });
-        }
+//         const { search = "" } = req.query;
 
 
-        const keyword = `%${search}%`;
+//         if (!search.trim()) {
+//             return res.status(200).json({
+//                 success: true,
+//                 count: 0,
+//                 data: []
+//             });
+//         }
 
 
-        const [data] = await db.query(
-            `
-        SELECT 
-            p.id,
-            p.name,
-            p.location,
-            p.tags,
-            p.visit_date,
-            p.description,
-            p.history,
-            DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
-
-            COALESCE(
-                JSON_ARRAYAGG(pi.image),
-                JSON_ARRAY()
-            ) AS images
-
-        FROM pagodas p
-
-        LEFT JOIN pagoda_images pi 
-        ON p.id = pi.pagoda_id
-
-        WHERE 
-            p.name LIKE ?
-            OR p.location LIKE ?
-            OR p.description LIKE ?
-            OR p.history LIKE ?
-            OR JSON_SEARCH(p.tags,'one',?) IS NOT NULL
-
-        GROUP BY p.id
-
-        ORDER BY p.id DESC
-        `,
-            [
-                keyword,
-                keyword,
-                keyword,
-                keyword,
-                search
-            ]);
+//         const keyword = `%${search}%`;
 
 
-        res.status(200).json({
-            success: true,
-            count: data.length,
-            data
-        });
+//         const [data] = await db.query(
+//             `
+//         SELECT
+//             p.id,
+//             p.name,
+//             p.location,
+//             p.tags,
+//             p.visit_date,
+//             p.description,
+//             p.history,
+//             DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+
+//             COALESCE(
+//                 JSON_ARRAYAGG(pi.image),
+//                 JSON_ARRAY()
+//             ) AS images
+
+//         FROM pagodas p
+
+//         LEFT JOIN pagoda_images pi
+//         ON p.id = pi.pagoda_id
+
+//         WHERE
+//             p.name LIKE ?
+//             OR p.location LIKE ?
+//             OR p.description LIKE ?
+//             OR p.history LIKE ?
+//             OR JSON_SEARCH(p.tags,'one',?) IS NOT NULL
+
+//         GROUP BY p.id
+
+//         ORDER BY p.id DESC
+//         `,
+//             [
+//                 keyword,
+//                 keyword,
+//                 keyword,
+//                 keyword,
+//                 search
+//             ]);
 
 
-    } catch (error) {
-
-        console.log(error);
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
-    }
-
-});
-
-export const pagodaFilter = asyncHandel(async (req, res) => {
-
-    try {
-
-        const {
-            location = "",
-            name = "",
-            tags = "",
-            visit_date = ""
-        } = req.query;
+//         res.status(200).json({
+//             success: true,
+//             count: data.length,
+//             data
+//         });
 
 
-        let sql = `
-            SELECT
-                p.id,
-                p.name,
-                p.location,
-                p.tags,
-                p.visit_date,
-                p.description,
-                p.history,
-                DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+//     } catch (error) {
 
-                COALESCE(
-                    JSON_ARRAYAGG(pi.image),
-                    JSON_ARRAY()
-                ) AS images
+//         console.log(error);
 
-            FROM pagodas p
+//         res.status(500).json({
+//             success: false,
+//             message: error.message
+//         });
 
-            LEFT JOIN pagoda_images pi 
-            ON p.id = pi.pagoda_id
+//     }
 
-            WHERE 1=1
-        `;
+// });
 
+// export const pagodaFilter = asyncHandel(async (req, res) => {
 
-        const values = [];
+//     try {
+
+//         const {
+//             location = "",
+//             name = "",
+//             tags = "",
+//             visit_date = ""
+//         } = req.query;
 
 
-        if (name) {
-            sql += ` AND p.name LIKE ? `;
-            values.push(`%${name}%`);
-        }
+//         let sql = `
+//             SELECT
+//                 p.id,
+//                 p.name,
+//                 p.location,
+//                 p.tags,
+//                 p.visit_date,
+//                 p.description,
+//                 p.history,
+//                 DATE_FORMAT(p.created_at,'%d-%m-%Y') AS created_at,
+
+//                 COALESCE(
+//                     JSON_ARRAYAGG(pi.image),
+//                     JSON_ARRAY()
+//                 ) AS images
+
+//             FROM pagodas p
+
+//             LEFT JOIN pagoda_images pi
+//             ON p.id = pi.pagoda_id
+
+//             WHERE 1=1
+//         `;
 
 
-        if (location) {
-            sql += ` AND p.location LIKE ? `;
-            values.push(`%${location}%`);
-        }
+//         const values = [];
 
 
-        if (tags) {
-            sql += ` 
-                AND JSON_SEARCH(
-                    p.tags,
-                    'one',
-                    ?
-                ) IS NOT NULL
-            `;
-            values.push(tags);
-        }
+//         if (name) {
+//             sql += ` AND p.name LIKE ? `;
+//             values.push(`%${name}%`);
+//         }
 
 
-        if (visit_date) {
-            sql += ` AND p.visit_date = ? `;
-            values.push(visit_date);
-        }
-
-        sql += `
-            GROUP BY 
-                p.id,
-                p.name,
-                p.location,
-                p.tags,
-                p.visit_date,
-                p.description,
-                p.history,
-                p.created_at
-
-            ORDER BY p.id DESC
-        `;
+//         if (location) {
+//             sql += ` AND p.location LIKE ? `;
+//             values.push(`%${location}%`);
+//         }
 
 
-        const [pagoda] = await db.query(sql, values);
+//         if (tags) {
+//             sql += `
+//                 AND JSON_SEARCH(
+//                     p.tags,
+//                     'one',
+//                     ?
+//                 ) IS NOT NULL
+//             `;
+//             values.push(tags);
+//         }
 
 
-        res.status(200).json({
-            success: true,
-            count: pagoda.length,
-            pagoda
-        });
+//         if (visit_date) {
+//             sql += ` AND p.visit_date = ? `;
+//             values.push(visit_date);
+//         }
+
+//         sql += `
+//             GROUP BY
+//                 p.id,
+//                 p.name,
+//                 p.location,
+//                 p.tags,
+//                 p.visit_date,
+//                 p.description,
+//                 p.history,
+//                 p.created_at
+
+//             ORDER BY p.id DESC
+//         `;
 
 
-    } catch (error) {
+//         const [pagoda] = await db.query(sql, values);
 
-        console.log(error);
 
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+//         res.status(200).json({
+//             success: true,
+//             count: pagoda.length,
+//             pagoda
+//         });
 
-    }
 
-});
+//     } catch (error) {
+
+//         console.log(error);
+
+//         res.status(500).json({
+//             success: false,
+//             message: error.message
+//         });
+
+//     }
+
+// });

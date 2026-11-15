@@ -4,12 +4,7 @@ import { asyncHandel } from "../middlewares/asyncMiddleware.js";
 export const taxCreate = asyncHandel(async (req, res) => {
     try {
 
-        if (req.user.role !== "admin") {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+       
 
         const {
             shop_id,
@@ -104,12 +99,7 @@ export const taxCreate = asyncHandel(async (req, res) => {
 export const taxList = asyncHandel(async (req, res) => {
     try {
 
-        if (req.user.role !== "admin") {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+       
 
         const [data] = await db.query(
             `
@@ -160,12 +150,7 @@ export const taxList = asyncHandel(async (req, res) => {
 export const taxUpdate = asyncHandel(async (req, res) => {
     try {
 
-        if (req.user.role !== "admin") {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+       
 
         const { id } = req.params;
 
@@ -257,12 +242,7 @@ export const taxUpdate = asyncHandel(async (req, res) => {
 export const taxDelete = asyncHandel(async (req, res) => {
     try {
 
-        if (req.user.role !== "admin") {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+       
 
         const { id } = req.params;
 

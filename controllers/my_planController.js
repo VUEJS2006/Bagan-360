@@ -67,7 +67,7 @@ export const planList = asyncHandel(async (req, res) => {
                 is_visited
             FROM my_plans
             WHERE user_id = ?
-            ORDER BY id DESC
+            ORDER BY id ASC
             `,
             [req.user.id]
         );

@@ -69,6 +69,7 @@ export const sliderCreate = asyncHandel(async (req, res) => {
         });
     }
 });
+
 export const sliderList = asyncHandel(async (req, res) => {
     try {
         const [data] = await db.query(

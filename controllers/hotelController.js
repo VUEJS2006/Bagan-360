@@ -319,7 +319,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                 FROM hotels h
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
-                ORDER BY h.id DESC
+                ORDER BY h.id ASC
             `;
         } else if (req.user.role === "shop") {
             const [shops] = await db.query(
@@ -366,7 +366,7 @@ export const hotelList = asyncHandel(async (req, res) => {
                 LEFT JOIN shops s
                     ON h.shop_id = s.id
                 WHERE h.shop_id = ?
-                ORDER BY h.id DESC
+                ORDER BY h.id ASC
             `;
 
             params = [shops[0].id];
@@ -952,7 +952,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'hotel'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 
@@ -996,7 +996,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'hotel'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
 
             params = [shop[0].id];
@@ -1026,7 +1026,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                 WHERE s.type = 'hotel'
                 AND s.status = 'approved'
                 AND s.is_active = true
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 
@@ -1112,7 +1112,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             AND s.type = 'hotel'
             AND h.is_active = 1
 
-            ORDER BY h.id DESC
+            ORDER BY h.id ASC
             `,
             [id]
         );
@@ -1348,7 +1348,7 @@ export const hotelSearch = asyncHandel(async (req, res) => {
             WHERE
             is_active = true
             AND (name LIKE ? OR type LIKE ? OR location LIKE ? OR facilities LIKE ? OR description LIKE ?)
-            ORDER BY id DESC
+            ORDER BY id ASC
             `,
             [
                 keyword,
@@ -1411,7 +1411,7 @@ export const hotelFilter = asyncHandel(async (req, res) => {
             values.push(`%${type}%`)
         }
         sql += `
-         ORDER BY id DESC
+         ORDER BY id ASC
         `;
         const [hotel] = await db.query(sql, values);
 

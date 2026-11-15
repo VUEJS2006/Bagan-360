@@ -210,7 +210,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                     ON t.category_id = c.id
                 LEFT JOIN shops s
                     ON t.shop_id = s.id
-                ORDER BY t.id DESC
+                ORDER BY t.id ASC
             `;
         } else if (req.user.role === "shop") {
             const [shops] = await db.query(
@@ -253,7 +253,7 @@ export const thonebaneList = asyncHandel(async (req, res) => {
                 LEFT JOIN shops s
                     ON t.shop_id = s.id
                 WHERE t.shop_id = ?
-                ORDER BY t.id DESC
+                ORDER BY t.id ASC
             `;
 
             params.push(shop_id);
@@ -698,7 +698,7 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'thonebane'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `
         }
         else if (req.user.role === "shop") {
@@ -734,7 +734,7 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'thonebane'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `
             params = [shop[0].id];
         }
@@ -758,7 +758,7 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
                 WHERE s.type = 'thonebane'
                 AND s.status = 'approved'
                 AND s.is_active = true
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
         else {
@@ -942,7 +942,7 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
             WHERE t.shop_id = ?
                 AND t.is_active = 1
 
-            ORDER BY t.id DESC
+            ORDER BY t.id ASC
             `,
             [id]
         );

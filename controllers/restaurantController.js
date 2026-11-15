@@ -322,7 +322,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 
@@ -364,7 +364,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'restaurant'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
 
             params = [shop[0].id];
@@ -390,7 +390,7 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
                 AND s.is_active = true
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 
@@ -484,7 +484,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                 INNER JOIN shops s
                     ON m.shop_id = s.id
                 WHERE s.type = 'restaurant'
-                ORDER BY m.id DESC
+                ORDER BY m.id ASC
             `;
         }
 
@@ -537,7 +537,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     ON m.shop_id = s.id
                 WHERE m.shop_id = ?
                 AND s.type = 'restaurant'
-                ORDER BY m.id DESC
+                ORDER BY m.id ASC
             `;
 
             params = [shop[0].id];
@@ -569,7 +569,7 @@ export const resMenuList = asyncHandel(async (req, res) => {
                 AND s.status = 'approved'
                 AND s.is_active = true
                 AND m.is_active = true
-                ORDER BY m.id DESC
+                ORDER BY m.id ASC
                 `;
         }
 
@@ -1239,7 +1239,7 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
 
             WHERE m.shop_id = ? AND m.is_active = true
 
-            ORDER BY m.id DESC, mp.id ASC
+            ORDER BY m.id ASC, mp.id ASC
             `,
             [id]
         );

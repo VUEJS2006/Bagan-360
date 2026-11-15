@@ -281,7 +281,7 @@ export const otherList = asyncHandel(async (req, res) => {
                 FROM others o
                 LEFT JOIN shops s
                     ON o.shop_id = s.id
-                ORDER BY o.id DESC
+                ORDER BY o.id ASC
             `;
         } else {
             const [shops] = await db.query(
@@ -330,7 +330,7 @@ export const otherList = asyncHandel(async (req, res) => {
                 LEFT JOIN shops s
                     ON o.shop_id = s.id
                 WHERE o.shop_id = ?
-                ORDER BY o.id DESC
+                ORDER BY o.id ASC
             `;
 
             params = [shops[0].id];
@@ -708,7 +708,7 @@ export const otherShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'other'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         } else if (req.user.role === "shop") {
             const [shops] = await db.query(
@@ -743,7 +743,7 @@ export const otherShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
 
             params = [shops[0].id];
@@ -766,7 +766,7 @@ export const otherShopList = asyncHandel(async (req, res) => {
                 WHERE s.type = 'other'
                 AND s.status = 'approved'
                 AND s.is_active = 1
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         } else {
             return res.status(403).json({
@@ -842,7 +842,7 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
             AND s.type = 'other'
             AND o.is_active = 1
 
-            ORDER BY o.id DESC
+            ORDER BY o.id ASC
             `,
             [Number(id)]
         );

@@ -188,7 +188,7 @@ export const pagodaList = asyncHandel(async (req, res) => {
                 ON p.id = pi.pagoda_id
             ${whereCondition}
             GROUP BY p.id
-            ORDER BY p.id DESC
+            ORDER BY p.id ASC
             LIMIT ? OFFSET ?`,
             [...queryParams, limit, offset]
         );

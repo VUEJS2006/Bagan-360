@@ -299,7 +299,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
                 LEFT JOIN shops s
                     ON e.shop_id = s.id
 
-                ORDER BY e.id DESC
+                ORDER BY e.id ASC
             `;
         }
 
@@ -363,7 +363,7 @@ export const eBikeList = asyncHandel(async (req, res) => {
 
                 WHERE e.shop_id = ?
 
-                ORDER BY e.id DESC
+                ORDER BY e.id ASC
             `;
 
             params.push(shop_id);
@@ -1095,7 +1095,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'e_bike'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
         else if (req.user.role === "shop") {
@@ -1135,7 +1135,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'e_bike'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
 
             params = [shop[0].id];
@@ -1160,7 +1160,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                 WHERE s.type = 'e_bike'
                 AND s.status = 'approved'
                 AND s.is_active = true
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 

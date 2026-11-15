@@ -331,7 +331,7 @@ export const airballonList = asyncHandel(async (req, res) => {
                     s.shop_phone
                 FROM airballons a
                 LEFT JOIN shops s ON a.shop_id = s.id
-                ORDER BY a.id DESC
+                ORDER BY a.id ASC
             `;
         } else {
             const [shops] = await db.query(
@@ -379,7 +379,7 @@ export const airballonList = asyncHandel(async (req, res) => {
                 FROM airballons a
                 LEFT JOIN shops s ON a.shop_id = s.id
                 WHERE a.shop_id = ?
-                ORDER BY a.id DESC
+                ORDER BY a.id ASC
             `;
 
             params = [shops[0].id];
@@ -766,7 +766,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'air_balloon'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 
@@ -810,7 +810,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'air_balloon'
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
 
             params = [shop[0].id];
@@ -840,7 +840,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
                 WHERE s.type = 'air_balloon'
                 AND s.status = 'approved'
                 AND s.is_active = true
-                ORDER BY s.id DESC
+                ORDER BY s.id ASC
             `;
         }
 
@@ -932,7 +932,7 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
             AND s.type = 'air_balloon'
             AND a.is_active = 1
 
-            ORDER BY a.id DESC
+            ORDER BY a.id ASC
             `,
             [id]
         );

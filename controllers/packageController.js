@@ -141,7 +141,8 @@ export const packageList = asyncHandel(async (req, res) => {
             FROM packages p
             LEFT JOIN package_images pi
             ON p.id = pi.package_id
-             GROUP BY p.id 
+             GROUP BY p.id
+             ORDER BY p.id ASC
             `
         )
         return res.status(200).json({

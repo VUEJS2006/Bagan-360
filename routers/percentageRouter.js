@@ -5,8 +5,8 @@ import express from "express";
 
 const router = express.Router()
 // Admin
-router.post("/admin/percentage/create", authenticated, percentageCreate);
-router.get("/admin/percentage/list", authenticated, percentageList);
+router.post("/admin/percentage/create", authenticated,isAdmin, percentageCreate);
+router.get("/admin/percentage/list", authenticated,isAdmin, percentageList);
 
 
 export default router;

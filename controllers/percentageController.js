@@ -209,12 +209,7 @@ export const e_bikePercentage = async ({ shopId, percent, billingMonth }) => {
 export const percentageCreate = asyncHandel(async (req, res) => {
     try {
 
-        if (req.user.role !== "admin") {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+
 
         const {
             shop_id,
@@ -417,12 +412,7 @@ export const percentageCreate = asyncHandel(async (req, res) => {
 export const percentageList = asyncHandel(async (req, res) => {
     try {
 
-        if (req.user.role !== "admin") {
-            return res.status(403).json({
-                success: false,
-                message: "Access denied!"
-            });
-        }
+
 
         const [data] = await db.query(
             `

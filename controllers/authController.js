@@ -187,11 +187,6 @@ export const login = asyncHandel(async (req, res) => {
             login_type
         } = req.body;
 
-
-        // =========================================
-        // Required Fields
-        // =========================================
-
         if (!email || !password || !login_type) {
             return res.status(400).json({
                 success: false,
@@ -199,22 +194,12 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
-
-        // =========================================
-        // Check Login Type
-        // =========================================
-
         if (!["user", "shop", "admin"].includes(login_type)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid login type!"
             });
         }
-
-
-        // =========================================
-        // Find User
-        // =========================================
 
         const [userdata] = await db.query(
             `
@@ -227,22 +212,12 @@ export const login = asyncHandel(async (req, res) => {
 
         const user = userdata[0];
 
-
-        // =========================================
-        // User Not Found
-        // =========================================
-
         if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "Email or password is incorrect!"
             });
         }
-
-
-        // =========================================
-        // Password Check
-        // =========================================
 
         if (!user.password) {
             return res.status(401).json({
@@ -251,12 +226,10 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
-
         const MatchPassword = await bcrypt.compare(
             password,
             user.password
         );
-
 
         if (!MatchPassword) {
             return res.status(401).json({
@@ -265,105 +238,75 @@ export const login = asyncHandel(async (req, res) => {
             });
         }
 
-
-        // =========================================
-        // LOGIN TYPE vs USER ROLE
-        // =========================================
-
         if (user.role !== login_type) {
 
-            // User account trying Shop Login
             if (
                 user.role === "user" &&
                 login_type === "shop"
             ) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "This account is a user account. Please use User Login."
+                    message: "This account is a user account. Please use User Login."
                 });
             }
 
-
-            // Shop account trying User Login
             if (
                 user.role === "shop" &&
                 login_type === "user"
             ) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "This account is a shop account. Please use Shop Login."
+                    message: "This account is a shop account. Please use Shop Login."
                 });
             }
 
-
-            // User account trying Admin Login
             if (
                 user.role === "user" &&
                 login_type === "admin"
             ) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "This account is not an admin account."
+                    message: "This account is not an admin account."
                 });
             }
 
-
-            // Shop account trying Admin Login
             if (
                 user.role === "shop" &&
                 login_type === "admin"
             ) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "This account is not an admin account."
+                    message: "This account is not an admin account."
                 });
             }
 
-
-            // Admin account trying User Login
             if (
                 user.role === "admin" &&
                 login_type === "user"
             ) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "This account is an admin account. Please use Admin Login."
+                    message: "This account is an admin account. Please use Admin Login."
                 });
             }
 
-
-            // Admin account trying Shop Login
             if (
                 user.role === "admin" &&
                 login_type === "shop"
             ) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "This account is an admin account. Please use Admin Login."
+                    message: "This account is an admin account. Please use Admin Login."
                 });
             }
 
-
-            // Fallback
             return res.status(403).json({
                 success: false,
                 message: "Invalid account type!"
             });
         }
 
-
-        // =========================================
-        // SHOP DATA
-        // =========================================
-
         let shop = null;
-
 
         if (user.role === "shop") {
 
@@ -376,8 +319,6 @@ export const login = asyncHandel(async (req, res) => {
                 [user.id]
             );
 
-
-            // Shop not found
             if (shops.length === 0) {
                 return res.status(404).json({
                     success: false,
@@ -385,53 +326,29 @@ export const login = asyncHandel(async (req, res) => {
                 });
             }
 
-
             shop = shops[0];
-
-
-            // =====================================
-            // Shop Pending
-            // =====================================
 
             if (shop.status === "pending") {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "Your shop is waiting for admin approval."
+                    message: "Your shop is waiting for admin approval."
                 });
             }
-
-
-            // =====================================
-            // Shop Cancelled
-            // =====================================
 
             if (shop.status === "cancelled") {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "Your shop account has been cancelled."
+                    message: "Your shop account has been cancelled."
                 });
             }
-
-
-            // =====================================
-            // Shop Inactive
-            // =====================================
 
             if (!shop.is_active) {
                 return res.status(403).json({
                     success: false,
-                    message:
-                        "Your shop account is inactive."
+                    message: "Your shop account is inactive."
                 });
             }
         }
-
-
-        // =========================================
-        // JWT TOKEN
-        // =========================================
 
         const token = jwt.sign(
             {
@@ -445,11 +362,6 @@ export const login = asyncHandel(async (req, res) => {
             }
         );
 
-
-        // =========================================
-        // Cookie
-        // =========================================
-
         res.cookie(
             "access_token",
             token,
@@ -460,24 +372,10 @@ export const login = asyncHandel(async (req, res) => {
             }
         );
 
-
-        // =========================================
-        // SUCCESS RESPONSE
-        // =========================================
-
         return res.status(200).json({
-
             success: true,
-
             message: "Login successful!",
-
             token,
-
-
-            // =====================================
-            // USER
-            // =====================================
-
             user: {
                 id: user.id,
                 name: user.username,
@@ -487,14 +385,9 @@ export const login = asyncHandel(async (req, res) => {
                 region: user.region,
                 township: user.township,
                 address: user.address,
-                image: user.image
+                image: user.image,
+                app_version: user.app_version
             },
-
-
-            // =====================================
-            // SHOP
-            // =====================================
-
             shop: shop
                 ? {
                     id: shop.id,
@@ -510,7 +403,6 @@ export const login = asyncHandel(async (req, res) => {
                 }
                 : null
         });
-
 
     } catch (error) {
 

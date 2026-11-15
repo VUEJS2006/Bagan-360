@@ -31,7 +31,6 @@ export const taxCreate = asyncHandel(async (req, res) => {
             });
         }
 
-        // Check shop
         const [shop] = await db.query(
             `
             SELECT id, shop_name
@@ -67,6 +66,16 @@ export const taxCreate = asyncHandel(async (req, res) => {
             ]
         );
 
+        // Update shop is_paid to true
+        await db.query(
+            `
+            UPDATE shops
+            SET is_paid = 1
+            WHERE id = ?
+            `,
+            [shop_id]
+        );
+
         return res.status(201).json({
             success: true,
             message: "Tax created successfully!",
@@ -76,7 +85,8 @@ export const taxCreate = asyncHandel(async (req, res) => {
                 shop_name: shop[0].shop_name,
                 amount: Number(amount),
                 payment,
-                reason: reason || null
+                reason: reason || null,
+                is_paid: true
             }
         });
 

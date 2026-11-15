@@ -82,7 +82,7 @@ export const sliderList = asyncHandel(async (req, res) => {
                 timer,
                 is_active
             FROM sliders
-            ORDER BY id DESC
+            ORDER BY id ASC
             `
         );
 
@@ -290,7 +290,7 @@ export const sliderMobileList = asyncHandel(async (req, res) => {
                 is_active
             FROM sliders
             WHERE is_active = 1
-            ORDER BY id DESC
+            ORDER BY id ASC
             `
         );
 

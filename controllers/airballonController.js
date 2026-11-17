@@ -36,10 +36,8 @@ export const airballonCreate = asyncHandel(async (req, res) => {
 
         const {
             shop_id: bodyShopId,
-            price_from,
-            price_to,
-            dollor_from,
-            dollor_to,
+            price,
+            dollor,
             guest,
             description,
             name,
@@ -116,8 +114,7 @@ export const airballonCreate = asyncHandel(async (req, res) => {
         }
 
         const requiredFields = {
-            price_from,
-            price_to,
+            price,
             guest,
             rule,
             phone1,
@@ -140,8 +137,7 @@ export const airballonCreate = asyncHandel(async (req, res) => {
         }
 
         for (const [key, value] of Object.entries({
-            price_from,
-            price_to,
+            price,
             guest
         })) {
             if (
@@ -155,24 +151,16 @@ export const airballonCreate = asyncHandel(async (req, res) => {
             }
         }
 
-        for (const [key, value] of Object.entries({
-            dollor_from,
-            dollor_to
-        })) {
-            if (
-                value !== undefined &&
-                value !== null &&
-                value !== "" &&
-                (
-                    !Number.isFinite(Number(value)) ||
-                    Number(value) < 0
-                )
-            ) {
-                return res.status(400).json({
-                    success: false,
-                    message: `${key} must be a valid non-negative number!`
-                });
-            }
+        if (
+            dollor !== undefined &&
+            dollor !== null &&
+            dollor !== "" &&
+            (!Number.isFinite(Number(dollor)) || Number(dollor) < 0)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "dollor must be a valid non-negative number!"
+            });
         }
 
         const finalStatus = status || "available";
@@ -234,10 +222,8 @@ export const airballonCreate = asyncHandel(async (req, res) => {
             `INSERT INTO airballons
             (
                 shop_id,
-                price_from,
-                price_to,
-                dollor_from,
-                dollor_to,
+                price,
+                dollor,
                 description,
                 guest,
                 name,
@@ -251,17 +237,13 @@ export const airballonCreate = asyncHandel(async (req, res) => {
                 status,
                 is_active
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 shop_id,
-                Number(price_from),
-                Number(price_to),
-                dollor_from === undefined || dollor_from === ""
+                Number(price),
+                dollor === undefined || dollor === null || dollor === ""
                     ? null
-                    : dollor_from,
-                dollor_to === undefined || dollor_to === ""
-                    ? null
-                    : dollor_to,
+                    : Number(dollor),
                 description || null,
                 Number(guest),
                 name,
@@ -280,7 +262,11 @@ export const airballonCreate = asyncHandel(async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Air Balloon created successfully!",
-            id: data.insertId
+            id: data.insertId,
+            price: Number(price),
+            dollor: dollor === undefined || dollor === null || dollor === ""
+                ? null
+                : Number(dollor)
         });
 
     } catch (error) {
@@ -310,10 +296,8 @@ export const airballonList = asyncHandel(async (req, res) => {
                 SELECT
                     a.id,
                     a.shop_id,
-                    a.price_from,
-                    a.price_to,
-                    a.dollor_from,
-                    a.dollor_to,
+                    a.price,
+                    a.dollor,
                     a.guest,
                     a.description,
                     a.rule,
@@ -357,10 +341,8 @@ export const airballonList = asyncHandel(async (req, res) => {
                 SELECT
                     a.id,
                     a.shop_id,
-                    a.price_from,
-                    a.price_to,
-                    a.dollor_from,
-                    a.dollor_to,
+                    a.price,
+                    a.dollor,
                     a.guest,
                     a.description,
                     a.rule,
@@ -425,10 +407,8 @@ export const airballonUpdate = asyncHandel(async (req, res) => {
         }
 
         const {
-            price_from,
-            price_to,
-            dollor_from,
-            dollor_to,
+            price,
+            dollor,
             guest,
             rule,
             description,
@@ -521,6 +501,44 @@ export const airballonUpdate = asyncHandel(async (req, res) => {
             });
         }
 
+        if (
+            price !== undefined &&
+            (
+                price === null ||
+                String(price).trim() === "" ||
+                !Number.isFinite(Number(price)) ||
+                Number(price) < 0
+            )
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "price must be a valid non-negative number!"
+            });
+        }
+
+        if (
+            dollor !== undefined &&
+            dollor !== null &&
+            dollor !== "" &&
+            (!Number.isFinite(Number(dollor)) || Number(dollor) < 0)
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "dollor must be a valid non-negative number!"
+            });
+        }
+
+        const updatedPrice = price !== undefined
+            ? Number(price)
+            : Number(currentAirballon.price);
+        const updatedDollor = dollor === undefined
+            ? currentAirballon.dollor === null
+                ? null
+                : Number(currentAirballon.dollor)
+            : dollor === null || dollor === ""
+                ? null
+                : Number(dollor);
+
         const uploadFolder = path.join(
             process.cwd(),
             "images",
@@ -561,10 +579,8 @@ export const airballonUpdate = asyncHandel(async (req, res) => {
         const [data] = await db.query(
             `
             UPDATE airballons SET
-                price_from = ?,
-                price_to = ?,
-                dollor_from = ?,
-                dollor_to = ?,
+                price = ?,
+                dollor = ?,
                 guest = ?,
                 rule = ?,
                 description = ?,
@@ -580,10 +596,8 @@ export const airballonUpdate = asyncHandel(async (req, res) => {
             WHERE id = ?
             `,
             [
-                price_from !== undefined ? price_from : currentAirballon.price_from,
-                price_to !== undefined ? price_to : currentAirballon.price_to,
-                dollor_from !== undefined ? dollor_from : currentAirballon.dollor_from,
-                dollor_to !== undefined ? dollor_to : currentAirballon.dollor_to,
+                updatedPrice,
+                updatedDollor,
                 guest !== undefined ? guest : currentAirballon.guest,
                 rule !== undefined ? rule : currentAirballon.rule,
                 description !== undefined ? description : currentAirballon.description,
@@ -615,6 +629,8 @@ export const airballonUpdate = asyncHandel(async (req, res) => {
             is_active: Boolean(active),
             data: {
                 id: Number(id),
+                price: updatedPrice,
+                dollor: updatedDollor,
                 ...updatedImages,
                 affectedRows: data.affectedRows
             }
@@ -901,10 +917,8 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
                 u.image AS user_image,
 
                 a.name,
-                a.price_from,
-                a.price_to,
-                a.dollor_from,
-                a.dollor_to,
+                a.price,
+                a.dollor,
                 a.guest,
                 a.description,
                 a.rule,
@@ -956,13 +970,9 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
             id: airballon.id,
             shop_id: airballon.shop_id,
             name: airballon.name,
-            price_from: airballon.price_from,
-            price_to: airballon.price_to,
-            dollor_from: airballon.dollor_from !== null
-                ? Number(airballon.dollor_from)
-                : null,
-            dollor_to: airballon.dollor_to !== null
-                ? Number(airballon.dollor_to)
+            price: Number(airballon.price),
+            dollor: airballon.dollor !== null
+                ? Number(airballon.dollor)
                 : null,
             guest: airballon.guest,
             description: airballon.description,
@@ -1013,10 +1023,8 @@ export const airballonDetails = asyncHandel(async (req, res) => {
                 a.shop_id,
 
                 a.name,
-                a.price_from,
-                a.price_to,
-                a.dollor_from,
-                a.dollor_to,
+                a.price,
+                a.dollor,
                 a.guest,
                 a.rule,
                 a.description,
@@ -1070,13 +1078,9 @@ export const airballonDetails = asyncHandel(async (req, res) => {
             id: airballon.id,
             shop_id: airballon.shop_id,
             name: airballon.name,
-            price_from: airballon.price_from,
-            price_to: airballon.price_to,
-            dollor_from: airballon.dollor_from !== null
-                ? Number(airballon.dollor_from)
-                : null,
-            dollor_to: airballon.dollor_to !== null
-                ? Number(airballon.dollor_to)
+            price: Number(airballon.price),
+            dollor: airballon.dollor !== null
+                ? Number(airballon.dollor)
                 : null,
             guest: airballon.guest,
             rule: airballon.rule,

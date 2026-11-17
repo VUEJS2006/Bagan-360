@@ -12,7 +12,7 @@ import { v4 as uuid } from "uuid";
 // User
 export const register = asyncHandel(async (req, res) => {
     try {
-        const { username, email, password, gender, township, region, phone, address } = req.body;
+        const { username, email, password, gender, township, region, phone, address, app_version } = req.body;
 
         if (!username || !email || !password || !phone || !gender) {
             return res.status(401).json({
@@ -45,6 +45,7 @@ export const register = asyncHandel(async (req, res) => {
                 township,
                 region,
                 address,
+                app_version: app_version ?? null,
                 role: "user"
 
             },
@@ -127,7 +128,7 @@ export const verifyOTP = asyncHandel(async (req, res) => {
             });
         }
 
-        await connection.query("INSERT INTO users (username,email,password,gender,phone,address,region,township,role) VALUES (?,?,?,?,?,?,?,?,?)",
+        await connection.query("INSERT INTO users (username,email,password,gender,phone,address,region,township,role,app_version) VALUES (?,?,?,?,?,?,?,?,?,?)",
             [
                 user.username,
                 user.email,
@@ -138,6 +139,7 @@ export const verifyOTP = asyncHandel(async (req, res) => {
                 user.region,
                 user.township,
                 user.role,
+                user.app_version ?? null,
 
             ]
         );
@@ -651,7 +653,8 @@ export const shopRegister = asyncHandel(async (req, res) => {
             location,
             nrc,
             type,
-            tax
+            tax,
+            app_version
         } = req.body
 
 
@@ -701,7 +704,8 @@ export const shopRegister = asyncHandel(async (req, res) => {
             type,
             role: "shop",
 
-            tax
+            tax,
+            app_version: app_version ?? null
         }, process.env.JWT_SECRET, { expiresIn: "15m" })
 
         return res.status(200).json({
@@ -802,9 +806,10 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
                 address,
                 region,
                 township,
-                role
+                role,
+                app_version
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `,
             [
                 user.username,
@@ -813,7 +818,8 @@ export const shopVerifyOTP = asyncHandel(async (req, res) => {
                 user.address,
                 user.region,
                 user.township,
-                "shop"
+                "shop",
+                user.app_version ?? null
             ]
         );
 

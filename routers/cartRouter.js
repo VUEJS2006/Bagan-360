@@ -1,4 +1,4 @@
-import { cartCreate, updateCart, deleteCart,cartList } from "../controllers/cartController.js";
+import { cartCreate, updateCart, deleteCart, cartList } from "../controllers/cartController.js";
 import { upload } from "../middlewares/upload.js";
 import { authenticated, isAdmin } from "../middlewares/authenticatedMiddleware.js";
 import express from "express";

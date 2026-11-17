@@ -3,7 +3,8 @@ import "dotenv/config"
 
 export const authenticated = (req, res, next) => {
     try {
-        const token = req.cookies.access_token || req.headers.authorization?.split(" ")[1];
+        const bearerToken = req.headers.authorization?.match(/^Bearer\s+(\S+)$/i)?.[1];
+        const token = bearerToken || req.cookies.access_token;
         console.log(token);
         if (!token) {
             return res.status(401).json({

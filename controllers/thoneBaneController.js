@@ -5,8 +5,6 @@ import path from "path";
 import sharp from "sharp";
 import { v4 as uuid } from "uuid";
 
-
-
 export const thonebaneCreate = asyncHandel(async (req, res) => {
     try {
         const {
@@ -733,7 +731,8 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
                     u.image
                 FROM shops s
                 JOIN users u ON s.user_id = u.id
-                WHERE s.type = 'thonebane'
+                WHERE s.id = ?
+                AND s.type = 'thonebane'
                 ORDER BY s.id ASC
             `
             params = [shop[0].id];

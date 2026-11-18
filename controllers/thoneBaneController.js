@@ -756,7 +756,7 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'thonebane'
                 AND s.status = 'approved'
-                AND s.is_active = true
+                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }

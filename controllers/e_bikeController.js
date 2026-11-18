@@ -907,7 +907,7 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
             WHERE s.id = ?
             AND s.type = 'e_bike'
             AND s.status = 'approved'
-            AND s.is_active = true
+            AND s.is_active = 1
             `,
             [id]
         )
@@ -1006,7 +1006,7 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
             WHERE
                 e.shop_id = ?
                 AND e.is_active = true
-                AND s.is_active = true
+                AND s.is_active = 1
 
             GROUP BY
                 e.id,
@@ -1159,7 +1159,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'e_bike'
                 AND s.status = 'approved'
-                AND s.is_active = true
+                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }
@@ -1292,7 +1292,7 @@ export const eBikeDetails = asyncHandel(async (req, res) => {
             WHERE
                 e.id = ?
                 AND e.is_active = true
-                AND s.is_active = true
+                AND s.is_active = 1
 
             GROUP BY
                 e.id,

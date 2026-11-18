@@ -394,7 +394,7 @@ export const hotelList = asyncHandel(async (req, res) => {
             );
 
             hotel.facilities = facilities;
-                }
+        }
 
         return res.status(200).json({
             success: true,
@@ -925,16 +925,14 @@ export const hotelDelete = asyncHandel(async (req, res) => {
 });
 
 
+
 export const hotelShopList = asyncHandel(async (req, res) => {
     try {
 
         let query = "";
         let params = [];
 
-
         // ADMIN
-
-
         if (req.user.role === "admin") {
 
             query = `
@@ -950,16 +948,13 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                     s.user_id,
                     u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'hotel'
                 ORDER BY s.id ASC
             `;
         }
 
-
         // SHOP
-
-
         else if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -969,6 +964,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                     type
                 FROM shops
                 WHERE user_id = ?
+                AND type = 'hotel'
                 `,
                 [req.user.id]
             );
@@ -976,7 +972,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
             if (shop.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: "Shop not found!"
+                    message: "Hotel shop not found!"
                 });
             }
 
@@ -989,11 +985,11 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                     s.shop_phone,
                     s.status,
                     s.type,
-                    u.image,
-                    s.user_id
-
+                    s.is_active,
+                    s.user_id,
+                    u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'hotel'
                 ORDER BY s.id ASC
@@ -1002,10 +998,7 @@ export const hotelShopList = asyncHandel(async (req, res) => {
             params = [shop[0].id];
         }
 
-
         // USER
-
-
         else if (req.user.role === "user") {
 
             query = `
@@ -1018,21 +1011,18 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                     s.status,
                     s.is_active,
                     s.type,
-                    u.image,
-                    s.user_id
-
+                    s.user_id,
+                    u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'hotel'
                 AND s.status = 'approved'
+                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }
 
-
         // OTHER ROLE
-
-
         else {
 
             return res.status(403).json({
@@ -1063,35 +1053,63 @@ export const hotelShopList = asyncHandel(async (req, res) => {
 
 export const hotelShopDetails = asyncHandel(async (req, res) => {
     try {
+
         const { id } = req.params;
 
-        if (!id) {
+        // ID VALIDATION
+        if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
             return res.status(400).json({
                 success: false,
-                message: "Shop id is required!"
+                message: "Invalid Hotel Shop ID!"
             });
         }
 
-        const [data] = await db.query(
+        // SHOP DETAILS
+        const [shop] = await db.query(
+            `
+            SELECT
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+                s.location,
+                s.user_id,
+                s.status,
+                s.is_active,
+                u.image AS user_image
+
+            FROM shops s
+
+            INNER JOIN users u
+                ON s.user_id = u.id
+
+            WHERE s.id = ?
+            AND s.type = 'hotel'
+            AND s.status = 'approved'
+            AND s.is_active = 1
+            `,
+            [id]
+        );
+
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Hotel shop not found!"
+            });
+        }
+
+        // HOTEL DETAILS
+        const [hotels] = await db.query(
             `
             SELECT
                 h.id,
                 h.shop_id,
-
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-                s.user_id,
-
-                u.image AS user_image,
-
                 h.name,
                 h.price,
                 h.location,
                 h.description,
                 h.status,
                 h.is_active,
-
                 h.image AS hotel_image,
                 h.hotel_image1,
                 h.hotel_image2,
@@ -1099,15 +1117,7 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
             FROM hotels h
 
-            INNER JOIN shops s
-                ON h.shop_id = s.id
-
-            INNER JOIN users u
-                ON s.user_id = u.id
-
             WHERE h.shop_id = ?
-            AND s.status = 'approved'
-            AND s.type = 'hotel'
             AND h.is_active = 1
 
             ORDER BY h.id ASC
@@ -1115,14 +1125,9 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             [id]
         );
 
-        if (data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Hotel Not Found!"
-            });
-        }
+        // FACILITIES
+        for (const hotel of hotels) {
 
-        for (const hotel of data) {
             const [facilities] = await db.query(
                 `
                 SELECT
@@ -1137,19 +1142,20 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             );
 
             hotel.facilities = facilities;
-
-          
         }
 
-        const shop = {
-            shop_id: data[0].shop_id,
-            shop_name: data[0].shop_name,
-            shop_phone: data[0].shop_phone,
-            shop_address: data[0].shop_address,
-            image: data[0].user_image
+        // RESPONSE SHOP
+        const shopData = {
+            shop_id: shop[0].shop_id,
+            shop_name: shop[0].shop_name,
+            shop_phone: shop[0].shop_phone,
+            shop_address: shop[0].shop_address,
+            location: shop[0].location,
+            image: shop[0].user_image
         };
 
-        const hotels = data.map(hotel => ({
+        // RESPONSE HOTELS
+        const hotelData = hotels.map(hotel => ({
             id: hotel.id,
             shop_id: hotel.shop_id,
             name: hotel.name,
@@ -1158,26 +1164,25 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
             is_active: Boolean(hotel.is_active),
             location: hotel.location,
             description: hotel.description,
-
             image: hotel.hotel_image,
-
             hotel_image1: hotel.hotel_image1,
             hotel_image2: hotel.hotel_image2,
             hotel_image3: hotel.hotel_image3,
-
-            images: hotel.images,
             facilities: hotel.facilities
         }));
 
         return res.status(200).json({
             success: true,
+            message: "Hotel Details Success",
+            count: hotelData.length,
             data: {
-                shop,
-                hotels
+                shop: shopData,
+                hotels: hotelData
             }
         });
 
     } catch (error) {
+
         console.log(error);
 
         return res.status(500).json({
@@ -1260,7 +1265,7 @@ export const hotelDetails = asyncHandel(async (req, res) => {
             [hotel.id]
         );
 
-       
+
         const shop = {
             shop_id: hotel.shop_id,
             shop_name: hotel.shop_name,

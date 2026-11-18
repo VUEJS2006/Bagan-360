@@ -687,12 +687,16 @@ export const otherDelete = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const otherShopList = asyncHandel(async (req, res) => {
     try {
+
         let query = "";
         let params = [];
 
+        // ADMIN
         if (req.user.role === "admin") {
+
             query = `
                 SELECT
                     s.id,
@@ -706,14 +710,20 @@ export const otherShopList = asyncHandel(async (req, res) => {
                     s.user_id,
                     u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'other'
                 ORDER BY s.id ASC
             `;
-        } else if (req.user.role === "shop") {
+        }
+
+        // SHOP
+        else if (req.user.role === "shop") {
+
             const [shops] = await db.query(
                 `
-                SELECT id, type
+                SELECT
+                    id,
+                    type
                 FROM shops
                 WHERE user_id = ?
                 AND type = 'other'
@@ -741,14 +751,18 @@ export const otherShopList = asyncHandel(async (req, res) => {
                     s.user_id,
                     u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
+                AND s.type = 'other'
                 ORDER BY s.id ASC
             `;
 
             params = [shops[0].id];
+        }
 
-        } else if (req.user.role === "user") {
+        // USER
+        else if (req.user.role === "user") {
+
             query = `
                 SELECT
                     s.id,
@@ -762,12 +776,17 @@ export const otherShopList = asyncHandel(async (req, res) => {
                     s.user_id,
                     u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'other'
                 AND s.status = 'approved'
+                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
-        } else {
+        }
+
+        // OTHER ROLE
+        else {
+
             return res.status(403).json({
                 success: false,
                 message: "Access denied!"
@@ -784,6 +803,7 @@ export const otherShopList = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
+
         console.log(error);
 
         return res.status(500).json({
@@ -794,28 +814,60 @@ export const otherShopList = asyncHandel(async (req, res) => {
 });
 
 
+
 export const otherShopDetails = asyncHandel(async (req, res) => {
     try {
+
         const { id } = req.params;
 
+        // ID VALIDATION
         if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
             return res.status(400).json({
                 success: false,
-                message: "Shop id is required!"
+                message: "Invalid Other Shop ID!"
             });
         }
 
-        const [data] = await db.query(
+        // SHOP DETAILS
+        const [shop] = await db.query(
             `
             SELECT
-                o.id,
-                o.shop_id,
+                s.id AS shop_id,
                 s.shop_name,
                 s.shop_phone,
                 s.shop_address,
                 s.location AS shop_location,
                 s.user_id,
-                u.image AS user_image,
+                s.status,
+                s.is_active,
+                u.image AS user_image
+
+            FROM shops s
+
+            INNER JOIN users u
+                ON s.user_id = u.id
+
+            WHERE s.id = ?
+            AND s.type = 'other'
+            AND s.status = 'approved'
+            AND s.is_active = 1
+            `,
+            [Number(id)]
+        );
+
+        if (shop.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Other shop not found!"
+            });
+        }
+
+        // OTHER DETAILS
+        const [others] = await db.query(
+            `
+            SELECT
+                o.id,
+                o.shop_id,
                 o.price_from,
                 o.price_to,
                 o.description,
@@ -829,15 +881,7 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
 
             FROM others o
 
-            INNER JOIN shops s
-                ON o.shop_id = s.id
-
-            INNER JOIN users u
-                ON s.user_id = u.id
-
             WHERE o.shop_id = ?
-            AND s.status = 'approved'
-            AND s.type = 'other'
             AND o.is_active = 1
 
             ORDER BY o.id ASC
@@ -845,25 +889,10 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
             [Number(id)]
         );
 
-        if (data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Other Not Found!"
-            });
-        }
-
-        const shop = {
-            shop_id: data[0].shop_id,
-            shop_name: data[0].shop_name,
-            shop_phone: data[0].shop_phone,
-            shop_address: data[0].shop_address,
-            shop_location: data[0].shop_location,
-            user_id: data[0].user_id,
-            user_image: data[0].user_image
-        };
-
-        const others = data.map(item => ({
+        // RESPONSE
+        const otherData = others.map(item => ({
             id: item.id,
+            shop_id: item.shop_id,
             name: item.name,
             price_from: item.price_from,
             price_to: item.price_to,
@@ -872,21 +901,32 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
             other_image2: item.other_image2,
             other_image3: item.other_image3,
             status: item.status,
-            is_active: item.is_active,
+            is_active: Boolean(item.is_active),
             location: item.location
         }));
 
         return res.status(200).json({
             success: true,
             message: "Other Shop Details Success",
-            count: others.length,
+            count: otherData.length,
             data: {
-                shop,
-                others
+                shop: {
+                    shop_id: shop[0].shop_id,
+                    shop_name: shop[0].shop_name,
+                    shop_phone: shop[0].shop_phone,
+                    shop_address: shop[0].shop_address,
+                    shop_location: shop[0].shop_location,
+                    user_id: shop[0].user_id,
+                    user_image: shop[0].user_image,
+                    status: shop[0].status,
+                    is_active: Boolean(shop[0].is_active)
+                },
+                others: otherData
             }
         });
 
     } catch (error) {
+
         console.log(error);
 
         return res.status(500).json({

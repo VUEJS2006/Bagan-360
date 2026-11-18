@@ -801,13 +801,14 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
 });
 
 
+
 export const thonebaneDetails = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
+        const shopId = Number(id);
 
         // ID VALIDATION
-        if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+        if (!id || !Number.isSafeInteger(shopId) || shopId <= 0) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid Thonebane Shop ID!"
@@ -828,24 +829,45 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 s.status,
                 s.is_active,
                 u.image
-
             FROM shops s
-
-            INNER JOIN users u
+            LEFT JOIN users u
                 ON s.user_id = u.id
-
             WHERE s.id = ?
-            AND s.type = 'thonebane'
-            AND s.status = 'approved'
-            AND s.is_active = 1
+            LIMIT 1
             `,
-            [id]
+            [shopId]
         );
 
         if (shop.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Thonebane shop not found!"
+                message: "Shop ID not found!"
+            });
+        }
+
+        // CHECK SHOP TYPE
+        if (shop[0].type !== "thonebane") {
+            return res.status(404).json({
+                success: false,
+                message: "This shop is not a Thonebane shop!",
+                shop_type: shop[0].type
+            });
+        }
+
+        // CHECK SHOP STATUS
+        if (shop[0].status !== "approved") {
+            return res.status(403).json({
+                success: false,
+                message: "Thonebane shop is not approved!",
+                status: shop[0].status
+            });
+        }
+
+        // CHECK SHOP ACTIVE
+        if (!Boolean(shop[0].is_active)) {
+            return res.status(403).json({
+                success: false,
+                message: "Thonebane shop is inactive!"
             });
         }
 
@@ -866,35 +888,28 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 t.status,
                 t.is_active,
                 t.image,
-
                 DATE_FORMAT(
                     t.created_at,
                     '%d-%m-%Y'
                 ) AS created_at
-
             FROM thonebanes t
-
             LEFT JOIN thonebane_categories c
                 ON t.category_id = c.id
-
             WHERE t.shop_id = ?
             AND t.is_active = 1
-
             ORDER BY t.id ASC
             `,
-            [id]
+            [shopId]
         );
 
         // THONEBANE PRICES
         for (const item of data) {
-
             const [prices] = await db.query(
                 `
                 SELECT
                     id,
                     shop_id,
                     thonebane_id,
-
                     CASE
                         WHEN price_type = 'full_day'
                             THEN 'Full Day'
@@ -906,16 +921,12 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                             THEN 'Hourly'
                         ELSE price_type
                     END AS price_type,
-
                     start_time,
                     end_time,
                     price
-
                 FROM thonebane_prices
-
                 WHERE thonebane_id = ?
                 AND shop_id = ?
-
                 ORDER BY created_at ASC
                 `,
                 [item.id, item.shop_id]
@@ -948,8 +959,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
-
-        console.log(error);
+        console.log("Thonebane Details Error:", error);
 
         return res.status(500).json({
             success: false,
@@ -957,6 +967,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
         });
     }
 });
+
 
 
 export const thonebaneShopDetails = asyncHandel(async (req, res) => {

@@ -892,6 +892,7 @@ export const airballonShopList = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const airballonShopDetails = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
@@ -903,19 +904,37 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
             });
         }
 
+        const [shopData] = await db.query(
+            `
+            SELECT
+                s.id AS shop_id,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+                s.user_id,
+                u.image AS user_image
+            FROM shops s
+            INNER JOIN users u ON s.user_id = u.id
+            WHERE s.id = ?
+            AND s.status = 'approved'
+            AND s.is_active = 1
+            AND s.type = 'air_balloon'
+            `,
+            [id]
+        );
+
+        if (shopData.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Air Balloon Shop Not Found!"
+            });
+        }
+
         const [data] = await db.query(
             `
             SELECT
                 a.id,
                 a.shop_id,
-
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-                s.user_id,
-
-                u.image AS user_image,
-
                 a.name,
                 a.price,
                 a.dollor,
@@ -927,43 +946,23 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
                 a.location,
                 a.status,
                 a.is_active,
-
                 a.airballon_image1,
                 a.airballon_image2,
                 a.airballon_image3
-
             FROM airballons a
-
-            INNER JOIN shops s
-                ON a.shop_id = s.id
-
-            INNER JOIN users u
-                ON s.user_id = u.id
-
             WHERE a.shop_id = ?
-            AND s.status = 'approved'
-            AND s.is_active = 1
-            AND s.type = 'air_balloon'
             AND a.is_active = 1
-
             ORDER BY a.id ASC
             `,
             [id]
         );
 
-        if (data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Air Balloon Not Found!"
-            });
-        }
-
         const shop = {
-            shop_id: data[0].shop_id,
-            shop_name: data[0].shop_name,
-            shop_phone: data[0].shop_phone,
-            shop_address: data[0].shop_address,
-            image: data[0].user_image
+            shop_id: shopData[0].shop_id,
+            shop_name: shopData[0].shop_name,
+            shop_phone: shopData[0].shop_phone,
+            shop_address: shopData[0].shop_address,
+            image: shopData[0].user_image
         };
 
         const airballons = data.map(airballon => ({
@@ -989,6 +988,8 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
 
         return res.status(200).json({
             success: true,
+            message: "Air Balloon Shop Details Success",
+            count: airballons.length,
             data: {
                 shop,
                 airballons

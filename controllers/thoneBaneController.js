@@ -802,6 +802,7 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
 
 
 
+
 export const thonebaneDetails = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
@@ -833,12 +834,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 DATE_FORMAT(
                     t.created_at,
                     '%d-%m-%Y'
-                ) AS created_at,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-                s.location AS shop_location,
-                s.user_id
+                ) AS created_at
             FROM thonebanes t
             INNER JOIN shops s
                 ON t.shop_id = s.id
@@ -862,6 +858,7 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
         }
 
         const thonebane = data[0];
+
         const [prices] = await db.query(
             `
             SELECT
@@ -890,29 +887,13 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
             [thonebane.id, thonebane.shop_id]
         );
 
-        const shop = {
-            shop_id: thonebane.shop_id,
-            shop_name: thonebane.shop_name,
-            shop_phone: thonebane.shop_phone,
-            shop_address: thonebane.shop_address,
-            location: thonebane.shop_location,
-            user_id: thonebane.user_id
-        };
-        delete thonebane.shop_name;
-        delete thonebane.shop_phone;
-        delete thonebane.shop_address;
-        delete thonebane.shop_location;
-        delete thonebane.user_id;
         thonebane.is_active = Boolean(thonebane.is_active);
         thonebane.prices = prices;
 
         return res.status(200).json({
             success: true,
             message: "Thonebane Details Success!",
-            data: {
-                shop,
-                thonebane
-            }
+            data: thonebane
         });
 
     } catch (error) {

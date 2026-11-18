@@ -892,17 +892,22 @@ export const airballonShopList = asyncHandel(async (req, res) => {
 });
 
 
+
 export const airballonShopDetails = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
 
-        if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+        // ID VALIDATION
+        const shopId = Number(id);
+
+        if (!id || !Number.isSafeInteger(shopId) || shopId <= 0) {
             return res.status(400).json({
                 success: false,
-                message: "Shop id is required!"
+                message: "Invalid Air Balloon Shop ID!"
             });
         }
 
+        // SHOP DETAILS
         const [shopData] = await db.query(
             `
             SELECT
@@ -911,23 +916,46 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
                 s.shop_phone,
                 s.shop_address,
                 s.user_id,
+                s.type,
+                s.status,
+                s.is_active,
                 u.image AS user_image
+
             FROM shops s
-            INNER JOIN users u ON s.user_id = u.id
+
+            LEFT JOIN users u
+                ON s.user_id = u.id
+
             WHERE s.id = ?
-            AND s.status = 'approved'
-            AND s.type = 'air_balloon'
+            LIMIT 1
             `,
-            [id]
+            [shopId]
         );
 
         if (shopData.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: "Air Balloon Shop Not Found!"
+                message: "Shop ID not found!"
             });
         }
 
+        // CHECK SHOP TYPE
+        if (shopData[0].type !== "air_balloon") {
+            return res.status(404).json({
+                success: false,
+                message: "This shop is not an Air Balloon shop!"
+            });
+        }
+
+        // CHECK SHOP STATUS
+        if (shopData[0].status !== "approved") {
+            return res.status(403).json({
+                success: false,
+                message: "Air Balloon shop is not approved!"
+            });
+        }
+
+        // AIR BALLOON DETAILS
         const [data] = await db.query(
             `
             SELECT
@@ -947,23 +975,32 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
                 a.airballon_image1,
                 a.airballon_image2,
                 a.airballon_image3
+
             FROM airballons a
+
             WHERE a.shop_id = ?
             AND a.is_active = 1
+
             ORDER BY a.id ASC
             `,
-            [id]
+            [shopId]
         );
 
+        // SHOP RESPONSE
         const shop = {
             shop_id: shopData[0].shop_id,
             shop_name: shopData[0].shop_name,
             shop_phone: shopData[0].shop_phone,
             shop_address: shopData[0].shop_address,
-            image: shopData[0].user_image
+            user_id: shopData[0].user_id,
+            image: shopData[0].user_image,
+            type: shopData[0].type,
+            status: shopData[0].status,
+            is_active: Boolean(shopData[0].is_active)
         };
 
-        const airballons = data.map(airballon => ({
+        // AIR BALLOON RESPONSE
+        const airballons = data.map((airballon) => ({
             id: airballon.id,
             shop_id: airballon.shop_id,
             name: airballon.name,
@@ -986,7 +1023,7 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Air Balloon Shop Details Success",
+            message: "Air Balloon Shop Details Success!",
             count: airballons.length,
             data: {
                 shop,
@@ -995,7 +1032,7 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.log("Air Balloon Shop Details Error:", error);
 
         return res.status(500).json({
             success: false,

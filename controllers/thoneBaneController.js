@@ -805,73 +805,15 @@ export const thonebaneShopList = asyncHandel(async (req, res) => {
 export const thonebaneDetails = asyncHandel(async (req, res) => {
     try {
         const { id } = req.params;
-        const shopId = Number(id);
+        const thonebaneId = Number(id);
 
-        // ID VALIDATION
-        if (!id || !Number.isSafeInteger(shopId) || shopId <= 0) {
+        if (!id || !Number.isSafeInteger(thonebaneId) || thonebaneId <= 0) {
             return res.status(400).json({
                 success: false,
-                message: "Invalid Thonebane Shop ID!"
+                message: "Invalid Thonebane ID!"
             });
         }
 
-        // SHOP DETAILS
-        const [shop] = await db.query(
-            `
-            SELECT
-                s.id AS shop_id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-                s.location,
-                s.type,
-                s.user_id,
-                s.status,
-                s.is_active,
-                u.image
-            FROM shops s
-            LEFT JOIN users u
-                ON s.user_id = u.id
-            WHERE s.id = ?
-            LIMIT 1
-            `,
-            [shopId]
-        );
-
-        if (shop.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Shop ID not found!"
-            });
-        }
-
-        // CHECK SHOP TYPE
-        if (shop[0].type !== "thonebane") {
-            return res.status(404).json({
-                success: false,
-                message: "This shop is not a Thonebane shop!",
-                shop_type: shop[0].type
-            });
-        }
-
-        // CHECK SHOP STATUS
-        if (shop[0].status !== "approved") {
-            return res.status(403).json({
-                success: false,
-                message: "Thonebane shop is not approved!",
-                status: shop[0].status
-            });
-        }
-
-        // CHECK SHOP ACTIVE
-        if (!Boolean(shop[0].is_active)) {
-            return res.status(403).json({
-                success: false,
-                message: "Thonebane shop is inactive!"
-            });
-        }
-
-        // THONEBANE DETAILS
         const [data] = await db.query(
             `
             SELECT
@@ -891,70 +833,85 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
                 DATE_FORMAT(
                     t.created_at,
                     '%d-%m-%Y'
-                ) AS created_at
+                ) AS created_at,
+                s.shop_name,
+                s.shop_phone,
+                s.shop_address,
+                s.location AS shop_location,
+                s.user_id
             FROM thonebanes t
+            INNER JOIN shops s
+                ON t.shop_id = s.id
             LEFT JOIN thonebane_categories c
                 ON t.category_id = c.id
-            WHERE t.shop_id = ?
-            AND t.is_active = 1
-            ORDER BY t.id ASC
+            WHERE t.id = ?
+                AND s.type = 'thonebane'
+                AND s.status = 'approved'
+                AND s.is_active = 1
+                AND t.is_active = 1
+            LIMIT 1
             `,
-            [shopId]
+            [thonebaneId]
         );
 
-        // THONEBANE PRICES
-        for (const item of data) {
-            const [prices] = await db.query(
-                `
-                SELECT
-                    id,
-                    shop_id,
-                    thonebane_id,
-                    CASE
-                        WHEN price_type = 'full_day'
-                            THEN 'Full Day'
-                        WHEN price_type = 'half_day_1'
-                            THEN 'Half Day 1'
-                        WHEN price_type = 'half_day_2'
-                            THEN 'Half Day 2'
-                        WHEN price_type = 'hourly'
-                            THEN 'Hourly'
-                        ELSE price_type
-                    END AS price_type,
-                    start_time,
-                    end_time,
-                    price
-                FROM thonebane_prices
-                WHERE thonebane_id = ?
-                AND shop_id = ?
-                ORDER BY created_at ASC
-                `,
-                [item.id, item.shop_id]
-            );
-
-            item.prices = prices;
-            item.is_active = Boolean(item.is_active);
+        if (data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Thonebane not found!"
+            });
         }
 
-        // RESPONSE
+        const thonebane = data[0];
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                shop_id,
+                thonebane_id,
+                CASE
+                    WHEN price_type = 'full_day'
+                        THEN 'Full Day'
+                    WHEN price_type = 'half_day_1'
+                        THEN 'Half Day 1'
+                    WHEN price_type = 'half_day_2'
+                        THEN 'Half Day 2'
+                    WHEN price_type = 'hourly'
+                        THEN 'Hourly'
+                    ELSE price_type
+                END AS price_type,
+                start_time,
+                end_time,
+                price
+            FROM thonebane_prices
+            WHERE thonebane_id = ?
+                AND shop_id = ?
+            ORDER BY created_at ASC
+            `,
+            [thonebane.id, thonebane.shop_id]
+        );
+
+        const shop = {
+            shop_id: thonebane.shop_id,
+            shop_name: thonebane.shop_name,
+            shop_phone: thonebane.shop_phone,
+            shop_address: thonebane.shop_address,
+            location: thonebane.shop_location,
+            user_id: thonebane.user_id
+        };
+        delete thonebane.shop_name;
+        delete thonebane.shop_phone;
+        delete thonebane.shop_address;
+        delete thonebane.shop_location;
+        delete thonebane.user_id;
+        thonebane.is_active = Boolean(thonebane.is_active);
+        thonebane.prices = prices;
+
         return res.status(200).json({
             success: true,
             message: "Thonebane Details Success!",
-            count: data.length,
             data: {
-                shop: {
-                    shop_id: shop[0].shop_id,
-                    shop_name: shop[0].shop_name,
-                    shop_phone: shop[0].shop_phone,
-                    shop_address: shop[0].shop_address,
-                    location: shop[0].location,
-                    type: shop[0].type,
-                    user_id: shop[0].user_id,
-                    status: shop[0].status,
-                    is_active: Boolean(shop[0].is_active),
-                    image: shop[0].image
-                },
-                thonebanes: data
+                shop,
+                thonebane
             }
         });
 

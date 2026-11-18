@@ -885,9 +885,10 @@ export const eBikeDelete = asyncHandel(async (req, res) => {
 });
 
 
+
+
 export const eBikeShopDetail = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
 
         // ID VALIDATION
@@ -907,21 +908,17 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                 s.shop_phone,
                 s.shop_address,
                 s.location,
+                s.is_active,
                 s.type,
                 s.user_id,
                 u.image,
-                s.status,
-                s.is_active
-
+                s.status
             FROM shops s
-
             INNER JOIN users u
                 ON s.user_id = u.id
-
             WHERE s.id = ?
-            AND s.type = 'e_bike'
-            AND s.status = 'approved'
-            AND s.is_active = 1
+                AND s.type = 'e_bike'
+                AND s.status = 'approved'
             `,
             [id]
         );
@@ -945,17 +942,14 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                 e.color,
                 e.location,
                 e.image,
-
                 e.status,
                 e.is_active,
                 e.battery_percentage,
-
                 e.helmet,
                 e.battery_voltage,
                 e.battery_capacity,
                 e.passenger_count,
                 e.phone_holder,
-
                 e.description,
 
                 DATE_FORMAT(
@@ -965,37 +959,7 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
 
                 t.id AS type_id,
                 t.name AS type_name,
-                t.distance,
-
-                COALESCE(
-                    (
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'id', p.id,
-
-                                'price_type',
-                                CASE
-                                    WHEN p.price_type = 'full_day'
-                                        THEN 'Full Day'
-                                    WHEN p.price_type = 'half_day_1'
-                                        THEN 'Half Day 1'
-                                    WHEN p.price_type = 'half_day_2'
-                                        THEN 'Half Day 2'
-                                    WHEN p.price_type = 'hourly'
-                                        THEN 'Hourly'
-                                    ELSE p.price_type
-                                END,
-
-                                'start_time', p.start_time,
-                                'end_time', p.end_time,
-                                'price', p.price
-                            )
-                        )
-                        FROM e_bike_prices p
-                        WHERE p.e_bike_id = e.id
-                    ),
-                    JSON_ARRAY()
-                ) AS prices
+                t.distance
 
             FROM e_bikes e
 
@@ -1003,39 +967,60 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                 ON e.type_id = t.id
 
             WHERE e.shop_id = ?
-            AND e.is_active = 1
+                AND e.is_active = 1
 
             ORDER BY e.id ASC
             `,
             [id]
         );
 
+        // E-BIKE PRICES
+        const [prices] = await db.query(
+            `
+            SELECT
+                id,
+                e_bike_id,
+                CASE
+                    WHEN price_type = 'full_day'
+                        THEN 'Full Day'
+                    WHEN price_type = 'half_day_1'
+                        THEN 'Half Day 1'
+                    WHEN price_type = 'half_day_2'
+                        THEN 'Half Day 2'
+                    WHEN price_type = 'hourly'
+                        THEN 'Hourly'
+                    ELSE price_type
+                END AS price_type,
+                start_time,
+                end_time,
+                price
+            FROM e_bike_prices
+            WHERE shop_id = ?
+            ORDER BY created_at ASC
+            `,
+            [id]
+        );
+
+        const result = data.map((bike) => ({
+            ...bike,
+            is_active: Boolean(bike.is_active),
+            prices: prices.filter(
+                (price) =>
+                    Number(price.e_bike_id) === Number(bike.id)
+            )
+        }));
+
         return res.status(200).json({
             success: true,
             message: "E-Bike Detail Success",
-            count: data.length,
+            count: result.length,
             data: {
-                shop: {
-                    shop_id: shop[0].shop_id,
-                    shop_name: shop[0].shop_name,
-                    shop_phone: shop[0].shop_phone,
-                    shop_address: shop[0].shop_address,
-                    location: shop[0].location,
-                    type: shop[0].type,
-                    user_id: shop[0].user_id,
-                    image: shop[0].image,
-                    status: shop[0].status,
-                    is_active: Boolean(shop[0].is_active)
-                },
-                data: data.map(item => ({
-                    ...item,
-                    is_active: Boolean(item.is_active)
-                }))
+                shop: shop[0],
+                ebikes: result
             }
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({

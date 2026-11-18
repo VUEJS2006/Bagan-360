@@ -959,21 +959,10 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
 });
 
 
-
 export const thonebaneShopDetails = asyncHandel(async (req, res) => {
     try {
-
         const { id } = req.params;
 
-        // ID VALIDATION
-        if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid Thonebane Shop ID!"
-            });
-        }
-
-        // SHOP DETAILS
         const [shop] = await db.query(
             `
             SELECT
@@ -987,18 +976,14 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 s.user_id,
                 u.image,
                 s.status
-
             FROM shops s
-
             INNER JOIN users u
                 ON s.user_id = u.id
-
             WHERE s.id = ?
-            AND s.type = 'thonebane'
-            AND s.status = 'approved'
-            AND s.is_active = 1
+                AND s.type = 'thonebane'
+                AND s.status = 'approved'
             `,
-            [Number(id)]
+            [id]
         );
 
         if (shop.length === 0) {
@@ -1008,7 +993,6 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
             });
         }
 
-        // THONEBANE DETAILS
         const [data] = await db.query(
             `
             SELECT
@@ -1025,33 +1009,27 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                 t.status,
                 t.is_active,
                 t.image,
-
                 DATE_FORMAT(
                     t.created_at,
                     '%d-%m-%Y'
                 ) AS created_at
-
             FROM thonebanes t
-
             LEFT JOIN thonebane_categories c
                 ON t.category_id = c.id
-
             WHERE t.shop_id = ?
-            AND t.is_active = 1
+                AND t.is_active = 1
 
             ORDER BY t.id ASC
             `,
-            [Number(id)]
+            [id]
         );
 
-        // THONEBANE PRICES
         const [prices] = await db.query(
             `
             SELECT
                 id,
                 shop_id,
                 thonebane_id,
-
                 CASE
                     WHEN price_type = 'full_day'
                         THEN 'Full Day'
@@ -1063,58 +1041,35 @@ export const thonebaneShopDetails = asyncHandel(async (req, res) => {
                         THEN 'Hourly'
                     ELSE price_type
                 END AS price_type,
-
                 start_time,
                 end_time,
                 price
-
             FROM thonebane_prices
-
             WHERE shop_id = ?
-
             ORDER BY created_at ASC
             `,
-            [Number(id)]
+            [id]
         );
 
-        // ADD PRICES TO EACH THONEBANE
-        const result = data.map((item) => ({
-            ...item,
-
-            is_active: Boolean(item.is_active),
-
+        const result = data.map((thonebane) => ({
+            ...thonebane,
             prices: prices.filter(
                 (price) =>
-                    Number(price.thonebane_id) === Number(item.id) &&
-                    Number(price.shop_id) === Number(item.shop_id)
+                    Number(price.thonebane_id) === Number(thonebane.id) &&
+                    Number(price.shop_id) === Number(thonebane.shop_id)
             )
         }));
 
-        // RESPONSE
         return res.status(200).json({
             success: true,
             message: "Thonebane Shop Detail Success!",
-            count: result.length,
             data: {
-                shop: {
-                    shop_id: shop[0].shop_id,
-                    shop_name: shop[0].shop_name,
-                    shop_phone: shop[0].shop_phone,
-                    shop_address: shop[0].shop_address,
-                    location: shop[0].location,
-                    type: shop[0].type,
-                    user_id: shop[0].user_id,
-                    image: shop[0].image,
-                    status: shop[0].status,
-                    is_active: Boolean(shop[0].is_active)
-                },
-
-                data: result
+                shop: shop[0],
+                thonebanes: result
             }
         });
 
     } catch (error) {
-
         console.log(error);
 
         return res.status(500).json({

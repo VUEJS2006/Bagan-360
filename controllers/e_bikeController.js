@@ -884,14 +884,24 @@ export const eBikeDelete = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const eBikeShopDetail = asyncHandel(async (req, res) => {
     try {
 
         const { id } = req.params;
 
+        // ID VALIDATION
+        if (!id || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid E-Bike Shop ID!"
+            });
+        }
+
+        // SHOP DETAILS
         const [shop] = await db.query(
             `
-              SELECT 
+            SELECT
                 s.id AS shop_id,
                 s.shop_name,
                 s.shop_phone,
@@ -902,14 +912,20 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                 u.image,
                 s.status,
                 s.is_active
+
             FROM shops s
-            JOIN users u ON s.user_id = u.id
+
+            INNER JOIN users u
+                ON s.user_id = u.id
+
             WHERE s.id = ?
             AND s.type = 'e_bike'
             AND s.status = 'approved'
+            AND s.is_active = 1
             `,
             [id]
-        )
+        );
+
         if (shop.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -917,20 +933,18 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
             });
         }
 
-
+        // E-BIKE DETAILS
         const [data] = await db.query(
             `
             SELECT
                 e.id,
-
+                e.shop_id,
                 e.name,
                 e.code,
                 e.brand,
                 e.color,
                 e.location,
                 e.image,
-
-            
 
                 e.status,
                 e.is_active,
@@ -949,32 +963,26 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                     '%d-%m-%Y'
                 ) AS created_at,
 
-
-          
                 t.id AS type_id,
                 t.name AS type_name,
                 t.distance,
 
-
-                s.id AS shop_id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address,
-
-
-           
                 COALESCE(
-                    JSON_ARRAYAGG(
-                        CASE
-                            WHEN p.id IS NOT NULL THEN
-                               JSON_OBJECT(
+                    (
+                        SELECT JSON_ARRAYAGG(
+                            JSON_OBJECT(
                                 'id', p.id,
+
                                 'price_type',
                                 CASE
-                                    WHEN p.price_type = 'full_day' THEN 'Full Day'
-                                    WHEN p.price_type = 'half_day_1' THEN 'Half Day 1'
-                                    WHEN p.price_type = 'half_day_2' THEN 'Half Day 2'
-                                    WHEN p.price_type = 'hourly' THEN 'Hourly'
+                                    WHEN p.price_type = 'full_day'
+                                        THEN 'Full Day'
+                                    WHEN p.price_type = 'half_day_1'
+                                        THEN 'Half Day 1'
+                                    WHEN p.price_type = 'half_day_2'
+                                        THEN 'Half Day 2'
+                                    WHEN p.price_type = 'hourly'
+                                        THEN 'Hourly'
                                     ELSE p.price_type
                                 END,
 
@@ -982,82 +990,49 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
                                 'end_time', p.end_time,
                                 'price', p.price
                             )
-                        END
+                        )
+                        FROM e_bike_prices p
+                        WHERE p.e_bike_id = e.id
                     ),
                     JSON_ARRAY()
                 ) AS prices
 
             FROM e_bikes e
 
-
             INNER JOIN e_bike_types t
                 ON e.type_id = t.id
 
+            WHERE e.shop_id = ?
+            AND e.is_active = 1
 
-            INNER JOIN shops s
-                ON e.shop_id = s.id
-
-
-            LEFT JOIN e_bike_prices p
-                ON e.id = p.e_bike_id
-
-
-            WHERE
-                e.shop_id = ?
-                AND e.is_active = true
-
-            GROUP BY
-                e.id,
-                e.name,
-                e.code,
-                e.brand,
-                e.color,
-                e.location,
-                e.image,
-
-                
-                e.status,
-                e.is_active,
-                e.battery_percentage,
-
-                e.helmet,
-                e.battery_voltage,
-                e.battery_capacity,
-                e.passenger_count,
-                e.phone_holder,
-
-                e.description,
-                e.created_at,
-
-                t.id,
-                t.name,
-                t.distance,
-
-                s.id,
-                s.shop_name,
-                s.shop_phone,
-                s.shop_address
+            ORDER BY e.id ASC
             `,
             [id]
         );
 
-        if (data.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "E-bike not found!"
-            });
-        }
-
-
         return res.status(200).json({
             success: true,
-            message: "E-bike Detail Success",
-            data:{
-                shop,
-                data
+            message: "E-Bike Detail Success",
+            count: data.length,
+            data: {
+                shop: {
+                    shop_id: shop[0].shop_id,
+                    shop_name: shop[0].shop_name,
+                    shop_phone: shop[0].shop_phone,
+                    shop_address: shop[0].shop_address,
+                    location: shop[0].location,
+                    type: shop[0].type,
+                    user_id: shop[0].user_id,
+                    image: shop[0].image,
+                    status: shop[0].status,
+                    is_active: Boolean(shop[0].is_active)
+                },
+                data: data.map(item => ({
+                    ...item,
+                    is_active: Boolean(item.is_active)
+                }))
             }
         });
-
 
     } catch (error) {
 
@@ -1070,12 +1045,14 @@ export const eBikeShopDetail = asyncHandel(async (req, res) => {
     }
 });
 
+
 export const eBikeShopList = asyncHandel(async (req, res) => {
     try {
 
         let query = "";
         let params = [];
 
+        // ADMIN
         if (req.user.role === "admin") {
 
             query = `
@@ -1091,11 +1068,13 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     s.user_id,
                     u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'e_bike'
                 ORDER BY s.id ASC
             `;
         }
+
+        // SHOP
         else if (req.user.role === "shop") {
 
             const [shop] = await db.query(
@@ -1105,6 +1084,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     type
                 FROM shops
                 WHERE user_id = ?
+                AND type = 'e_bike'
                 `,
                 [req.user.id]
             );
@@ -1112,7 +1092,7 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
             if (shop.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: "Shop not found!"
+                    message: "E-Bike shop not found!"
                 });
             }
 
@@ -1126,11 +1106,10 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     s.status,
                     s.is_active,
                     s.type,
-                    u.image,
-                    s.user_id
-
+                    s.user_id,
+                    u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.id = ?
                 AND s.type = 'e_bike'
                 ORDER BY s.id ASC
@@ -1138,6 +1117,8 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
 
             params = [shop[0].id];
         }
+
+        // USER
         else if (req.user.role === "user") {
 
             query = `
@@ -1150,17 +1131,18 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                     s.status,
                     s.is_active,
                     s.type,
-                    u.image,
-                    s.user_id
-
+                    s.user_id,
+                    u.image
                 FROM shops s
-                JOIN users u ON s.user_id = u.id
+                INNER JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'e_bike'
                 AND s.status = 'approved'
+                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }
 
+        // OTHER ROLE
         else {
 
             return res.status(403).json({
@@ -1168,13 +1150,15 @@ export const eBikeShopList = asyncHandel(async (req, res) => {
                 message: "Access denied!"
             });
         }
+
         const [data] = await db.query(query, params);
+
         return res.status(200).json({
             success: true,
-            message: "E-Bike Success!",
+            message: "E-Bike Shop List Success!",
+            count: data.length,
             data
         });
-
 
     } catch (error) {
 

@@ -893,7 +893,10 @@ export const thonebaneDetails = asyncHandel(async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Thonebane Details Success!",
-            data: thonebane
+            thonebanes: {
+                ...thonebane,
+                prices
+            }
         });
 
     } catch (error) {

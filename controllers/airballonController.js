@@ -855,7 +855,6 @@ export const airballonShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'air_balloon'
                 AND s.status = 'approved'
-                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }
@@ -917,7 +916,6 @@ export const airballonShopDetails = asyncHandel(async (req, res) => {
             INNER JOIN users u ON s.user_id = u.id
             WHERE s.id = ?
             AND s.status = 'approved'
-            AND s.is_active = 1
             AND s.type = 'air_balloon'
             `,
             [id]
@@ -1051,7 +1049,6 @@ export const airballonDetails = asyncHandel(async (req, res) => {
 
             WHERE a.id = ?
             AND s.status = 'approved'
-            AND s.is_active = 1
             AND s.type = 'air_balloon'
             AND a.is_active = 1
             `,

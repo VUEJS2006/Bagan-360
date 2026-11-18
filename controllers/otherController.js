@@ -765,7 +765,6 @@ export const otherShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'other'
                 AND s.status = 'approved'
-                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         } else {
@@ -838,7 +837,6 @@ export const otherShopDetails = asyncHandel(async (req, res) => {
 
             WHERE o.shop_id = ?
             AND s.status = 'approved'
-            AND s.is_active = 1
             AND s.type = 'other'
             AND o.is_active = 1
 
@@ -938,7 +936,6 @@ export const otherDetails = asyncHandel(async (req, res) => {
 
             WHERE o.id = ?
             AND s.status = 'approved'
-            AND s.is_active = 1
             AND s.type = 'other'
             AND o.is_active = 1
             `,

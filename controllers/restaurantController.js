@@ -389,7 +389,6 @@ export const restaurantList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
-                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }
@@ -567,7 +566,6 @@ export const resMenuList = asyncHandel(async (req, res) => {
                     ON m.shop_id = s.id
                 WHERE s.type = 'restaurant'
                 AND s.status = 'approved'
-                AND s.is_active = 1
                 AND m.is_active = true
                 ORDER BY m.id ASC
                 `;
@@ -1204,7 +1202,6 @@ export const restaurantDetails = asyncHandel(async (req, res) => {
             WHERE s.id = ?
             AND s.type = 'restaurant'
             AND s.status = 'approved'
-            AND s.is_active = 1
             `,
             [id]
         );
@@ -1347,7 +1344,6 @@ export const restMenuDeatils = asyncHandel(async (req, res) => {
 
             WHERE m.id = ?
             AND s.type = 'restaurant'
-            AND s.is_active = 1
             AND m.is_active = true
             `,
             [id]

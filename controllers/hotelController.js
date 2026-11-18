@@ -1025,7 +1025,6 @@ export const hotelShopList = asyncHandel(async (req, res) => {
                 JOIN users u ON s.user_id = u.id
                 WHERE s.type = 'hotel'
                 AND s.status = 'approved'
-                AND s.is_active = 1
                 ORDER BY s.id ASC
             `;
         }
@@ -1108,7 +1107,6 @@ export const hotelShopDetails = asyncHandel(async (req, res) => {
 
             WHERE h.shop_id = ?
             AND s.status = 'approved'
-            AND s.is_active = 1
             AND s.type = 'hotel'
             AND h.is_active = 1
 
@@ -1230,7 +1228,6 @@ export const hotelDetails = asyncHandel(async (req, res) => {
 
             WHERE h.id = ?
             AND s.status = 'approved'
-            AND s.is_active = 1
             AND s.type = 'hotel'
             AND h.is_active = 1
             `,

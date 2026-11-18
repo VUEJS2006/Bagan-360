@@ -343,12 +343,7 @@ export const login = asyncHandel(async (req, res) => {
                 });
             }
 
-            if (!shop.is_active) {
-                return res.status(403).json({
-                    success: false,
-                    message: "Your shop account is inactive."
-                });
-            }
+            
         }
 
         const token = jwt.sign(

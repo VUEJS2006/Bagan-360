@@ -371,9 +371,7 @@ export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
             success: true,
             message: "ThoneBane Category Delete Success",
             data: {
-                category_id: categoryId,
-                deleted_thonebanes: deletedThonebanes.affectedRows,
-                deleted_category: data.affectedRows
+                category_id: categoryId
             }
         });
 

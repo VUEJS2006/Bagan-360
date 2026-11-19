@@ -12,7 +12,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
 
         let shop_id;
 
-     
+
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
                 success: false,
@@ -20,7 +20,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
             });
         }
 
-       
+
         if (req.user.role === "shop") {
 
             const [shops] = await db.query(
@@ -38,7 +38,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
             shop_id = shops[0].id;
         }
 
-        
+
         if (req.user.role === "admin") {
 
             if (!bodyShopId) {
@@ -51,7 +51,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
             shop_id = bodyShopId;
         }
 
-    
+
         const [shop] = await db.query(
             "SELECT * FROM shops WHERE id = ?",
             [shop_id]
@@ -64,7 +64,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
             });
         }
 
-      
+
         if (!name) {
             return res.status(400).json({
                 success: false,
@@ -72,7 +72,7 @@ export const thoneBaneCategoryCreate = asyncHandel(async (req, res) => {
             });
         }
 
-      
+
         const [data] = await db.query(
             `
             INSERT INTO thonebane_categories
@@ -117,7 +117,7 @@ export const thoneBaneCategoryList = asyncHandel(async (req, res) => {
 
         let params = [];
 
-       
+
         if (req.user.role === "shop") {
 
             const [shops] = await db.query(
@@ -136,7 +136,7 @@ export const thoneBaneCategoryList = asyncHandel(async (req, res) => {
             params.push(shops[0].id);
         }
 
-        
+
         if (req.user.role === "admin" && shop_id) {
             query += ` WHERE shop_id = ?`;
             params.push(shop_id);
@@ -200,7 +200,7 @@ export const thoneBaneCategoryUpdate = asyncHandel(async (req, res) => {
             });
         }
 
-      
+
         if (req.user.role === "shop") {
 
             const [shops] = await db.query(
@@ -249,10 +249,20 @@ export const thoneBaneCategoryUpdate = asyncHandel(async (req, res) => {
     }
 });
 
-export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
-    try {
 
+export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
         const { id } = req.params;
+        const categoryId = Number(id);
+
+        if (!Number.isSafeInteger(categoryId) || categoryId <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid ThoneBane Category ID!"
+            });
+        }
 
         if (!["admin", "shop"].includes(req.user.role)) {
             return res.status(403).json({
@@ -261,31 +271,43 @@ export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
             });
         }
 
-        const [thonebane] = await db.query(
+        await connection.beginTransaction();
+
+        // Check Category
+        const [thonebane] = await connection.query(
             `
             SELECT *
             FROM thonebane_categories
             WHERE id = ?
+            FOR UPDATE
             `,
-            [id]
+            [categoryId]
         );
 
         if (thonebane.length === 0) {
+            await connection.rollback();
+
             return res.status(404).json({
                 success: false,
                 message: "ThoneBane Category not found!"
             });
         }
 
-    
+        // SHOP ROLE
         if (req.user.role === "shop") {
 
-            const [shops] = await db.query(
-                "SELECT id FROM shops WHERE user_id = ?",
+            const [shops] = await connection.query(
+                `
+                SELECT id
+                FROM shops
+                WHERE user_id = ?
+                `,
                 [req.user.id]
             );
 
             if (shops.length === 0) {
+                await connection.rollback();
+
                 return res.status(404).json({
                     success: false,
                     message: "Shop not found!"
@@ -293,6 +315,8 @@ export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
             }
 
             if (thonebane[0].shop_id !== shops[0].id) {
+                await connection.rollback();
+
                 return res.status(403).json({
                     success: false,
                     message: "You cannot delete this category!"
@@ -300,21 +324,39 @@ export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
             }
         }
 
-        const [data] = await db.query(
+    
+        const [deletedThonebanes] = await connection.query(
+            `
+            DELETE FROM thonebanes
+            WHERE category_id = ?
+            `,
+            [categoryId]
+        );
+
+        // Delete Category
+        const [data] = await connection.query(
             `
             DELETE FROM thonebane_categories
             WHERE id = ?
             `,
-            [id]
+            [categoryId]
         );
+
+        await connection.commit();
 
         return res.status(200).json({
             success: true,
             message: "ThoneBane Category Delete Success",
-            data
+            data: {
+                category_id: categoryId,
+                deleted_thonebanes: deletedThonebanes.affectedRows,
+                deleted_category: data.affectedRows
+            }
         });
 
     } catch (error) {
+
+        await connection.rollback();
 
         console.log(error);
 
@@ -322,5 +364,8 @@ export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
             success: false,
             message: error.message
         });
+
+    } finally {
+        connection.release();
     }
 });

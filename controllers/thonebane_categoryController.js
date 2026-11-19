@@ -324,7 +324,39 @@ export const thoneBaneCategoryDelete = asyncHandel(async (req, res) => {
             }
         }
 
-    
+        const [bookings] = await connection.query(
+            `
+            SELECT b.id
+            FROM thonebane_bookings b
+            INNER JOIN thonebanes t
+                ON t.id = b.thonebane_id
+            WHERE t.category_id = ?
+            LIMIT 1
+            `,
+            [categoryId]
+        );
+
+        if (bookings.length > 0) {
+            await connection.rollback();
+
+            return res.status(400).json({
+                success: false,
+                message: "Cannot delete category because bookings exist!"
+            });
+        }
+
+        await connection.query(
+            `
+            DELETE FROM thonebane_prices
+            WHERE thonebane_id IN (
+                SELECT id
+                FROM thonebanes
+                WHERE category_id = ?
+            )
+            `,
+            [categoryId]
+        );
+
         const [deletedThonebanes] = await connection.query(
             `
             DELETE FROM thonebanes

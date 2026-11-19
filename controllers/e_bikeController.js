@@ -129,21 +129,7 @@ export const eBikeCreate = asyncHandel(async (req, res) => {
         }
 
 
-        const [existingBike] = await db.query(
-            `
-            SELECT *
-            FROM e_bikes
-            WHERE code = ?
-            `,
-            [code]
-        );
-
-        if (existingBike.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: "E-bike code already exists!"
-            });
-        }
+      
 
 
         const uploadFolder = path.join(
@@ -626,26 +612,7 @@ export const eBikeUpdate = asyncHandel(async (req, res) => {
         }
 
 
-        const [existingBike] = await db.query(
-            `
-            SELECT *
-            FROM e_bikes
-            WHERE code = ?
-            AND id != ?
-            `,
-            [
-                code,
-                id
-            ]
-        );
-
-        if (existingBike.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: "E-bike code already exists!"
-            });
-        }
-
+    
 
         let updateImage = bike[0].image;
 
